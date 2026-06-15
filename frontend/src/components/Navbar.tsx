@@ -33,15 +33,20 @@ export default function Navbar() {
   const xpProgress = ((user.xp % 100) / 100) * 100
 
   return (
-    <nav className="bg-quest-card border-b border-quest-border sticky top-0 z-40">
+    <nav className="bg-quest-bg/80 backdrop-blur-xl border-b border-quest-border/50 sticky top-0 z-40 relative">
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-quest-purple/40 to-transparent" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-quest-purple rounded-lg flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
+          <Link to="/dashboard" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)', boxShadow: '0 0 16px rgba(124,58,237,0.4)' }}>
+              <Zap className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold text-xl text-white hidden sm:block">CodeQuest</span>
+            <span className="font-bold text-lg hidden sm:block"
+              style={{ background: 'linear-gradient(135deg, #9d5cf6 0%, #818cf8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              CodeQuest
+            </span>
           </Link>
 
           {/* Desktop nav */}
@@ -54,8 +59,8 @@ export default function Navbar() {
                   to={path}
                   className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
                     isActive
-                      ? 'text-quest-purple-light bg-quest-purple/10'
-                      : 'text-quest-muted hover:text-quest-text hover:bg-quest-border/50'
+                      ? 'text-white bg-quest-purple/15 border border-quest-purple/25'
+                      : 'text-quest-muted hover:text-quest-text hover:bg-white/5'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -63,7 +68,7 @@ export default function Navbar() {
                   {isActive && (
                     <motion.div
                       layoutId="nav-indicator"
-                      className="absolute inset-0 rounded-xl border border-quest-purple/30"
+                      className="absolute inset-0 rounded-xl bg-gradient-to-r from-quest-purple/20 to-quest-indigo/10 border border-quest-purple/30"
                     />
                   )}
                 </Link>
@@ -76,20 +81,22 @@ export default function Navbar() {
             {/* Level + XP bar */}
             <div className="hidden sm:flex flex-col items-end gap-0.5">
               <div className="flex items-center gap-2 text-xs text-quest-muted">
-                <span className="text-quest-purple-light font-bold">Lv.{user.level}</span>
+                <span className="font-bold text-xs px-1.5 py-0.5 rounded-md"
+                  style={{ background: 'linear-gradient(135deg, #7c3aed22 0%, #6366f122 100%)', color: '#9d5cf6', boxShadow: '0 0 8px rgba(124,58,237,0.2)' }}>
+                  Lv.{user.level}
+                </span>
                 <span>{user.xp} XP</span>
               </div>
-              <div className="w-24 xp-bar">
-                <div className="xp-fill" style={{ width: `${xpProgress}%` }} />
+              <div className="w-20 bg-quest-border/30 rounded-full h-1.5">
+                <div className="h-1.5 rounded-full" style={{ width: `${xpProgress}%`, background: 'linear-gradient(90deg, #7c3aed 0%, #818cf8 100%)', boxShadow: '0 0 6px rgba(124,58,237,0.5)' }} />
               </div>
               <span className="text-xs text-quest-muted">{xpToNextLevel} XP to next level</span>
             </div>
 
             {/* Streak */}
-            <div className="flex items-center gap-1 text-quest-yellow">
-              <span>🔥</span>
-              <span className="text-sm font-bold">{user.streak}</span>
-            </div>
+            <span className="flex items-center gap-1 text-sm font-bold px-2 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400">
+              🔥 {user.streak}
+            </span>
 
             {/* Dark mode toggle */}
             <button
@@ -119,10 +126,13 @@ export default function Navbar() {
               <Link
                 key={path}
                 to={path}
-                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-xs transition-all ${
+                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-xs transition-all relative ${
                   isActive ? 'text-quest-purple-light' : 'text-quest-muted'
                 }`}
               >
+                {isActive && (
+                  <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-quest-purple-light" />
+                )}
                 <Icon className="w-5 h-5" />
                 {label}
               </Link>

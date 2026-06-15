@@ -202,13 +202,13 @@ export default function Profile() {
             {allBadges.map((badge) => (
               <div
                 key={badge.id}
-                className={`flex flex-col items-center gap-2 p-3 rounded-xl border text-center transition-all ${
+                className={`flex flex-col items-center gap-2 p-4 rounded-2xl border text-center transition-all duration-200 ${
                   badge.earned
-                    ? 'border-quest-yellow/40 bg-quest-yellow/5'
-                    : 'border-quest-border bg-quest-border/20 opacity-60 grayscale'
+                    ? 'border-quest-yellow/40 bg-gradient-to-b from-quest-yellow/10 to-quest-yellow/3 shadow-[0_0_16px_rgba(234,179,8,0.12)]'
+                    : 'border-quest-border/50 bg-quest-card/50 opacity-50 grayscale'
                 }`}
               >
-                <span className="text-3xl">{badge.icon}</span>
+                <span className="text-3xl" style={badge.earned ? { filter: 'drop-shadow(0 0 8px rgba(234,179,8,0.4))' } : {}}>{badge.icon}</span>
                 <span className={`text-xs font-semibold leading-tight ${badge.earned ? 'text-white' : 'text-quest-muted'}`}>
                   {badge.name}
                 </span>

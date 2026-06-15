@@ -13,18 +13,19 @@ function TopicNode({ topic, isSelected, onSelect }: {
   topic: Topic; isSelected: boolean; onSelect: () => void
 }) {
   const statusColor = topic.is_completed
-    ? 'border-quest-green bg-quest-green/10 text-quest-green'
+    ? 'border-quest-green/50 bg-gradient-to-b from-quest-green/15 to-quest-green/5 text-quest-green'
     : topic.is_locked
     ? 'border-quest-border bg-quest-border/30 text-quest-muted'
     : isSelected
-    ? 'border-quest-purple bg-quest-purple/20 text-quest-purple-light'
-    : 'border-quest-border bg-quest-card text-quest-text hover:border-quest-purple/50'
+    ? 'border-quest-purple/60 bg-gradient-to-b from-quest-purple/20 to-quest-purple/5 text-quest-purple-light'
+    : 'border-quest-border bg-quest-card text-quest-text hover:border-quest-purple/40 hover:shadow-[0_0_12px_rgba(124,58,237,0.15)]'
 
   return (
     <motion.button
       whileHover={!topic.is_locked ? { scale: 1.03 } : {}}
       whileTap={!topic.is_locked ? { scale: 0.98 } : {}}
       onClick={topic.is_locked ? undefined : onSelect}
+      style={topic.is_completed ? { boxShadow: '0 0 16px rgba(34,197,94,0.15)' } : isSelected ? { boxShadow: '0 0 16px rgba(124,58,237,0.2)' } : {}}
       className={`relative flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all duration-200 w-28 ${statusColor} ${
         topic.is_locked ? 'cursor-not-allowed' : 'cursor-pointer'
       }`}
@@ -162,9 +163,9 @@ export default function Roadmap() {
                         transition={{ delay: i * 0.05 }}
                         className={`card flex items-center gap-4 transition-all ${
                           lesson.is_completed
-                            ? 'border-quest-green/30 bg-quest-green/5'
+                            ? 'border-quest-green/30 bg-quest-green/5 shadow-[0_2px_8px_rgba(34,197,94,0.1)]'
                             : isAccessible
-                            ? 'hover:border-quest-purple/50 cursor-pointer'
+                            ? 'hover:border-quest-purple/50 cursor-pointer hover:shadow-[0_4px_16px_rgba(124,58,237,0.15)]'
                             : 'opacity-50 cursor-not-allowed'
                         }`}
                         onClick={() => isAccessible && handleStartLesson(lesson)}

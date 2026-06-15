@@ -9,14 +9,15 @@ import Heatmap from '../components/Heatmap'
 import StreakDisplay from '../components/StreakDisplay'
 import { CardSkeleton } from '../components/LoadingSkeleton'
 
-function StatCard({ icon, label, value, color = 'text-quest-purple' }: {
-  icon: React.ReactNode; label: string; value: string | number; color?: string
+function StatCard({ icon, label, value, color = 'text-quest-purple', gradient = 'from-quest-purple/8' }: {
+  icon: React.ReactNode; label: string; value: string | number; color?: string; gradient?: string
 }) {
   return (
-    <motion.div whileHover={{ y: -2 }} className="card flex items-center gap-4">
-      <div className={`${color} bg-current/10 rounded-xl p-3`}>{icon}</div>
-      <div>
-        <div className="text-2xl font-bold text-white">{value}</div>
+    <motion.div whileHover={{ y: -2 }} className="card relative overflow-hidden flex items-center gap-4">
+      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} to-transparent rounded-2xl pointer-events-none`} />
+      <div className={`${color} bg-current/10 rounded-xl p-3 relative`}>{icon}</div>
+      <div className="relative">
+        <div className="text-3xl font-extrabold text-white mt-1">{value}</div>
         <div className="text-quest-muted text-sm">{label}</div>
       </div>
     </motion.div>
@@ -99,8 +100,12 @@ export default function Dashboard() {
 
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">
-            {greeting()}, {data.username}! 👋
+          <h1 className="text-2xl sm:text-3xl font-bold">
+            <span className="text-quest-text">{greeting()}, </span>
+            <span style={{ background: 'linear-gradient(135deg, #9d5cf6 0%, #818cf8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+              {data.username}
+            </span>
+            <span className="text-quest-text"> 👋</span>
           </h1>
           <p className="text-quest-muted mt-1">Keep up the momentum — you're doing great!</p>
         </div>
@@ -108,10 +113,10 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<Zap className="w-5 h-5" />} label="Total XP" value={data.xp.toLocaleString()} color="text-quest-purple" />
-        <StatCard icon={<Trophy className="w-5 h-5" />} label="Level" value={data.level} color="text-quest-yellow" />
-        <StatCard icon={<BookOpen className="w-5 h-5" />} label="Lessons Done" value={data.total_lessons_completed} color="text-quest-green" />
-        <StatCard icon={<Flame className="w-5 h-5" />} label="Day Streak" value={data.streak} color="text-orange-400" />
+        <StatCard icon={<Zap className="w-5 h-5" />} label="Total XP" value={data.xp.toLocaleString()} color="text-quest-purple" gradient="from-quest-purple/10" />
+        <StatCard icon={<Trophy className="w-5 h-5" />} label="Level" value={data.level} color="text-quest-yellow" gradient="from-quest-indigo/10" />
+        <StatCard icon={<BookOpen className="w-5 h-5" />} label="Lessons Done" value={data.total_lessons_completed} color="text-quest-green" gradient="from-quest-green/10" />
+        <StatCard icon={<Flame className="w-5 h-5" />} label="Day Streak" value={data.streak} color="text-orange-400" gradient="from-orange-500/10" />
       </div>
 
       {data?.total_lessons !== undefined && data.total_lessons > 0 && (

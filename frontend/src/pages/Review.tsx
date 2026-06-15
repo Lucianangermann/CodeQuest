@@ -118,7 +118,7 @@ export default function Review() {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
-          className="card space-y-6"
+          className="card-glow space-y-6"
         >
           {/* Topic badge */}
           <div className="flex items-center gap-2">
@@ -166,7 +166,7 @@ export default function Review() {
                     key={quality}
                     disabled={isPending}
                     onClick={() => submitResult({ lesson_id: card.lesson_id, quality })}
-                    className={`flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all ${cls} ${isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all duration-200 hover:-translate-y-0.5 ${cls} ${isPending ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
                   >
                     {label}
                   </button>
