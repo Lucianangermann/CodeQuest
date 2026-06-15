@@ -85,6 +85,7 @@ class DashboardStats(BaseModel):
     lessons_today: int
     xp_today: int
     total_lessons_completed: int
+    lessons_this_week: int = 0
     current_topic: Optional[dict] = None
     recent_badges: List[dict]
     activity_data: List[dict]

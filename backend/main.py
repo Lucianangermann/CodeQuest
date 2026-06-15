@@ -7,7 +7,7 @@ import os
 load_dotenv()
 
 from db.connection import init_pool, close_pool
-from routes import auth, topics, lessons, ai, user, leaderboard, onboarding, training_plan, checklist, weekly_checkin, interview
+from routes import auth, topics, lessons, ai, user, leaderboard, onboarding, training_plan, checklist, weekly_checkin, interview, review, portfolio
 
 
 @asynccontextmanager
@@ -40,6 +40,8 @@ app.include_router(training_plan.router,  prefix="/training-plan",  tags=["train
 app.include_router(checklist.router,      prefix="/checklist",      tags=["checklist"])
 app.include_router(weekly_checkin.router, prefix="/weekly-checkin", tags=["weekly-checkin"])
 app.include_router(interview.router,      prefix="/interview",      tags=["interview"])
+app.include_router(review.router,         prefix="/review",         tags=["review"])
+app.include_router(portfolio.router,      prefix="/portfolio",      tags=["portfolio"])
 
 
 @app.get("/health")

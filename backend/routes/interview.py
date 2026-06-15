@@ -128,3 +128,26 @@ async def get_interview_history(user_id: str = Depends(get_current_user)):
             for r in rows
         ]
     }
+
+
+@router.get("/session/{session_id}")
+async def get_session_detail(session_id: int, user_id: str = Depends(get_current_user)):
+    async with acquire() as conn:
+        row = await conn.fetchrow(
+            """SELECT id, company_size, focus, score, feedback_json, questions_json,
+                      completed_at, created_at
+               FROM interview_sessions WHERE id = $1 AND user_id = $2""",
+            session_id, user_id,
+        )
+    if not row:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {
+        "id": row["id"],
+        "company_size": row["company_size"],
+        "focus": row["focus"],
+        "score": row["score"],
+        "feedback": dict(row["feedback_json"]) if row["feedback_json"] else None,
+        "qa_pairs": list(row["questions_json"]) if row["questions_json"] else [],
+        "completed_at": row["completed_at"].isoformat() if row["completed_at"] else None,
+        "created_at": row["created_at"].isoformat(),
+    }

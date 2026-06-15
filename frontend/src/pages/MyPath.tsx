@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Route, ChevronDown, ChevronUp, RefreshCw, BookOpen, Code2, FlaskConical, RotateCcw, Mic, Bug, CheckCircle, Circle, Trophy, Briefcase } from 'lucide-react'
-import { fetchTrainingPlan, adjustTrainingPlan, advancePhase } from '../lib/api'
+import { Route, ChevronDown, ChevronUp, RefreshCw, BookOpen, Code2, FlaskConical, RotateCcw, Mic, Bug, CheckCircle, Circle, Trophy, Briefcase, FolderOpen, Github, ExternalLink, Plus, Trash2 } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { fetchTrainingPlan, adjustTrainingPlan, advancePhase, fetchPortfolioProjects, createPortfolioProject, deletePortfolioProject } from '../lib/api'
 import type { PlanPhase, PlanActivity, PlanTopic } from '../types'
 
 // ── Icons & colours ──────────────────────────────────────────────────────────
@@ -147,6 +148,28 @@ export default function MyPath() {
   const { data, isLoading } = useQuery({
     queryKey: ['training-plan'],
     queryFn: fetchTrainingPlan,
+  })
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ['portfolio-projects'],
+    queryFn: fetchPortfolioProjects,
+  })
+
+  const [showProjectForm, setShowProjectForm] = useState(false)
+  const [newProject, setNewProject] = useState({ title: '', description: '', github_url: '', live_url: '' })
+
+  const { mutate: addProject, isPending: addingProject } = useMutation({
+    mutationFn: createPortfolioProject,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['portfolio-projects'] })
+      setShowProjectForm(false)
+      setNewProject({ title: '', description: '', github_url: '', live_url: '' })
+    },
+  })
+
+  const { mutate: removeProject } = useMutation({
+    mutationFn: deletePortfolioProject,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['portfolio-projects'] }),
   })
 
   const adjustMutation = useMutation({
@@ -402,6 +425,112 @@ export default function MyPath() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Portfolio Tracker */}
+      <div className="card mt-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <FolderOpen className="w-5 h-5 text-quest-purple" />
+            <h3 className="font-bold text-white text-lg">My Portfolio</h3>
+          </div>
+          <button
+            onClick={() => setShowProjectForm(v => !v)}
+            className="btn-secondary flex items-center gap-1 text-sm py-1.5 px-3"
+          >
+            <Plus className="w-4 h-4" />
+            Add Project
+          </button>
+        </div>
+
+        {showProjectForm && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="mb-4 p-4 bg-quest-border/20 rounded-xl space-y-3"
+          >
+            <input
+              type="text"
+              placeholder="Project title *"
+              value={newProject.title}
+              onChange={e => setNewProject(v => ({ ...v, title: e.target.value }))}
+              className="w-full bg-quest-bg border border-quest-border rounded-xl px-3 py-2 text-sm text-white placeholder-quest-muted focus:outline-none focus:border-quest-purple"
+            />
+            <input
+              type="text"
+              placeholder="Short description"
+              value={newProject.description}
+              onChange={e => setNewProject(v => ({ ...v, description: e.target.value }))}
+              className="w-full bg-quest-bg border border-quest-border rounded-xl px-3 py-2 text-sm text-white placeholder-quest-muted focus:outline-none focus:border-quest-purple"
+            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="GitHub URL"
+                value={newProject.github_url}
+                onChange={e => setNewProject(v => ({ ...v, github_url: e.target.value }))}
+                className="flex-1 bg-quest-bg border border-quest-border rounded-xl px-3 py-2 text-sm text-white placeholder-quest-muted focus:outline-none focus:border-quest-purple"
+              />
+              <input
+                type="text"
+                placeholder="Live URL"
+                value={newProject.live_url}
+                onChange={e => setNewProject(v => ({ ...v, live_url: e.target.value }))}
+                className="flex-1 bg-quest-bg border border-quest-border rounded-xl px-3 py-2 text-sm text-white placeholder-quest-muted focus:outline-none focus:border-quest-purple"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                disabled={!newProject.title || addingProject}
+                onClick={() => addProject({ ...newProject })}
+                className="btn-primary text-sm py-1.5 px-4"
+              >
+                {addingProject ? 'Adding...' : 'Add'}
+              </button>
+              <button onClick={() => setShowProjectForm(false)} className="btn-secondary text-sm py-1.5 px-4">
+                Cancel
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {projects.length === 0 ? (
+          <p className="text-quest-muted text-sm text-center py-4">
+            No projects yet. Add your first project to track your portfolio!
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {projects.map(p => (
+              <div key={p.id} className="flex items-start gap-3 p-3 rounded-xl bg-quest-border/10 border border-quest-border">
+                <FolderOpen className="w-5 h-5 text-quest-purple flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-white text-sm">{p.title}</p>
+                  {p.description && <p className="text-xs text-quest-muted mt-0.5">{p.description}</p>}
+                  <div className="flex gap-3 mt-1.5">
+                    {p.github_url && (
+                      <a href={p.github_url} target="_blank" rel="noreferrer"
+                        className="flex items-center gap-1 text-xs text-quest-muted hover:text-white transition-colors">
+                        <Github className="w-3 h-3" /> GitHub
+                      </a>
+                    )}
+                    {p.live_url && (
+                      <a href={p.live_url} target="_blank" rel="noreferrer"
+                        className="flex items-center gap-1 text-xs text-quest-muted hover:text-white transition-colors">
+                        <ExternalLink className="w-3 h-3" /> Live
+                      </a>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => removeProject(p.id)}
+                  className="text-quest-muted hover:text-red-400 transition-colors p-1"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Adjust plan */}

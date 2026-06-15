@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { motion } from 'framer-motion'
 import { Mic, Send, Trophy, AlertCircle, ChevronRight, RotateCcw, History } from 'lucide-react'
-import { startInterview, sendInterviewMessage, completeInterview, fetchInterviewHistory } from '../lib/api'
+import { startInterview, sendInterviewMessage, completeInterview, fetchInterviewHistory, fetchInterviewSession } from '../lib/api'
 import type { QAPair, InterviewSummary, InterviewSession } from '../types'
 
 const TOTAL_QUESTIONS = 10
@@ -386,9 +387,17 @@ function Summary({ summary, company, focus, onRestart }: {
 // ── History screen ────────────────────────────────────────────────────────────
 
 function HistoryList({ onBack }: { onBack: () => void }) {
+  const [detailSessionId, setDetailSessionId] = useState<number | null>(null)
+
   const { data, isLoading } = useQuery({
     queryKey: ['interview-history'],
     queryFn: fetchInterviewHistory,
+  })
+
+  const { data: sessionDetail, isLoading: loadingDetail } = useQuery({
+    queryKey: ['interview-session', detailSessionId],
+    queryFn: () => fetchInterviewSession(detailSessionId!),
+    enabled: detailSessionId !== null,
   })
 
   if (isLoading) return <div className="text-center py-20 text-gray-400">Loading history...</div>
@@ -415,19 +424,79 @@ function HistoryList({ onBack }: { onBack: () => void }) {
                     {s.completed_at ? new Date(s.completed_at).toLocaleDateString() : 'In progress'}
                   </div>
                 </div>
-                {s.score !== null ? (
-                  <div className={`text-2xl font-bold ${s.score >= 8 ? 'text-emerald-400' : s.score >= 6 ? 'text-amber-400' : 'text-red-400'}`}>
-                    {s.score}/10
-                  </div>
-                ) : (
-                  <div className="text-gray-500 text-sm">—</div>
-                )}
+                <div className="flex items-center gap-3">
+                  {s.score !== null && (
+                    <div className={`text-2xl font-bold ${s.score >= 8 ? 'text-emerald-400' : s.score >= 6 ? 'text-amber-400' : 'text-red-400'}`}>
+                      {s.score}/10
+                    </div>
+                  )}
+                  {s.completed_at && (
+                    <button
+                      onClick={() => setDetailSessionId(s.id)}
+                      className="text-xs text-violet-400 hover:text-violet-300 border border-violet-500/30 hover:border-violet-400/50 rounded-lg px-2.5 py-1 transition-colors"
+                    >
+                      View Q&A
+                    </button>
+                  )}
+                  {s.score === null && !s.completed_at && (
+                    <div className="text-gray-500 text-sm">—</div>
+                  )}
+                </div>
               </div>
               {s.feedback?.overall_feedback && (
                 <p className="text-xs text-gray-400 line-clamp-2">{s.feedback.overall_feedback}</p>
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Q&A Detail Modal */}
+      {detailSessionId !== null && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          onClick={() => setDetailSessionId(null)}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-quest-card border border-white/10 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-white text-lg">Interview Q&A Review</h3>
+              <button
+                onClick={() => setDetailSessionId(null)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {loadingDetail ? (
+              <div className="text-center py-8 text-gray-400">Loading Q&A...</div>
+            ) : sessionDetail ? (
+              <div className="space-y-3">
+                {sessionDetail.qa_pairs.map((msg, i) =>
+                  msg.role !== 'system' ? (
+                    <div
+                      key={i}
+                      className={`p-3 rounded-xl text-sm ${
+                        msg.role === 'user'
+                          ? 'bg-violet-500/10 border border-violet-500/20 text-white'
+                          : 'bg-white/5 border border-white/10 text-gray-300'
+                      }`}
+                    >
+                      <p className="text-xs text-gray-500 font-semibold mb-1 uppercase">
+                        {msg.role === 'user' ? 'You' : 'Interviewer'}
+                      </p>
+                      <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                    </div>
+                  ) : null
+                )}
+              </div>
+            ) : null}
+          </motion.div>
         </div>
       )}
     </div>

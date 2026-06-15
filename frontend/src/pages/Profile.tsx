@@ -2,10 +2,9 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Settings, BookOpen, Zap, Flame, Edit3, Check, X, AlertCircle } from 'lucide-react'
-import { fetchProfile, updateProfile } from '../lib/api'
+import { fetchProfile, updateProfile, fetchAllBadges } from '../lib/api'
 import { useUserStore } from '../store/useUserStore'
 import type { ProfileData } from '../types'
-import BadgeCard from '../components/BadgeCard'
 import ProgressBar from '../components/ProgressBar'
 import StreakDisplay from '../components/StreakDisplay'
 import { CardSkeleton } from '../components/LoadingSkeleton'
@@ -26,6 +25,11 @@ export default function Profile() {
   } as Parameters<typeof useQuery>[0])
 
   const typedProfile = profile as ProfileData | undefined
+
+  const { data: allBadges = [] } = useQuery({
+    queryKey: ['all-badges'],
+    queryFn: fetchAllBadges,
+  })
 
   const languageMutation = useMutation({
     mutationFn: (lang: string) => updateProfile({ language_preference: lang } as Partial<ProfileData>),
@@ -188,20 +192,46 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Badges */}
-      <div>
-        <h2 className="font-semibold text-white mb-4">
-          Badges ({typedProfile.badges.length} earned)
-        </h2>
-        {typedProfile.badges.length === 0 ? (
-          <div className="card text-center py-8 text-quest-muted">
-            <span className="text-4xl mb-2 block">🏅</span>
-            Complete lessons to earn badges!
-          </div>
+      {/* Badge Encyclopedia */}
+      <div className="card">
+        <h3 className="font-bold text-white text-lg mb-4">Achievements</h3>
+        {allBadges.length === 0 ? (
+          <p className="text-quest-muted text-sm">Loading badges...</p>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {typedProfile.badges.map((badge) => (
-              <BadgeCard key={badge.id} badge={badge} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {allBadges.map((badge) => (
+              <div
+                key={badge.id}
+                className={`flex flex-col items-center gap-2 p-3 rounded-xl border text-center transition-all ${
+                  badge.earned
+                    ? 'border-quest-yellow/40 bg-quest-yellow/5'
+                    : 'border-quest-border bg-quest-border/20 opacity-60 grayscale'
+                }`}
+              >
+                <span className="text-3xl">{badge.icon}</span>
+                <span className={`text-xs font-semibold leading-tight ${badge.earned ? 'text-white' : 'text-quest-muted'}`}>
+                  {badge.name}
+                </span>
+                <span className="text-xs text-quest-muted leading-tight">{badge.description}</span>
+                {badge.earned ? (
+                  <span className="text-xs text-quest-yellow font-medium">✓ Earned</span>
+                ) : badge.progress !== null && badge.goal !== null ? (
+                  <div className="w-full">
+                    <div className="flex justify-between text-xs text-quest-muted mb-1">
+                      <span>{badge.progress}</span>
+                      <span>{badge.goal}</span>
+                    </div>
+                    <div className="w-full bg-quest-border rounded-full h-1">
+                      <div
+                        className="bg-quest-purple h-1 rounded-full"
+                        style={{ width: `${Math.min(100, (badge.progress / badge.goal) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-xs text-quest-muted">🔒 Locked</span>
+                )}
+              </div>
             ))}
           </div>
         )}

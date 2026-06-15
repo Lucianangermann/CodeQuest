@@ -2,19 +2,8 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Star, RefreshCw } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { fetchCurrentCheckin, submitCheckin, fetchTrainingPlan } from '../lib/api'
+import { fetchCurrentCheckin, submitCheckin, fetchTrainingPlan, fetchDashboard } from '../lib/api'
 import { useUserStore } from '../store/useUserStore'
-
-const WEEK_TASK_KEY = 'cq_week_tasks'
-
-function getWeekTasks(): { completed: number; total: number } {
-  try {
-    const raw = localStorage.getItem(WEEK_TASK_KEY)
-    return raw ? JSON.parse(raw) : { completed: 0, total: 0 }
-  } catch {
-    return { completed: 0, total: 0 }
-  }
-}
 
 export default function WeeklyReviewPopup() {
   const user = useUserStore((s) => s.user)
@@ -22,7 +11,6 @@ export default function WeeklyReviewPopup() {
   const qc = useQueryClient()
   const [visible, setVisible] = useState(false)
   const [notes, setNotes] = useState('')
-  const weekTasks = getWeekTasks()
 
   const isSunday = new Date().getDay() === 0
 
@@ -38,6 +26,14 @@ export default function WeeklyReviewPopup() {
     enabled: !!user?.onboarding_completed,
   })
 
+  const { data: dashboardData } = useQuery({
+    queryKey: ['dashboard'],
+    queryFn: fetchDashboard,
+    enabled: !!user?.onboarding_completed,
+  })
+
+  const lessonsThisWeek = dashboardData?.lessons_this_week ?? 0
+
   useEffect(() => {
     if (isSunday && user?.onboarding_completed && checkinData && !checkinData.checkin && planData?.plan) {
       setVisible(true)
@@ -47,8 +43,8 @@ export default function WeeklyReviewPopup() {
   const submitMutation = useMutation({
     mutationFn: () =>
       submitCheckin({
-        tasks_completed: weekTasks.completed,
-        tasks_total: weekTasks.total,
+        tasks_completed: lessonsThisWeek,
+        tasks_total: lessonsThisWeek,
         notes: notes || undefined,
       }),
     onSuccess: () => {
@@ -63,8 +59,6 @@ export default function WeeklyReviewPopup() {
   }
 
   if (!visible) return null
-
-  const pct = weekTasks.total > 0 ? Math.round((weekTasks.completed / weekTasks.total) * 100) : 0
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -84,19 +78,12 @@ export default function WeeklyReviewPopup() {
             Great job making it to Sunday! How did this week go?
           </p>
 
-          {weekTasks.total > 0 && (
+          {lessonsThisWeek > 0 && (
             <div className="bg-white/5 rounded-xl p-4 text-center">
               <div className="text-4xl font-bold text-white mb-1">
-                {weekTasks.completed}
-                <span className="text-gray-500 text-2xl">/{weekTasks.total}</span>
+                {lessonsThisWeek}
               </div>
-              <div className="text-gray-400 text-sm">tasks completed</div>
-              <div className="mt-3 h-2 bg-white/10 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-violet-500 to-emerald-500 rounded-full"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
+              <div className="text-gray-400 text-sm">lessons completed this week</div>
             </div>
           )}
 

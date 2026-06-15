@@ -4,6 +4,7 @@ from models.schemas import SubmitAnswerRequest, SubmitAnswerResponse
 from db.connection import acquire
 from services.code_runner import execute_code
 from deps import get_current_user, get_optional_user
+from utils.streak import update_user_streak
 
 router = APIRouter()
 
@@ -194,6 +195,15 @@ async def submit_lesson(
                 streak=streak,
                 first_attempt_count=first_attempt_count,
                 topic_id=lesson["topic_id"],
+            )
+            await update_user_streak(conn, user_id)
+
+            # Schedule spaced repetition review (1 day from now)
+            await conn.execute(
+                """INSERT INTO review_schedule (user_id, lesson_id, next_review, interval_days)
+                   VALUES ($1, $2, CURRENT_DATE + INTERVAL '1 day', 1)
+                   ON CONFLICT (user_id, lesson_id) DO NOTHING""",
+                user_id, lesson_id,
             )
 
         elif correct and already_done:

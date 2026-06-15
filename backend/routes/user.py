@@ -4,6 +4,7 @@ from typing import Optional
 from models.schemas import DashboardStats, StreakUpdateResponse
 from db.connection import acquire
 from deps import get_current_user
+from utils.streak import update_user_streak
 
 router = APIRouter()
 
@@ -72,6 +73,13 @@ async def get_dashboard(user_id: str = Depends(get_current_user)):
             user_id, ninety_ago,
         )
 
+        week_start = today - timedelta(days=today.weekday())  # Monday of current week
+        lessons_this_week = await conn.fetchval(
+            """SELECT COALESCE(SUM(lessons_completed), 0)
+               FROM activity_log WHERE user_id = $1 AND date >= $2""",
+            user_id, week_start,
+        )
+
     td = dict(today_row) if today_row else {}
     return DashboardStats(
         username=user["username"],
@@ -83,6 +91,7 @@ async def get_dashboard(user_id: str = Depends(get_current_user)):
         lessons_today=td.get("lessons_completed", 0),
         xp_today=td.get("xp_earned", 0),
         total_lessons_completed=total_completed or 0,
+        lessons_this_week=int(lessons_this_week or 0),
         current_topic=current_topic,
         recent_badges=[dict(b) for b in badges],
         activity_data=[dict(a) for a in activity],
@@ -92,34 +101,11 @@ async def get_dashboard(user_id: str = Depends(get_current_user)):
 @router.post("/streak", response_model=StreakUpdateResponse)
 async def update_streak(user_id: str = Depends(get_current_user)):
     async with acquire() as conn:
-        row = await conn.fetchrow(
-            "SELECT streak, last_active FROM users WHERE id = $1", user_id
-        )
-        if not row:
+        user_check = await conn.fetchrow("SELECT id FROM users WHERE id = $1", user_id)
+        if not user_check:
             raise HTTPException(status_code=404, detail="User not found")
 
-        today = date.today()
-        last = row["last_active"]
-        streak = row["streak"] or 0
-        is_new_day = False
-
-        if last:
-            delta = (today - last).days
-            if delta == 1:
-                streak += 1
-                is_new_day = True
-            elif delta > 1:
-                streak = 1
-                is_new_day = True
-        else:
-            streak = 1
-            is_new_day = True
-
-        if is_new_day:
-            await conn.execute(
-                "UPDATE users SET streak = $1, last_active = $2 WHERE id = $3",
-                streak, today, user_id,
-            )
+        streak, is_new_day = await update_user_streak(conn, user_id)
 
         earned: list[dict] = []
         if is_new_day:
@@ -191,3 +177,52 @@ async def update_profile(body: dict, user_id: str = Depends(get_current_user)):
     r = dict(row)
     r["id"] = str(r["id"])
     return r
+
+
+@router.get("/badges")
+async def get_all_badges(user_id: str = Depends(get_current_user)):
+    async with acquire() as conn:
+        all_badges = await conn.fetch("SELECT * FROM badges ORDER BY id")
+        earned = await conn.fetch(
+            "SELECT badge_id, earned_at::text FROM user_badges WHERE user_id = $1", user_id
+        )
+        earned_map = {r["badge_id"]: r["earned_at"] for r in earned}
+
+        # Fetch counts for progress toward badges
+        total_lessons = await conn.fetchval(
+            "SELECT COUNT(*) FROM user_progress WHERE user_id = $1", user_id
+        )
+        first_attempt_count = await conn.fetchval(
+            "SELECT COUNT(*) FROM user_progress WHERE user_id = $1 AND first_attempt = TRUE", user_id
+        )
+        user_row = await conn.fetchrow("SELECT xp, streak FROM users WHERE id = $1", user_id)
+
+    result = []
+    for b in all_badges:
+        cond = b["condition_json"] or {}
+        badge_type = cond.get("type", "")
+        earned_at = earned_map.get(b["id"])
+
+        progress, goal = None, None
+        if badge_type == "lessons_completed":
+            progress, goal = int(total_lessons), cond.get("count", 1)
+        elif badge_type == "total_xp":
+            progress, goal = int(user_row["xp"] or 0), cond.get("amount", 100)
+        elif badge_type == "streak":
+            progress, goal = int(user_row["streak"] or 0), cond.get("days", 7)
+        elif badge_type == "first_attempt_streak":
+            progress, goal = int(first_attempt_count), cond.get("count", 5)
+
+        result.append({
+            "id": b["id"],
+            "name": b["name"],
+            "description": b["description"],
+            "icon": b["icon"],
+            "condition_json": dict(cond),
+            "earned": earned_at is not None,
+            "earned_at": earned_at,
+            "progress": progress,
+            "goal": goal,
+        })
+
+    return {"badges": result}

@@ -225,6 +225,7 @@ export interface DashboardData {
   streak: number
   daily_goal: number
   lessons_today: number
+  lessons_this_week: number
   xp_today: number
   total_lessons_completed: number
   current_topic?: {
