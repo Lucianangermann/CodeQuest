@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { useUserStore } from '../store/useUserStore'
@@ -102,6 +102,15 @@ export default function Onboarding() {
 
   const TOTAL_STEPS = 6
 
+  const [buildStep, setBuildStep] = useState(0)
+  const BUILD_STEPS = [
+    '📊 Analysing your profile...',
+    '🗺️ Mapping your learning path...',
+    '📅 Building your weekly schedule...',
+    '🎯 Tailoring interview prep...',
+    '✅ Plan ready!',
+  ]
+
   const mutation = useMutation({
     mutationFn: () =>
       completeOnboarding({
@@ -113,10 +122,21 @@ export default function Onboarding() {
         framework_focus: FOCUS_LABEL[focus!],
       }),
     onSuccess: () => {
-      if (user) setUser({ ...user, onboarding_completed: true })
-      navigate('/my-path')
+      setBuildStep(BUILD_STEPS.length - 1)
+      setTimeout(() => {
+        if (user) setUser({ ...user, onboarding_completed: true })
+        navigate('/my-path')
+      }, 600)
     },
   })
+
+  useEffect(() => {
+    if (!mutation.isPending) return
+    setBuildStep(0)
+    const timings = [400, 900, 1400, 1900]
+    const timers = timings.map((t, i) => setTimeout(() => setBuildStep(i + 1), t))
+    return () => timers.forEach(clearTimeout)
+  }, [mutation.isPending])
 
   const steps = [
     {
@@ -250,16 +270,36 @@ export default function Onboarding() {
 
           {/* Submit button on last step */}
           {step === TOTAL_STEPS - 1 && (
-            <button
-              onClick={() => mutation.mutate()}
-              disabled={!focus || mutation.isPending}
-              className="mt-6 w-full py-3.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-40
-                         text-white font-semibold rounded-xl transition-colors text-base"
-            >
-              {mutation.isPending
-                ? '✨ Building your personalized plan with AI...'
-                : 'Generate My Learning Path →'}
-            </button>
+            <>
+              {mutation.isPending ? (
+                <div className="mt-6 space-y-3">
+                  {BUILD_STEPS.map((label, i) => (
+                    <div
+                      key={i}
+                      className={`flex items-center gap-3 py-2 px-3 rounded-lg transition-all duration-300 ${
+                        i < buildStep ? 'text-violet-300 opacity-60' :
+                        i === buildStep ? 'text-white bg-violet-500/15' :
+                        'text-gray-600 opacity-40'
+                      }`}
+                    >
+                      <span className="text-lg w-6 text-center">
+                        {i < buildStep ? '✓' : i === buildStep ? '⟳' : '○'}
+                      </span>
+                      <span className="text-sm font-medium">{label}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <button
+                  onClick={() => mutation.mutate()}
+                  disabled={!focus}
+                  className="mt-6 w-full py-3.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-40
+                             text-white font-semibold rounded-xl transition-colors text-base"
+                >
+                  Generate My Learning Path →
+                </button>
+              )}
+            </>
           )}
 
           {mutation.isError && (

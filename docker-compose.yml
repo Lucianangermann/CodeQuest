@@ -11,6 +11,7 @@ services:
       - ./supabase/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
       - ./supabase/migrations/003_learning_path.sql:/docker-entrypoint-initdb.d/03_learning_path.sql:ro
       - ./supabase/migrations/004_interview_simulator.sql:/docker-entrypoint-initdb.d/04_interview_simulator.sql:ro
+      - ./supabase/migrations/005_more_lessons.sql:/docker-entrypoint-initdb.d/05_more_lessons.sql:ro
     ports:
       - "5432:5432"
     healthcheck:

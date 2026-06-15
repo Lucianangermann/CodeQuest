@@ -154,6 +154,17 @@ export async function advancePhase(phase: number): Promise<void> {
   await api.post('/training-plan/advance-phase', { phase })
 }
 
+export async function fetchTodaysTasks(): Promise<{
+  today: string
+  phase_title: string | null
+  phase_number: number | null
+  duration_minutes: number | null
+  activities: Array<{ type: string; title: string; description: string; resource: string; priority: string }>
+}> {
+  const { data } = await api.get('/training-plan/today')
+  return data
+}
+
 // Interview Simulator
 export async function startInterview(company_size: string, focus: string): Promise<{
   session_id: number

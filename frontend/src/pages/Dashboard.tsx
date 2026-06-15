@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
-import { BookOpen, Flame, Zap, Trophy, ChevronRight, Target, AlertCircle } from 'lucide-react'
-import { fetchDashboard } from '../lib/api'
+import { BookOpen, Flame, Zap, Trophy, ChevronRight, Target, AlertCircle, Calendar, Clock } from 'lucide-react'
+import { fetchDashboard, fetchTodaysTasks } from '../lib/api'
 import ProgressBar from '../components/ProgressBar'
 import BadgeCard from '../components/BadgeCard'
 import Heatmap from '../components/Heatmap'
@@ -23,10 +23,23 @@ function StatCard({ icon, label, value, color = 'text-quest-purple' }: {
   )
 }
 
+const ACTIVITY_COLORS: Record<string, string> = {
+  theory: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  coding: 'bg-quest-purple/20 text-quest-purple border-quest-purple/30',
+  interview_prep: 'bg-quest-yellow/20 text-quest-yellow border-quest-yellow/30',
+  review: 'bg-quest-green/20 text-quest-green border-quest-green/30',
+  project: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
+}
+
 export default function Dashboard() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['dashboard'],
     queryFn: fetchDashboard,
+  })
+  const { data: todayData } = useQuery({
+    queryKey: ['today-tasks'],
+    queryFn: fetchTodaysTasks,
+    retry: false,
   })
 
   const greeting = () => {
@@ -127,6 +140,46 @@ export default function Dashboard() {
             Continue <ChevronRight className="w-4 h-4" />
           </Link>
         </motion.div>
+      )}
+
+      {todayData && todayData.activities.length > 0 && (
+        <div className="card space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-quest-purple" />
+              <h2 className="font-semibold text-white">Today's Tasks</h2>
+              {todayData.phase_title && (
+                <span className="text-xs text-quest-muted bg-quest-surface px-2 py-0.5 rounded-full">
+                  {todayData.phase_title}
+                </span>
+              )}
+            </div>
+            {todayData.duration_minutes && (
+              <span className="flex items-center gap-1 text-xs text-quest-muted">
+                <Clock className="w-3 h-3" /> {todayData.duration_minutes} min
+              </span>
+            )}
+          </div>
+          <div className="space-y-2">
+            {todayData.activities.map((act, i) => (
+              <div
+                key={i}
+                className={`flex items-start gap-3 p-3 rounded-lg border ${ACTIVITY_COLORS[act.type] ?? 'bg-quest-surface border-quest-border text-quest-muted'}`}
+              >
+                <span className="text-xs font-medium mt-0.5 uppercase tracking-wider opacity-70 w-20 flex-shrink-0">
+                  {act.type.replace('_', ' ')}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-white truncate">{act.title}</p>
+                  <p className="text-xs opacity-70 mt-0.5 truncate">{act.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <Link to="/training-plan" className="text-xs text-quest-purple hover:underline block">
+            View full training plan →
+          </Link>
+        </div>
       )}
 
       <div className="card">

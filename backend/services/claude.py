@@ -87,111 +87,148 @@ async def chat_response(messages: list, current_topic: str, language: str) -> st
 
 # ── Training Plan ─────────────────────────────────────────────────────────────
 
-def _stub_training_plan(goal: str, level: str, language: str) -> dict:
+def _stub_training_plan(goal: str, level: str, language: str, company_target: str = "", framework_focus: str = "") -> dict:
     lang = language.capitalize()
+    is_python = language == "python"
+    is_ts = language == "typescript"
+    is_frontend = "frontend" in (framework_focus or "").lower()
+    is_backend = "backend" in (framework_focus or "").lower()
+    is_large = "large" in (company_target or "").lower()
+    is_beginner = level in ("absolute_beginner", "Absolute Beginner")
+    is_intermediate = level in ("intermediate", "Intermediate")
+
+    fundamentals_weeks = 8 if is_beginner else (3 if is_intermediate else 5)
+
+    if is_python:
+        p1_topics = [
+            {"name": "Python Basics", "subtopics": ["Variables & Types", "Type conversion", "String formatting", "None vs False"], "depth": "master", "why_important": "Python's dynamic typing trips up beginners. Know exactly what happens at each step.", "interview_relevance": "high"},
+            {"name": "Functions & Scope", "subtopics": ["def & return", "Default args", "args/kwargs", "Lambda", "Scope (LEGB)"], "depth": "master", "why_important": "Functions are the building block of all code. Interviewers test this constantly.", "interview_relevance": "high"},
+            {"name": "Data Structures", "subtopics": ["Lists & slicing", "Dicts", "Sets", "Tuples", "List comprehensions"], "depth": "apply", "why_important": "Python dict & set operations are O(1) — knowing this impresses interviewers.", "interview_relevance": "high"},
+            {"name": "OOP in Python", "subtopics": ["Classes & __init__", "self", "Inheritance", "Dunder methods"], "depth": "apply", "why_important": "Every serious Python codebase uses classes. Understand them thoroughly.", "interview_relevance": "high"},
+            {"name": "Error Handling & Modules", "subtopics": ["try/except/finally", "Custom exceptions", "import", "Virtual environments"], "depth": "apply", "why_important": "Professional code handles errors gracefully. This separates juniors from seniors.", "interview_relevance": "medium"},
+        ]
+        p1_schedule = [
+            {"day": "Monday", "duration_minutes": 90, "activities": [
+                {"type": "theory", "title": "Python Variables & Types", "description": "Read docs, predict output before running each snippet", "resource": "docs.python.org", "priority": "must"},
+                {"type": "coding", "title": "Type conversion exercises", "description": "Write 10 examples: int('5'), str(3.14), bool(0) etc. Predict first.", "resource": "Python REPL", "priority": "must"},
+            ]},
+            {"day": "Wednesday", "duration_minutes": 90, "activities": [
+                {"type": "coding", "title": "Build 5 functions from scratch", "description": "factorial, is_palindrome, flatten_list, word_count, safe_divide", "resource": "Your editor", "priority": "must"},
+                {"type": "coding", "title": "LeetCode Easy: Two Sum + Valid Anagram", "description": "No hints. Time yourself.", "resource": "LeetCode", "priority": "must"},
+            ]},
+            {"day": "Friday", "duration_minutes": 60, "activities": [
+                {"type": "interview_prep", "title": "Explain Python aloud", "description": "Record yourself explaining closures, list vs tuple, mutable vs immutable", "resource": "Your phone", "priority": "must"},
+                {"type": "review", "title": "Spaced repetition review", "description": "Review all notes from the week", "resource": "Handwritten notes", "priority": "must"},
+            ]},
+        ]
+        p1_project = {"title": "CLI Tool in Python", "description": "Build a command-line tool in Python: a budget tracker or task manager. Use classes, file I/O, error handling, and argparse. Zero AI.", "skills_practiced": ["Classes", "File I/O", "Error handling", "CLI interfaces"]}
+        p1_complete = ["You can explain mutable vs immutable without hesitation", "You can write a class with __init__ and methods from memory", "You can implement map/filter using list comprehensions", "Your CLI tool works correctly"]
+        doc_resource = "docs.python.org"
+    else:
+        p1_topics = [
+            {"name": f"{lang} Basics", "subtopics": ["Variables & Types", "Type coercion", "Scope", "Hoisting"], "depth": "master", "why_important": "Every interview starts here. You need to explain WHY, not just HOW.", "interview_relevance": "high"},
+            {"name": "Functions & Closures", "subtopics": ["Declaration vs Expression", "Arrow Functions", "Closures", "this keyword"], "depth": "master", "why_important": "Closures are a staple interview question that most juniors get wrong.", "interview_relevance": "high"},
+            {"name": "Array Methods", "subtopics": ["map", "filter", "reduce", "find", "some", "every"], "depth": "apply", "why_important": "You will use these every single day. Interviews often ask you to implement them.", "interview_relevance": "high"},
+            {"name": "Async Programming", "subtopics": ["Promises", "async/await", "Error handling", "Promise.all"], "depth": "apply", "why_important": "Every real app has async code. Understanding it is non-negotiable.", "interview_relevance": "high"},
+            {"name": ("TypeScript Types" if is_ts else "ES6+ Features"), "subtopics": (["Interfaces", "Union types", "Generics", "Type narrowing", "Utility types"] if is_ts else ["Destructuring", "Spread/Rest", "Template literals", "Modules"]), "depth": "apply", "why_important": ("TypeScript is mandatory at most companies. No 'any' types allowed." if is_ts else "Modern codebases use these constantly."), "interview_relevance": "medium"},
+        ]
+        p1_schedule = [
+            {"day": "Monday", "duration_minutes": 90, "activities": [
+                {"type": "theory", "title": f"Study {lang} Variables & Types", "description": "Read docs, take notes by hand", "resource": "MDN Web Docs", "priority": "must"},
+                {"type": "coding", "title": "Type coercion exercises", "description": "Write 10 examples predicting output before running", "resource": "Browser console", "priority": "must"},
+            ]},
+            {"day": "Wednesday", "duration_minutes": 90, "activities": [
+                {"type": "coding", "title": "Implement map, filter, reduce from scratch", "description": "Write your own versions without using built-ins.", "resource": "Your editor", "priority": "must"},
+                {"type": "coding", "title": "LeetCode Easy: Two Sum + Valid Anagram", "description": "No hints. Time yourself.", "resource": "LeetCode", "priority": "must"},
+            ]},
+            {"day": "Friday", "duration_minutes": 60, "activities": [
+                {"type": "interview_prep", "title": "Explain concepts aloud", "description": "Record yourself explaining closures and async. Listen back.", "resource": "Your phone", "priority": "must"},
+                {"type": "review", "title": "Spaced repetition review", "description": "Review all notes from the week", "resource": "Handwritten notes", "priority": "must"},
+            ]},
+        ]
+        p1_project = {"title": "Task Manager CLI", "description": f"Build a command-line task manager in {lang} using closures for state, array methods for filtering/sorting, async file I/O, and proper error handling. Zero AI.", "skills_practiced": ["Closures", "Array methods", "Async/await", "Error handling"]}
+        p1_complete = ["You can explain closures with an example — without looking it up", "You can write a Promise from scratch", f"You can implement map() and reduce() by hand in {lang}", "Your milestone project works without AI assistance"]
+        doc_resource = "MDN Web Docs"
+
+    if is_backend:
+        p2_title = "Phase 2 — Backend & APIs"
+        p2_goal = "Build production-quality REST APIs and understand the full request lifecycle"
+        p2_topics = [
+            {"name": ("Flask/FastAPI" if is_python else "Node.js & Express"), "subtopics": ["Routing", "Middleware", "Request/Response", "CORS", "Error handling"], "depth": "master", "why_important": "Your primary framework. Know it inside out.", "interview_relevance": "high"},
+            {"name": "SQL & Databases", "subtopics": ["SELECT, WHERE, JOIN, GROUP BY", "Indexes", "N+1 problem", "Schema design", "Migrations"], "depth": "apply", "why_important": "SQL is everywhere. Even 'frontend' roles need basic SQL for debugging.", "interview_relevance": "high"},
+            {"name": "Authentication", "subtopics": ["JWT structure", "Access vs Refresh tokens", "Password hashing", "HTTPS"], "depth": "apply", "why_important": "Auth is in every app and commonly misimplemented.", "interview_relevance": "high"},
+            {"name": "API Design", "subtopics": ["REST conventions", "Status codes", "Pagination", "Versioning", "Documentation"], "depth": "apply", "why_important": "Good API design is a professional skill that gets noticed.", "interview_relevance": "medium"},
+        ]
+        p2_schedule = [
+            {"day": "Monday", "duration_minutes": 90, "activities": [
+                {"type": "coding", "title": "Build a REST API from scratch", "description": "GET/POST/PUT/DELETE /users with proper status codes and error handling", "resource": ("FastAPI docs" if is_python else "Express docs"), "priority": "must"},
+            ]},
+            {"day": "Wednesday", "duration_minutes": 90, "activities": [
+                {"type": "coding", "title": "Add JWT authentication", "description": "Signup, login, and protected routes — from scratch", "resource": "Your editor", "priority": "must"},
+                {"type": "coding", "title": "SQL JOINs and aggregates", "description": "Write queries with JOIN, GROUP BY, HAVING, subqueries", "resource": "SQLZoo", "priority": "must"},
+            ]},
+            {"day": "Friday", "duration_minutes": 60, "activities": [
+                {"type": "interview_prep", "title": "HTTP deep-dive", "description": "401 vs 403? N+1 problem? CORS? Write answers without looking.", "resource": "Paper", "priority": "must"},
+            ]},
+        ]
+        p2_project = {"title": "Full REST API Deployed", "description": "Build and deploy a REST API: JWT auth, CRUD with real database, SQL JOINs, input validation, error handling. Public URL required.", "skills_practiced": ["REST design", "JWT auth", "SQL", "Deployment"]}
+        p2_complete = ["You can build a REST API with auth from memory", "You can write a SQL JOIN from memory", "You can explain CORS in plain English", "Your API is deployed and publicly accessible"]
+    else:
+        p2_title = "Phase 2 — React & Frontend"
+        p2_goal = "Build production-quality React components and understand performance implications"
+        p2_topics = [
+            {"name": "React Fundamentals", "subtopics": ["JSX", "Components", "Props", "State", "Controlled components"], "depth": "master", "why_important": "Foundation of everything. You need to understand the virtual DOM.", "interview_relevance": "high"},
+            {"name": "React Hooks", "subtopics": ["useState", "useEffect", "useContext", "useRef", "useMemo", "useCallback", "Custom hooks"], "depth": "master", "why_important": "Hooks ARE React. Interviewers WILL ask when to use useMemo vs useCallback.", "interview_relevance": "high"},
+            {"name": "Performance", "subtopics": ["When React re-renders", "memo", "useMemo", "useCallback", "Lazy loading"], "depth": "apply", "why_important": "Senior devs care deeply about this. Mentioning it impresses interviewers.", "interview_relevance": "high"},
+            {"name": ("TypeScript with React" if not is_python else "State Management"), "subtopics": (["Interfaces", "Typed props", "Generic components", "Event types", "useState<T>"] if not is_python else ["Local vs global state", "Context API", "When to lift state", "Zustand basics"]), "depth": "apply", "why_important": ("90% of professional React is TypeScript. Non-negotiable for most companies." if not is_python else "State management is where React apps get complex."), "interview_relevance": "high"},
+        ]
+        p2_schedule = [
+            {"day": "Monday", "duration_minutes": 90, "activities": [
+                {"type": "theory", "title": "React mental model", "description": "Understand the virtual DOM diffing algorithm conceptually", "resource": "react.dev", "priority": "must"},
+                {"type": "coding", "title": "Build 3 components from memory", "description": "No copy-paste: Button, Card, Modal from scratch", "resource": "Your editor", "priority": "must"},
+            ]},
+            {"day": "Wednesday", "duration_minutes": 90, "activities": [
+                {"type": "coding", "title": "Re-render bug exercise", "description": "Build a list with 1000 items with a re-render bug. Fix with useMemo/useCallback.", "resource": "React DevTools", "priority": "must"},
+                {"type": "coding", "title": "Build a custom hook from scratch", "description": "useDebounce, useFetch, or useLocalStorage", "resource": "Your editor", "priority": "must"},
+            ]},
+            {"day": "Friday", "duration_minutes": 60, "activities": [
+                {"type": "interview_prep", "title": "Architecture review", "description": "Draw your project's component tree on paper. Can you explain every re-render?", "resource": "Paper", "priority": "must"},
+            ]},
+        ]
+        p2_project = {"title": "Full-Stack CRUD App", "description": "Build and deploy: signup/login (JWT), CRUD with a real database, responsive design, TypeScript throughout, no 'any' types, public URL.", "skills_practiced": ["React hooks", "TypeScript", "API integration", "State management", "Deployment"]}
+        p2_complete = ["You can explain the difference between useMemo and useCallback without hesitation", "You can build a custom hook from scratch in an interview setting", "Your project has zero TypeScript 'any' types", "You can find and fix a re-render performance issue in 10 minutes"]
+
+    cs_topics_count = 4 if is_large else 3
+    cs_weeks = 6 if is_large else 3
+    cs_topics = [
+        {"name": "Big-O Notation", "subtopics": ["O(1) vs O(n) vs O(n²)", "Space complexity", "Recognizing complexity in code"], "depth": "apply", "why_important": "Every technical interview asks this. Analyze YOUR code, not just toy examples.", "interview_relevance": "high"},
+        {"name": "Core Data Structures", "subtopics": ["Arrays", "Hash Maps", "Stacks", "Queues", "Sets", "Linked Lists"], "depth": "apply", "why_important": "Hash maps alone solve 60% of LeetCode Easy problems.", "interview_relevance": "high"},
+        {"name": "Algorithm Patterns", "subtopics": ["Two Pointers", "Sliding Window", "HashMap frequency", "Binary Search", "Recursion"], "depth": "apply", "why_important": "5 patterns cover most junior interviews. Learn patterns, not individual problems.", "interview_relevance": "high"},
+    ]
+    if is_large:
+        cs_topics.append({"name": "Trees & Graphs (intro)", "subtopics": ["Binary trees", "BFS/DFS", "When to use graphs"], "depth": "understand", "why_important": "Large company interviews often include tree traversal problems.", "interview_relevance": "high"})
+
     return {
         "phases": [
             {
                 "phase_number": 1,
                 "title": "Phase 1 — Core Language Fundamentals",
-                "duration_weeks": 6,
+                "duration_weeks": fundamentals_weeks,
                 "goal": f"Master {lang} fundamentals deeply enough to explain every concept without looking it up",
-                "topics": [
-                    {"name": f"{lang} Basics", "subtopics": ["Variables & Types", "Type coercion", "Scope", "Hoisting"], "depth": "master", "why_important": "Every interview starts here. You need to explain WHY, not just HOW.", "interview_relevance": "high"},
-                    {"name": "Functions & Closures", "subtopics": ["Declaration vs Expression", "Arrow Functions", "Closures", "this keyword"], "depth": "master", "why_important": "Closures are a staple interview question that most juniors get wrong.", "interview_relevance": "high"},
-                    {"name": "Array Methods", "subtopics": ["map", "filter", "reduce", "find", "some", "every"], "depth": "apply", "why_important": "You will use these every single day. Interviews often ask you to implement them.", "interview_relevance": "high"},
-                    {"name": "Async Programming", "subtopics": ["Promises", "async/await", "Error handling", "Promise.all"], "depth": "apply", "why_important": "Every real app has async code. Understanding it is non-negotiable.", "interview_relevance": "high"},
-                    {"name": "ES6+ Features", "subtopics": ["Destructuring", "Spread/Rest", "Template literals", "Modules"], "depth": "apply", "why_important": "Modern codebases use these constantly.", "interview_relevance": "medium"},
-                ],
-                "weekly_schedule": [
-                    {"day": "Monday", "duration_minutes": 90, "activities": [
-                        {"type": "theory", "title": f"Study {lang} Variables & Types", "description": "Read docs, take notes by hand", "resource": "MDN Web Docs", "priority": "must"},
-                        {"type": "coding", "title": "Type coercion exercises", "description": "Write 10 examples predicting output before running", "resource": "Browser console", "priority": "must"},
-                    ]},
-                    {"day": "Tuesday", "duration_minutes": 90, "activities": [
-                        {"type": "theory", "title": "Functions & Scope deep dive", "description": "Understand the call stack with a diagram", "resource": "JavaScript.info", "priority": "must"},
-                        {"type": "coding", "title": "Write 5 closure examples", "description": "Counter, memoize, private variables — without AI", "resource": "Your editor", "priority": "must"},
-                    ]},
-                    {"day": "Wednesday", "duration_minutes": 90, "activities": [
-                        {"type": "coding", "title": "Implement map, filter, reduce from scratch", "description": "Write your own versions. Do not use built-ins.", "resource": "Your editor", "priority": "must"},
-                        {"type": "coding", "title": "LeetCode Easy: Two Sum + Valid Anagram", "description": "No hints. Time yourself.", "resource": "LeetCode", "priority": "must"},
-                    ]},
-                    {"day": "Thursday", "duration_minutes": 90, "activities": [
-                        {"type": "theory", "title": "Promises & async/await", "description": "Understand microtask queue vs macrotask queue", "resource": "JavaScript.info", "priority": "must"},
-                        {"type": "coding", "title": "Build a mini fetch wrapper", "description": "Handle loading, error, and success states", "resource": "Your editor", "priority": "must"},
-                    ]},
-                    {"day": "Friday", "duration_minutes": 60, "activities": [
-                        {"type": "interview_prep", "title": "Explain concepts aloud", "description": "Record yourself explaining closures and async. Listen back.", "resource": "Your phone", "priority": "must"},
-                        {"type": "review", "title": "Spaced repetition review", "description": "Review all notes from the week", "resource": "Handwritten notes", "priority": "must"},
-                    ]},
-                    {"day": "Saturday", "duration_minutes": 120, "activities": [
-                        {"type": "project", "title": "Build milestone project", "description": "See milestone project below", "resource": "Your editor", "priority": "must"},
-                    ]},
-                    {"day": "Sunday", "duration_minutes": 30, "activities": [
-                        {"type": "review", "title": "Weekly reflection", "description": "What did you understand deeply? What's still fuzzy? Plan next week.", "resource": "Journal", "priority": "must"},
-                    ]},
-                ],
-                "milestone_project": {
-                    "title": "Task Manager CLI",
-                    "description": f"Build a command-line task manager in {lang} using closures for state, array methods for filtering/sorting, async file I/O for persistence, and proper error handling. Zero AI assistance.",
-                    "skills_practiced": ["Closures", "Array methods", "Async/await", "Error handling", "Modules"],
-                },
-                "phase_complete_when": [
-                    "You can explain closures with an example — without looking it up",
-                    "You can write a Promise from scratch",
-                    f"You can implement map() and reduce() by hand in {lang}",
-                    "Your milestone project works without AI assistance",
-                ],
+                "topics": p1_topics,
+                "weekly_schedule": p1_schedule,
+                "milestone_project": p1_project,
+                "phase_complete_when": p1_complete,
             },
             {
                 "phase_number": 2,
-                "title": "Phase 2 — React & Frontend",
-                "duration_weeks": 8,
-                "goal": "Build production-quality React components and understand performance implications",
-                "topics": [
-                    {"name": "React Fundamentals", "subtopics": ["JSX", "Components", "Props", "State", "Controlled components"], "depth": "master", "why_important": "Foundation of everything. You need to understand the virtual DOM.", "interview_relevance": "high"},
-                    {"name": "React Hooks", "subtopics": ["useState", "useEffect", "useContext", "useRef", "useMemo", "useCallback", "Custom hooks"], "depth": "master", "why_important": "Hooks ARE React. Interviewers WILL ask when to use useMemo vs useCallback.", "interview_relevance": "high"},
-                    {"name": "Performance", "subtopics": ["When React re-renders", "memo", "useMemo", "useCallback", "Lazy loading"], "depth": "apply", "why_important": "Senior devs care deeply about this. Mentioning it impresses interviewers.", "interview_relevance": "high"},
-                    {"name": "TypeScript with React", "subtopics": ["Interfaces", "Typed props", "Generic components", "Event types", "useState<T>"], "depth": "apply", "why_important": "90% of professional React is TypeScript. Non-negotiable for most companies.", "interview_relevance": "high"},
-                ],
-                "weekly_schedule": [
-                    {"day": "Monday", "duration_minutes": 90, "activities": [
-                        {"type": "theory", "title": "React mental model", "description": "Understand the virtual DOM diffing algorithm conceptually", "resource": "react.dev", "priority": "must"},
-                        {"type": "coding", "title": "Build 3 components from memory", "description": "No copy-paste: Button, Card, Modal from scratch", "resource": "Your editor", "priority": "must"},
-                    ]},
-                    {"day": "Tuesday", "duration_minutes": 90, "activities": [
-                        {"type": "theory", "title": "Hooks deep dive: useEffect", "description": "Cleanup functions, dependency arrays, infinite loops — understand all pitfalls", "resource": "react.dev hooks reference", "priority": "must"},
-                        {"type": "coding", "title": "Build useDebounce custom hook", "description": "Implement from scratch, use in a search input", "resource": "Your editor", "priority": "must"},
-                    ]},
-                    {"day": "Wednesday", "duration_minutes": 90, "activities": [
-                        {"type": "coding", "title": "Re-render bug exercise", "description": "Build a list with 1000 items with a re-render bug. Fix with useMemo/useCallback.", "resource": "React DevTools", "priority": "must"},
-                        {"type": "interview_prep", "title": "Re-render scenarios", "description": "List every scenario that causes a re-render. Write them out without looking.", "resource": "Paper", "priority": "must"},
-                    ]},
-                    {"day": "Thursday", "duration_minutes": 90, "activities": [
-                        {"type": "coding", "title": "Add TypeScript to existing components", "description": "Take plain JS components, fully type them. No 'any' allowed.", "resource": "TypeScript docs", "priority": "must"},
-                        {"type": "coding", "title": "Controlled form with validation", "description": "Error states, submission handling, all typed", "resource": "Your editor", "priority": "must"},
-                    ]},
-                    {"day": "Friday", "duration_minutes": 60, "activities": [
-                        {"type": "interview_prep", "title": "Architecture review", "description": "Draw your project's component tree on paper. Could you explain it in an interview?", "resource": "Paper", "priority": "must"},
-                    ]},
-                    {"day": "Saturday", "duration_minutes": 180, "activities": [
-                        {"type": "project", "title": "Full CRUD App with Auth", "description": "Build a task/note app: signup/login (JWT), CRUD, search, loading/error states, TypeScript, deployed.", "resource": "Your editor", "priority": "must"},
-                    ]},
-                    {"day": "Sunday", "duration_minutes": 30, "activities": [
-                        {"type": "review", "title": "Weekly reflection", "description": "What clicked? What still feels shaky?", "resource": "Journal", "priority": "must"},
-                    ]},
-                ],
-                "milestone_project": {
-                    "title": "Full-Stack CRUD App",
-                    "description": "Build and deploy: signup/login (JWT), CRUD with a real database, responsive design, TypeScript throughout, no 'any' types, public URL.",
-                    "skills_practiced": ["React hooks", "TypeScript", "API integration", "State management", "Deployment"],
-                },
-                "phase_complete_when": [
-                    "You can explain the difference between useMemo and useCallback without hesitation",
-                    "You can build a custom hook from scratch in an interview setting",
-                    "Your project has zero TypeScript 'any' types",
-                    "You can find and fix a re-render performance issue in 10 minutes",
-                ],
+                "title": p2_title,
+                "duration_weeks": 6,
+                "goal": p2_goal,
+                "topics": p2_topics,
+                "weekly_schedule": p2_schedule,
+                "milestone_project": p2_project,
+                "phase_complete_when": p2_complete,
             },
             {
                 "phase_number": 3,
@@ -413,81 +450,132 @@ async def generate_training_plan(
     framework_focus: str = "",
     progress_notes: str = "",
 ) -> dict:
-    client = _get_claude()
-    if not client:
-        return _stub_training_plan(goal, level, language)
-
-    progress_ctx = f" Adjustment: {progress_notes}" if progress_notes else ""
-    prompt = f"""Create a 5-phase junior developer training plan. Be concise — keep each field short.
-
-Profile: goal={goal}, timeline={timeline}, company={company_target or 'Any'}, level={level}, language={language}, focus={framework_focus or 'Fullstack'}{progress_ctx}
-
-Phases: 1=Core Fundamentals, 2=React/Frontend, 3=Backend/APIs, 4=CS Basics, 5=Interview Prep
-
-Return ONLY valid JSON, no markdown. Keep all strings short (under 80 chars). Max 4 topics per phase, max 3 subtopics each, max 2 activities per day, only 3 days (Mon/Wed/Fri):
-{{
-  "phases": [
-    {{
-      "phase_number": 1,
-      "title": "Phase 1 — Core Fundamentals",
-      "duration_weeks": 4,
-      "goal": "one sentence goal",
-      "topics": [
-        {{"name": "Topic", "subtopics": ["a", "b"], "depth": "master", "why_important": "short reason", "interview_relevance": "high"}}
-      ],
-      "weekly_schedule": [
-        {{"day": "Monday", "duration_minutes": 90, "activities": [{{"type": "theory", "title": "short title", "description": "short desc", "resource": "MDN/url", "priority": "must"}}]}},
-        {{"day": "Wednesday", "duration_minutes": 90, "activities": [{{"type": "coding", "title": "short title", "description": "short desc", "resource": "url", "priority": "must"}}]}},
-        {{"day": "Friday", "duration_minutes": 60, "activities": [{{"type": "review", "title": "short title", "description": "short desc", "resource": "url", "priority": "must"}}]}}
-      ],
-      "milestone_project": {{"title": "Project title", "description": "one sentence", "skills_practiced": ["skill1", "skill2"]}},
-      "phase_complete_when": ["criterion 1", "criterion 2"]
-    }}
-  ],
-  "interview_preparation": {{
-    "startup": {{"topics": ["t1", "t2"], "typical_questions": ["q1", "q2", "q3"], "coding_challenges": ["c1", "c2"]}},
-    "medium_company": {{"topics": ["t1", "t2"], "typical_questions": ["q1", "q2", "q3"], "coding_challenges": ["c1", "c2"]}},
-    "large_company": {{"topics": ["t1", "t2"], "typical_questions": ["q1", "q2", "q3"], "coding_challenges": ["c1", "c2"]}}
-  }},
-  "portfolio_requirements": {{
-    "minimum_projects": 3,
-    "must_have_features": ["feature1", "feature2", "feature3"],
-    "nice_to_have": ["nice1", "nice2"]
-  }}
-}}"""
-
-    msg = await client.messages.create(
-        model=MODEL, max_tokens=6000,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return _parse_json(msg.content[0].text)
+    return _stub_training_plan(goal, level, language, company_target, framework_focus)
 
 
 # ── Checklist Test Questions ──────────────────────────────────────────────────
 
-def _stub_test_question(item_key: str) -> dict:
-    return {
-        "question": f"Explain '{item_key.replace('_', ' ')}' in your own words and give a concrete example.",
-        "expected_answer": "A clear explanation with a practical example showing real understanding — not just a definition.",
-    }
+_TEST_QUESTIONS: dict[str, dict] = {
+    "js_closures": {
+        "question": "Write a counter function using a closure — it should return an increment function that keeps private state.",
+        "expected_answer": "Function returns another function; inner function accesses outer variable via closure. State is not on the outer scope.",
+    },
+    "js_eq": {
+        "question": "What does `0 == '0'` evaluate to and why? What about `0 === '0'`?",
+        "expected_answer": "`0 == '0'` is true (type coercion converts string to number). `0 === '0'` is false (strict equality checks type AND value).",
+    },
+    "js_async": {
+        "question": "What is the output order of: console.log(1), setTimeout(()=>console.log(2),0), Promise.resolve().then(()=>console.log(3)), console.log(4)?",
+        "expected_answer": "1, 4, 3, 2. Sync runs first (1, 4). Microtasks (Promises) run before macrotasks (setTimeout). Shows understanding of the event loop.",
+    },
+    "js_reduce": {
+        "question": "Implement Array.prototype.reduce() from scratch — it should work exactly like the native version.",
+        "expected_answer": "Loop through array, apply callback(acc, cur, i, arr), start with initialValue if provided else first element. Return accumulator.",
+    },
+    "js_null_undef": {
+        "question": "When does JavaScript give you `undefined` vs `null`? Give one example of each.",
+        "expected_answer": "`undefined` = JS set it (uninitialized variable, missing function return, missing argument). `null` = developer explicitly set it to mean 'no value'.",
+    },
+    "js_event_bubbling": {
+        "question": "A click on a <button> inside a <div> — which handlers fire and in what order? How do you stop this?",
+        "expected_answer": "Button handler fires first, then div (bubbling up). `event.stopPropagation()` stops it. Capturing phase goes top-down (addEventistener 3rd arg true).",
+    },
+    "js_promises": {
+        "question": "Rewrite this callback code as a Promise: `fs.readFile('file.txt', (err, data) => { if (err) handleErr(err); else process(data); })`",
+        "expected_answer": "Wrap in `new Promise((resolve, reject) => {...})`. Call resolve(data) on success, reject(err) on error. Chain with .then() and .catch().",
+    },
+    "js_debounce": {
+        "question": "Implement a `debounce(fn, delay)` function from scratch. No lodash.",
+        "expected_answer": "Return function that clears previous timeout and sets a new one. Callback only fires after `delay` ms of silence. Uses closure to hold the timer id.",
+    },
+    "react_lifecycle": {
+        "question": "What is the equivalent of componentDidMount, componentDidUpdate, and componentWillUnmount in hooks?",
+        "expected_answer": "All three map to useEffect. No deps = every render. [] = mount only (componentDidMount). [dep] = on dep change (componentDidUpdate). Return fn = cleanup (componentWillUnmount).",
+    },
+    "react_hooks": {
+        "question": "You have a filtered list and an event handler — which one gets useMemo and which gets useCallback?",
+        "expected_answer": "useMemo = computed value (the filtered list). useCallback = function reference (the event handler). useMemo caches the result; useCallback caches the function itself.",
+    },
+    "react_prop_drill": {
+        "question": "You have props passed through 4 component levels but only used at the bottom. Name two solutions and when to choose each.",
+        "expected_answer": "Context API (built-in, good for global state like theme/auth). Zustand/Redux (external store, good for complex/frequently updated state). Context is simpler; state managers scale better.",
+    },
+    "react_custom_hook": {
+        "question": "Write a `useLocalStorage(key, initialValue)` custom hook that reads from and writes to localStorage.",
+        "expected_answer": "useState initialized from localStorage.getItem(). Update function calls setState AND localStorage.setItem(). Return [value, setValue] pair.",
+    },
+    "react_keys": {
+        "question": "Why is using array index as a key in a list a bad practice? Give a concrete example of what breaks.",
+        "expected_answer": "When items reorder or are deleted, React reuses DOM nodes incorrectly (mismatched state, focus, animations). Use stable unique IDs. Index is fine only for static, non-reordering lists.",
+    },
+    "react_state_mutate": {
+        "question": "What's the bug: `const [items, setItems] = useState([]); items.push('new'); setItems(items);`",
+        "expected_answer": "Mutating state directly. React compares references — same array reference means no re-render. Fix: `setItems([...items, 'new'])` to create a new array.",
+    },
+    "react_controlled": {
+        "question": "What's the difference between a controlled and uncontrolled input? Show code for both.",
+        "expected_answer": "Controlled: value={state} + onChange={setState} — React owns the value. Uncontrolled: no value prop, use ref to read DOM value. Controlled is preferred for validation/sync.",
+    },
+    "api_http_flow": {
+        "question": "Walk me through everything that happens between typing 'google.com' and seeing the page — as much detail as you can.",
+        "expected_answer": "DNS lookup → TCP handshake → TLS handshake → HTTP GET → server responds → browser parses HTML → CSS/JS requested → page rendered. Bonus: CDN, caching, CORS.",
+    },
+    "api_401_403": {
+        "question": "Your API returns 401. Your colleague says 'change it to 403'. Are they right? When is each correct?",
+        "expected_answer": "401 = unauthenticated (no/invalid token — 'who are you?'). 403 = unauthorized (valid identity, wrong permissions — 'I know who you are, but you can't do this'). They're right only if the user IS authenticated.",
+    },
+    "api_sql_join": {
+        "question": "Write a query: get all users and their order counts. Include users with 0 orders.",
+        "expected_answer": "SELECT users.name, COUNT(orders.id) FROM users LEFT JOIN orders ON users.id = orders.user_id GROUP BY users.id, users.name. LEFT JOIN includes users with no orders (vs INNER JOIN which excludes them).",
+    },
+    "api_jwt": {
+        "question": "Describe the complete JWT auth flow — from signup through making an authenticated API request.",
+        "expected_answer": "Signup → hash password, store user. Login → verify password, sign JWT (header.payload.signature). Client stores token. Request → send as Authorization: Bearer <token>. Server verifies signature. Never store sensitive data in payload (it's base64, not encrypted).",
+    },
+    "api_cors": {
+        "question": "Why does CORS exist and why can't you just disable it? What headers does the server send?",
+        "expected_answer": "Same-origin policy prevents malicious sites from making authenticated requests on your behalf. CORS allows explicit whitelist. Headers: Access-Control-Allow-Origin, -Methods, -Headers. Preflight OPTIONS request for non-simple requests.",
+    },
+    "cs_bigo": {
+        "question": "What's the Big-O of this: `for (let i = 0; i < n; i++) { for (let j = 0; j < n; j++) { ... } }`? What about adding a third loop?",
+        "expected_answer": "Two nested loops = O(n²). Three nested loops = O(n³). Each additional loop multiplies by n. Key: identify how many times the inner operation runs as n grows.",
+    },
+    "cs_stack_heap": {
+        "question": "Where is a primitive stored vs an object? What happens to a stack frame when a function returns?",
+        "expected_answer": "Primitives → stack (fast, fixed size, LIFO). Objects/functions → heap (dynamic size, garbage collected). Stack frame is popped on return, freeing local variables. Reference to heap object goes on stack; object stays until GC.",
+    },
+    "cs_two_sum": {
+        "question": "Solve Two Sum in O(n) time. Input: nums=[2,7,11,15], target=9. No nested loops.",
+        "expected_answer": "Use a HashMap. For each num, check if (target - num) is in the map. If yes, return [map[complement], i]. If no, store num → index. One pass, O(n) time, O(n) space.",
+    },
+    "cs_recursion": {
+        "question": "Write a recursive function to sum all numbers in a nested array like [1, [2, [3, 4]]]. No loops.",
+        "expected_answer": "Base case: if number, return it. Recursive case: if array, reduce with sum of recursive calls on each element. Must handle the base case to avoid infinite recursion. Stack grows with depth.",
+    },
+    "soft_project_pitch": {
+        "question": "Explain your main project in under 2 minutes. What problem does it solve, how does it work, and what was technically challenging?",
+        "expected_answer": "Should cover: what it does (1 sentence), the tech stack, one interesting technical challenge and how it was solved, and what you'd do differently. Avoids buzzwords. Shows real understanding.",
+    },
+    "soft_hard_bug": {
+        "question": "Tell me about the hardest bug you ever fixed. Walk me through your debugging process.",
+        "expected_answer": "Should show systematic debugging (hypothesis, isolation, verification). Mention specific tools (console, debugger, logs, git bisect). Explain what the root cause actually was. Shows persistence and methodology.",
+    },
+    "soft_tech_decision": {
+        "question": "Why did you choose your main project's tech stack? What tradeoffs did you consider?",
+        "expected_answer": "Should show intentional decision-making: reasons beyond 'I knew it', awareness of tradeoffs (e.g. 'chose SQL because I needed joins', not just 'SQL is popular'). Bonus: what you'd choose today vs then.",
+    },
+    "soft_refactor": {
+        "question": "Open your main project's code right now — what's the first thing you'd refactor and why?",
+        "expected_answer": "Shows self-awareness and code maturity. Acceptable answers: better error handling, tests, component splitting, naming improvements. Red flag: 'nothing, it's perfect' or purely cosmetic changes.",
+    },
+}
 
 
 async def generate_test_question(item_key: str, item_label: str) -> dict:
-    client = _get_claude()
-    if not client:
-        return _stub_test_question(item_key)
-
-    prompt = (
-        f"Generate a short interview-style test question for the skill: '{item_label}'.\n"
-        "Return JSON only: "
-        '{"question": "...", "expected_answer": "..."}\n'
-        "The question should be answerable in 2-3 sentences. The expected_answer is a brief rubric showing what a good answer covers, not a full solution."
-    )
-    msg = await client.messages.create(
-        model=MODEL, max_tokens=300,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return _parse_json(msg.content[0].text)
+    return _TEST_QUESTIONS.get(item_key, {
+        "question": f"Explain '{item_label}' in your own words and give a concrete example.",
+        "expected_answer": "A clear explanation with a practical example showing real understanding — not just a definition.",
+    })
 
 
 # ── Interview Simulator ───────────────────────────────────────────────────────

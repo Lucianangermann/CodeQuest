@@ -1,3 +1,4 @@
+import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
@@ -6,6 +7,42 @@ from deps import get_current_user
 from services.claude import generate_training_plan
 
 router = APIRouter()
+
+_DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+
+@router.get("/today")
+async def get_today_tasks(user_id: str = Depends(get_current_user)):
+    today = _DAY_NAMES[datetime.datetime.now().weekday()]
+
+    async with acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT plan_json, current_phase FROM training_plans WHERE user_id = $1",
+            user_id,
+        )
+
+    if not row:
+        return {"today": today, "activities": [], "phase_title": None}
+
+    plan = dict(row["plan_json"])
+    current_phase = row["current_phase"] or 1
+    phases = plan.get("phases", [])
+    phase = next((p for p in phases if p.get("phase_number") == current_phase), phases[0] if phases else None)
+
+    if not phase:
+        return {"today": today, "activities": [], "phase_title": None}
+
+    schedule = phase.get("weekly_schedule", [])
+    day_entry = next((d for d in schedule if d.get("day") == today), None)
+    activities = day_entry.get("activities", []) if day_entry else []
+
+    return {
+        "today": today,
+        "phase_title": phase.get("title"),
+        "phase_number": current_phase,
+        "duration_minutes": day_entry.get("duration_minutes") if day_entry else None,
+        "activities": activities,
+    }
 
 
 class AdjustRequest(BaseModel):
