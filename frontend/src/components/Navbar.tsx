@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, Map, Route, Mic, Trophy, User, LogOut, Sun, Moon, Zap, Brain } from 'lucide-react'
+import { LayoutDashboard, Map, Route, Mic, Trophy, User, LogOut, Sun, Moon, Zap, Brain, Code2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useUserStore } from '../store/useUserStore'
 import toast from 'react-hot-toast'
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { path: '/my-path',   label: 'My Path',      icon: Route },
   { path: '/interview',  label: 'Interview',    icon: Mic },
   { path: '/review',     label: 'Review',       icon: Brain },
+  { path: '/playground', label: 'Playground',   icon: Code2 },
   { path: '/leaderboard',label: 'Leaderboard', icon: Trophy },
   { path: '/profile',    label: 'Profile',      icon: User },
 ]

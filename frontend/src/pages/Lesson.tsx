@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, CheckCircle, XCircle, Loader2, ChevronRight, HelpCircle } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -164,6 +164,7 @@ export default function LessonPage() {
   const navigate = useNavigate()
   const { currentLesson, currentTopicName, setCurrentLesson, startLesson } = useLessonStore()
   const { user, updateXP } = useUserStore()
+  const queryClient = useQueryClient()
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [result, setResult] = useState<{ correct: boolean; feedback: string; xp_earned: number } | null>(null)
@@ -204,6 +205,9 @@ export default function LessonPage() {
         const newXP = (user?.xp ?? 0) + res.xp_earned
         updateXP(newXP, Math.max(1, Math.floor(newXP / 100)))
         toast.success(`+${res.xp_earned} XP earned! 🎉`)
+        queryClient.invalidateQueries({ queryKey: ['topics'] })
+        queryClient.invalidateQueries({ queryKey: ['topic-lessons', lesson.topic_id] })
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       }
     } catch {
       toast.error('Submission failed. Please try again.')

@@ -23,6 +23,7 @@ import Onboarding from './pages/Onboarding'
 import MyPath from './pages/MyPath'
 import InterviewSimulator from './pages/InterviewSimulator'
 import Review from './pages/Review'
+import Playground from './pages/Playground'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token, user } = useUserStore()
@@ -53,6 +54,7 @@ export default function App() {
               <Route path="/my-path"    element={<ProtectedRoute><MyPath /></ProtectedRoute>} />
               <Route path="/interview"  element={<ProtectedRoute><InterviewSimulator /></ProtectedRoute>} />
               <Route path="/review"     element={<ProtectedRoute><Review /></ProtectedRoute>} />
+              <Route path="/playground" element={<ProtectedRoute><Playground /></ProtectedRoute>} />
               <Route path="/lesson/:lessonId" element={<ProtectedRoute><Lesson /></ProtectedRoute>} />
               <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
               <Route path="/profile"    element={<ProtectedRoute><Profile /></ProtectedRoute>} />

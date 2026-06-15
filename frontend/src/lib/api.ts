@@ -294,6 +294,12 @@ export async function deletePortfolioProject(id: number) {
   await api.delete(`/portfolio/${id}`)
 }
 
+// Code Playground
+export async function runCode(code: string, language: string) {
+  const res = await api.post('/lessons/run', { code, language })
+  return res.data as { output: string; error: string }
+}
+
 // Interview session detail
 export async function fetchInterviewSession(sessionId: number) {
   const res = await api.get(`/interview/session/${sessionId}`)

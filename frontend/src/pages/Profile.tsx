@@ -10,7 +10,7 @@ import StreakDisplay from '../components/StreakDisplay'
 import { CardSkeleton } from '../components/LoadingSkeleton'
 import toast from 'react-hot-toast'
 
-const LANGUAGES = ['python', 'javascript', 'typescript', 'java', 'cpp', 'go', 'rust']
+const LANGUAGES = ['python', 'javascript', 'typescript']
 
 export default function Profile() {
   const { user, setUser } = useUserStore()

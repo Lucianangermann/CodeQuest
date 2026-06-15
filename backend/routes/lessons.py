@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
+from pydantic import BaseModel
 from models.schemas import SubmitAnswerRequest, SubmitAnswerResponse
 from db.connection import acquire
 from services.code_runner import execute_code
@@ -78,6 +79,17 @@ async def _award_badges(
                 "INSERT INTO user_badges (user_id, badge_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
                 user_id, b["id"],
             )
+
+
+class RunCodeRequest(BaseModel):
+    code: str
+    language: str = "python"
+
+
+@router.post("/run")
+async def run_code_playground(body: RunCodeRequest, user_id: str = Depends(get_current_user)):
+    result = await execute_code(body.code, body.language)
+    return {"output": result.get("output", ""), "error": result.get("error", "")}
 
 
 @router.get("/{lesson_id}")
@@ -172,13 +184,12 @@ async def submit_lesson(
                 user_id, lesson_id, xp_earned, is_first_attempt,
             )
 
-            user_row = await conn.fetchrow("SELECT xp, streak FROM users WHERE id = $1", user_id)
+            user_row = await conn.fetchrow("SELECT xp FROM users WHERE id = $1", user_id)
             new_xp = (user_row["xp"] or 0) + xp_earned
             new_level = max(1, new_xp // 100)
-            streak = user_row["streak"] or 0
 
             await conn.execute(
-                "UPDATE users SET xp = $1, level = $2, last_active = CURRENT_DATE WHERE id = $3",
+                "UPDATE users SET xp = $1, level = $2 WHERE id = $3",
                 new_xp, new_level, user_id,
             )
             await conn.execute("SELECT log_lesson_activity($1, $2)", user_id, xp_earned)
@@ -190,13 +201,13 @@ async def submit_lesson(
                 "SELECT COUNT(*) FROM user_progress WHERE user_id = $1 AND first_attempt = TRUE",
                 user_id,
             )
+            new_streak, _ = await update_user_streak(conn, user_id)
             await _award_badges(
                 conn, user_id, new_xp, total_done,
-                streak=streak,
+                streak=new_streak,
                 first_attempt_count=first_attempt_count,
                 topic_id=lesson["topic_id"],
             )
-            await update_user_streak(conn, user_id)
 
             # Schedule spaced repetition review (1 day from now)
             await conn.execute(
