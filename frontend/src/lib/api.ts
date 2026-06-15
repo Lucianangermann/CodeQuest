@@ -27,6 +27,16 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      useUserStore.getState().logout()
+    }
+    return Promise.reject(err)
+  }
+)
+
 // Topics
 export async function fetchTopics(): Promise<Topic[]> {
   const { data } = await api.get<Topic[]>('/topics/')

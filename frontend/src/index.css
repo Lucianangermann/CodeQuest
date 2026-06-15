@@ -4,50 +4,64 @@
 
 @layer base {
   * {
-    @apply border-quest-border;
     box-sizing: border-box;
   }
 
   body {
-    @apply bg-quest-bg text-quest-text antialiased;
+    @apply text-quest-text antialiased;
     font-family: 'Inter', system-ui, sans-serif;
+    background-color: #08091a;
     background-image:
-      radial-gradient(ellipse at 20% 50%, rgba(124, 58, 237, 0.05) 0%, transparent 60%),
-      radial-gradient(ellipse at 80% 20%, rgba(99, 102, 241, 0.04) 0%, transparent 50%);
+      radial-gradient(ellipse at 15% 25%, rgba(124, 58, 237, 0.35) 0%, transparent 50%),
+      radial-gradient(ellipse at 85% 10%, rgba(99, 102, 241, 0.22) 0%, transparent 45%),
+      radial-gradient(ellipse at 50% 90%, rgba(79, 70, 229, 0.15) 0%, transparent 40%);
     background-attachment: fixed;
+    min-height: 100vh;
   }
 
-  ::-webkit-scrollbar {
-    width: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    @apply bg-quest-border rounded-full;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-quest-muted/40;
-  }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-quest-border rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-quest-muted/40; }
 }
 
 @layer components {
   /* ── Cards ─────────────────────────────────────────────── */
   .card {
-    @apply bg-quest-card border border-quest-border/80 rounded-2xl p-6;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
-    transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    @apply rounded-2xl p-6;
+    background: rgba(20, 20, 48, 0.75);
+    border: 1px solid rgba(124, 58, 237, 0.18);
+    border-top-color: rgba(124, 58, 237, 0.30);
+    box-shadow:
+      0 4px 32px rgba(0, 0, 0, 0.5),
+      0 1px 0 rgba(255, 255, 255, 0.04) inset,
+      0 0 0 1px rgba(124, 58, 237, 0.06) inset;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 
   .card:hover {
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    @apply border-quest-border;
+    border-color: rgba(124, 58, 237, 0.35);
+    border-top-color: rgba(124, 58, 237, 0.55);
+    box-shadow:
+      0 8px 40px rgba(0, 0, 0, 0.6),
+      0 0 20px rgba(124, 58, 237, 0.08),
+      0 1px 0 rgba(255, 255, 255, 0.06) inset;
+    transform: translateY(-1px);
   }
 
   .card-glow {
-    @apply card;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(124, 58, 237, 0.2) inset;
-    @apply border-quest-purple/30;
+    @apply rounded-2xl p-6;
+    background: rgba(20, 20, 48, 0.75);
+    border: 1px solid rgba(124, 58, 237, 0.35);
+    border-top-color: rgba(124, 58, 237, 0.55);
+    box-shadow:
+      0 4px 32px rgba(0, 0, 0, 0.5),
+      0 0 24px rgba(124, 58, 237, 0.12),
+      0 1px 0 rgba(255, 255, 255, 0.06) inset;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 
   /* ── Buttons ────────────────────────────────────────────── */
@@ -55,16 +69,16 @@
     @apply inline-flex items-center justify-center font-semibold py-2.5 px-5 rounded-xl;
     @apply text-white transition-all duration-200;
     background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
-    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.45), 0 1px 0 rgba(255,255,255,0.15) inset;
   }
   .btn-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, #6d28d9 0%, #4f46e5 100%);
-    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.5);
+    background: linear-gradient(135deg, #8b5cf6 0%, #818cf8 100%);
+    box-shadow: 0 6px 24px rgba(124, 58, 237, 0.60), 0 1px 0 rgba(255,255,255,0.2) inset;
     transform: translateY(-1px);
   }
   .btn-primary:active:not(:disabled) {
     transform: translateY(0) scale(0.97);
-    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
   }
   .btn-primary:disabled {
     @apply opacity-50 cursor-not-allowed;
@@ -73,30 +87,29 @@
 
   .btn-secondary {
     @apply inline-flex items-center justify-center font-semibold py-2.5 px-5 rounded-xl;
-    @apply bg-quest-card border border-quest-border text-quest-text;
-    @apply transition-all duration-200;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    @apply text-quest-text transition-all duration-200;
+    background: rgba(30, 30, 60, 0.8);
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
   .btn-secondary:hover:not(:disabled) {
-    @apply bg-quest-border/60 border-quest-muted/30 text-white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    background: rgba(40, 40, 80, 0.9);
+    border-color: rgba(124, 58, 237, 0.4);
+    color: white;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     transform: translateY(-1px);
   }
-  .btn-secondary:active:not(:disabled) {
-    transform: translateY(0) scale(0.97);
-  }
-  .btn-secondary:disabled {
-    @apply opacity-50 cursor-not-allowed;
-  }
+  .btn-secondary:active:not(:disabled) { transform: translateY(0) scale(0.97); }
+  .btn-secondary:disabled { @apply opacity-50 cursor-not-allowed; }
 
   .btn-success {
     @apply inline-flex items-center justify-center font-semibold py-2.5 px-5 rounded-xl;
     @apply text-white transition-all duration-200;
     background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3);
+    box-shadow: 0 4px 16px rgba(34, 197, 94, 0.40);
   }
   .btn-success:hover:not(:disabled) {
-    box-shadow: 0 6px 20px rgba(34, 197, 94, 0.45);
+    box-shadow: 0 6px 24px rgba(34, 197, 94, 0.55);
     transform: translateY(-1px);
   }
 
@@ -107,24 +120,24 @@
 
   /* ── Inputs ─────────────────────────────────────────────── */
   .input {
-    @apply w-full bg-quest-surface border border-quest-border rounded-xl px-4 py-3;
+    @apply w-full rounded-xl px-4 py-3;
     @apply text-quest-text placeholder-quest-muted;
     @apply transition-all duration-200 outline-none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) inset;
+    background: rgba(12, 12, 30, 0.8);
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) inset;
   }
   .input:focus {
-    @apply border-quest-purple;
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15), 0 2px 8px rgba(0, 0, 0, 0.2) inset;
+    border-color: rgba(124, 58, 237, 0.6);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15), 0 2px 8px rgba(0, 0, 0, 0.3) inset;
   }
 
   /* ── XP Bar ─────────────────────────────────────────────── */
-  .xp-bar {
-    @apply h-2 bg-quest-border/50 rounded-full overflow-hidden;
-  }
+  .xp-bar { @apply h-2 rounded-full overflow-hidden; background: rgba(42,42,74,0.5); }
   .xp-fill {
     @apply h-full rounded-full transition-all duration-700;
     background: linear-gradient(90deg, #7c3aed, #9d5cf6, #6366f1);
-    box-shadow: 0 0 8px rgba(124, 58, 237, 0.5);
+    box-shadow: 0 0 10px rgba(124, 58, 237, 0.6);
   }
 
   /* ── Gradient text ──────────────────────────────────────── */
@@ -144,17 +157,10 @@
 }
 
 @layer utilities {
-  .page-enter {
-    opacity: 0;
-    transform: translateY(8px);
-  }
+  .page-enter { opacity: 0; transform: translateY(8px); }
   .page-enter-active {
-    opacity: 1;
-    transform: translateY(0);
+    opacity: 1; transform: translateY(0);
     transition: opacity 0.2s ease, transform 0.2s ease;
   }
-
-  .text-balance {
-    text-wrap: balance;
-  }
+  .text-balance { text-wrap: balance; }
 }

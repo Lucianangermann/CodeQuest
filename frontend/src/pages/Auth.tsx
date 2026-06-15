@@ -53,10 +53,14 @@ export default function Auth() {
         className="w-full max-w-sm relative z-10"
       >
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-quest-purple rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-quest-purple/30">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+            style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)', boxShadow: '0 0 32px rgba(124,58,237,0.5)' }}>
             <Zap className="w-9 h-9 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white">CodeQuest</h1>
+          <h1 className="text-3xl font-bold"
+            style={{ background: 'linear-gradient(135deg, #9d5cf6 0%, #818cf8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+            CodeQuest
+          </h1>
           <p className="text-quest-muted mt-1">Master coding, one quest at a time</p>
         </div>
 

@@ -6,9 +6,9 @@ export default {
     extend: {
       colors: {
         quest: {
-          bg: '#0f0f1a',
-          card: '#1a1a2e',
-          border: '#2a2a4a',
+          bg: '#08091a',
+          card: '#14143a',
+          border: '#2a2a5a',
           purple: '#7c3aed',
           'purple-light': '#9d5cf6',
           'purple-dark': '#5b21b6',

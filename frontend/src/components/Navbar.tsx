@@ -33,8 +33,14 @@ export default function Navbar() {
   const xpProgress = ((user.xp % 100) / 100) * 100
 
   return (
-    <nav className="bg-quest-bg/80 backdrop-blur-xl border-b border-quest-border/50 sticky top-0 z-40 relative">
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-quest-purple/40 to-transparent" />
+    <nav className="sticky top-0 z-40 relative" style={{
+      background: 'rgba(8, 9, 26, 0.92)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      borderBottom: '1px solid rgba(124, 58, 237, 0.25)',
+      boxShadow: '0 4px 32px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(124,58,237,0.1) inset',
+    }}>
+      <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(124,58,237,0.6), rgba(99,102,241,0.6), transparent)' }} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -59,8 +65,8 @@ export default function Navbar() {
                   to={path}
                   className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
                     isActive
-                      ? 'text-white bg-quest-purple/15 border border-quest-purple/25'
-                      : 'text-quest-muted hover:text-quest-text hover:bg-white/5'
+                      ? 'text-white border border-quest-purple/40'
+                      : 'text-quest-muted hover:text-quest-text hover:bg-white/5 border border-transparent'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -68,7 +74,8 @@ export default function Navbar() {
                   {isActive && (
                     <motion.div
                       layoutId="nav-indicator"
-                      className="absolute inset-0 rounded-xl bg-gradient-to-r from-quest-purple/20 to-quest-indigo/10 border border-quest-purple/30"
+                      className="absolute inset-0 rounded-xl"
+                      style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.25) 0%, rgba(99,102,241,0.15) 100%)', boxShadow: '0 0 12px rgba(124,58,237,0.15) inset' }}
                     />
                   )}
                 </Link>
