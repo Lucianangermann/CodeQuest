@@ -174,6 +174,7 @@ export default function LessonPage() {
     queryFn: () => fetchLesson(Number(lessonId)),
     enabled: !currentLesson || currentLesson.id !== Number(lessonId),
     initialData: currentLesson?.id === Number(lessonId) ? currentLesson : undefined,
+    staleTime: Infinity,
   })
 
   const lesson: Lesson | undefined = fetchedLesson ?? currentLesson ?? undefined

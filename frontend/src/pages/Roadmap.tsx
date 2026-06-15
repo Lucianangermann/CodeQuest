@@ -51,6 +51,7 @@ export default function Roadmap() {
   const { data: topics = [], isLoading: loadingTopics, error: topicsError } = useQuery({
     queryKey: ['topics'],
     queryFn: fetchTopics,
+    staleTime: 1000 * 60 * 5,
     select: (data) => {
       // Auto-select first non-locked topic on initial load
       if (selectedTopicId === null && data.length > 0) {

@@ -592,22 +592,109 @@ Rules:
   {{"evaluation": "<feedback on the previous answer, or null for the first question>", "question": "<your next question>", "question_number": <number>}}"""
 
 
+_INTERVIEW_BANK: dict[str, list[tuple[str, str]]] = {
+    "frontend": [
+        (
+            "Tell me about yourself and your journey into frontend development. What's the most interesting thing you've built?",
+            "Concrete projects with tech stack, clear timeline, genuine enthusiasm for a specific area.",
+        ),
+        (
+            "What is the Virtual DOM and why does React use it instead of manipulating the real DOM directly?",
+            "Virtual DOM = lightweight JS tree. React diffs old vs new (reconciliation), then applies minimal DOM updates in one batch. Real DOM is slow because any change can trigger reflow/repaint.",
+        ),
+        (
+            "Explain closures in JavaScript. Give me a real use case, not just a textbook definition.",
+            "Closure = function that retains access to its outer scope. Real use cases: counter with private state, memoization, event handlers that remember config, module pattern.",
+        ),
+        (
+            "When does a React component re-render? List every scenario you can think of.",
+            "Own state changes, props change, parent re-renders (even with same props unless memo), context changes, useReducer dispatch. Memo/useMemo/useCallback prevent unnecessary re-renders.",
+        ),
+        (
+            "What's the difference between useMemo and useCallback? Show me when you'd use each.",
+            "useMemo caches a computed VALUE. useCallback caches a FUNCTION reference. Use useMemo for expensive calculations; useCallback when passing callbacks to memoized children to prevent re-renders.",
+        ),
+        (
+            "You have a list of 10,000 items rendering slowly in React. Walk me through how you'd debug and fix the performance issue.",
+            "React DevTools Profiler → find which component re-renders. Solutions: virtualization (react-window), memo on list items, useCallback for handlers, pagination. Bonus: move state down to avoid parent re-renders.",
+        ),
+        (
+            "How does async/await work under the hood in JavaScript? What is the event loop?",
+            "JS is single-threaded. Event loop: call stack + task queue + microtask queue. Promises go to microtask queue (runs before next task). async/await is syntactic sugar over Promises. Microtasks before macrotasks (setTimeout).",
+        ),
+        (
+            "What is TypeScript and why would you choose it over plain JavaScript for a new project?",
+            "TypeScript = JS + static types. Benefits: catch bugs at compile time, better IDE autocomplete, safer refactoring, self-documenting code. Cost: setup, more verbose, learning curve. Worth it for any project >1 person or >2 weeks.",
+        ),
+        (
+            "Describe the CSS box model. What's the difference between box-sizing: content-box and border-box?",
+            "Box model: content + padding + border + margin. content-box (default): width = content only, padding/border add to total. border-box: width includes content + padding + border. border-box is almost always what you want.",
+        ),
+        (
+            "Tell me about the most challenging technical problem you solved in a project. What was your debugging process?",
+            "Should show systematic debugging: hypothesis → isolate → verify. Mention specific tools. Explain root cause clearly. Shows maturity and problem-solving methodology.",
+        ),
+    ],
+    "backend": [
+        (
+            "Tell me about yourself and your experience with backend development. What's a system you're proud of having built?",
+            "Concrete system with real tech stack, explains the problem it solved, mentions scale or interesting constraints.",
+        ),
+        (
+            "Walk me through everything that happens between a user typing 'google.com' and seeing the page — as much detail as possible.",
+            "DNS lookup → TCP handshake → TLS handshake → HTTP GET request → server processes → response → browser parses HTML → fetch CSS/JS → render. Bonus: CDN, caching, CORS, keep-alive.",
+        ),
+        (
+            "Explain JWT authentication end-to-end. How does the server verify a token without storing it?",
+            "Signup: hash password (bcrypt). Login: verify password, sign JWT (header.payload.signature using secret). Client stores token (localStorage/cookie). Request: send as Bearer token. Server verifies signature using same secret — no DB lookup needed. Never put sensitive data in payload (base64, not encrypted).",
+        ),
+        (
+            "What is the N+1 problem? Show me an example query that causes it and how to fix it.",
+            "N+1: fetch N records, then 1 query PER record to get related data. Fix: JOIN or eager loading. Example: SELECT * FROM posts, then for each post SELECT * FROM comments WHERE post_id=$id — replace with SELECT posts.*, comments.* FROM posts LEFT JOIN comments ON posts.id = comments.post_id.",
+        ),
+        (
+            "What's the difference between HTTP 401 and 403? When would an API return each?",
+            "401 Unauthorized = not authenticated (no token or invalid token — 'who are you?'). 403 Forbidden = authenticated but not permitted ('I know who you are, but you can't access this'). Wrong naming in HTTP spec but that's the accepted meaning.",
+        ),
+        (
+            "You have a slow API endpoint — response time went from 50ms to 3 seconds. Walk me through your debugging process.",
+            "Check logs for slow queries (EXPLAIN ANALYZE). Check N+1 patterns. Check if missing index. Check payload size. APM tool (Datadog/New Relic). Profile code. Add caching (Redis). Could also be network/external service — check each dependency.",
+        ),
+        (
+            "Explain SQL indexes. When should you add one, and when can an index hurt performance?",
+            "Index = B-tree data structure on a column for fast lookup. Add when: frequent WHERE/JOIN/ORDER BY on that column. Hurts: INSERT/UPDATE/DELETE are slower (index must be updated), extra disk space, optimizer can choose wrong index on low-cardinality columns.",
+        ),
+        (
+            "What is CORS and why does it exist? What headers does the server need to send?",
+            "Same-origin policy prevents scripts on evil.com from making authenticated requests to yourbank.com. CORS = server whitelist that says 'I allow requests from these origins'. Headers: Access-Control-Allow-Origin, -Methods, -Headers. Preflight OPTIONS request for non-simple requests.",
+        ),
+        (
+            "What is the difference between SQL and NoSQL databases? Give me a scenario where you'd pick each.",
+            "SQL: relational, ACID, schema, good for complex queries with JOINs. NoSQL: flexible schema, horizontal scaling, document/key-value/graph. Pick SQL when: relations matter, need transactions, data is structured. Pick NoSQL when: massive scale, flexible/unknown schema, simple access patterns.",
+        ),
+        (
+            "Design the database schema for a simple Twitter clone. What tables, columns, and indexes would you create?",
+            "Users (id, username, bio, created_at), Tweets (id, user_id FK, content, created_at), Follows (follower_id FK, followee_id FK, PK both). Indexes: tweets.user_id, follows.followee_id. Bonus: likes table, retweets as tweets with parent_id.",
+        ),
+    ],
+}
+
+
 def _stub_interview_message(question_number: int, focus: str) -> dict:
-    questions = {
-        1: f"Tell me about yourself and why you're interested in {focus} development.",
-        2: "What's the difference between == and === in JavaScript?",
-        3: "Explain what a closure is and give me a real-world use case.",
-        4: "What happens when you type a URL in the browser and press Enter?",
-        5: "Explain the difference between useMemo and useCallback in React.",
-        6: "What is the N+1 problem in databases?",
-        7: "How does JWT authentication work? Walk me through the full flow.",
-        8: "What is Big-O notation? What's the complexity of finding an item in a HashMap?",
-        9: "Tell me about the hardest bug you've ever debugged.",
-        10: "Where do you see yourself in 2 years as a developer?",
-    }
+    key = "backend" if "backend" in focus.lower() else "frontend"
+    bank = _INTERVIEW_BANK.get(key, _INTERVIEW_BANK["frontend"])
+    idx = min(question_number - 1, len(bank) - 1)
+    question, rubric = bank[idx]
+
+    evaluation = None
+    if question_number > 1:
+        prev_idx = min(question_number - 2, len(bank) - 1)
+        _, prev_rubric = bank[prev_idx]
+        evaluation = f"A complete answer would cover: {prev_rubric}"
+
     return {
-        "evaluation": "Good start." if question_number > 1 else None,
-        "question": questions.get(question_number, "Tell me about your latest project."),
+        "evaluation": evaluation,
+        "question": question,
         "question_number": question_number,
     }
 
