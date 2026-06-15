@@ -1,0 +1,313 @@
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useQuery } from '@tanstack/react-query'
+import { ArrowLeft, CheckCircle, XCircle, Loader2, ChevronRight, HelpCircle } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { fetchLesson, submitLesson, explainMistake } from '../lib/api'
+import { useLessonStore } from '../store/useLessonStore'
+import { useUserStore } from '../store/useUserStore'
+import type { Lesson, QuizContent, CodeContent, TheoryContent } from '../types'
+import Editor from '../components/Editor'
+import HintSystem from '../components/HintSystem'
+import toast from 'react-hot-toast'
+
+// ── Theory ────────────────────────────────────────────────────────────────────
+
+function TheoryView({ content }: { content: TheoryContent }) {
+  return (
+    <div className="space-y-4">
+      {content.sections.map((section, i) => (
+        <div key={i}>
+          {section.type === 'text' ? (
+            <div className="
+              prose prose-invert prose-sm max-w-none
+              prose-headings:text-white prose-headings:font-bold
+              prose-strong:text-white
+              prose-code:text-quest-purple-light prose-code:bg-quest-border prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:before:content-none prose-code:after:content-none
+              prose-ul:text-quest-text prose-li:text-quest-text prose-p:text-quest-text
+            ">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{section.content}</ReactMarkdown>
+            </div>
+          ) : (
+            <div className="rounded-xl overflow-hidden border border-quest-border">
+              <div className="flex items-center gap-2 px-4 py-2 bg-[#1e1e2e] border-b border-quest-border text-xs text-quest-muted font-mono">
+                {section.language || 'python'}
+              </div>
+              <SyntaxHighlighter
+                language={section.language || 'python'}
+                style={vscDarkPlus}
+                customStyle={{ margin: 0, background: '#0d0d1a', fontSize: '13px', padding: '16px' }}
+              >
+                {section.content}
+              </SyntaxHighlighter>
+            </div>
+          )}
+        </div>
+      ))}
+      {content.summary && (
+        <div className="mt-2 p-4 rounded-xl bg-quest-purple/10 border border-quest-purple/20 text-sm text-quest-text">
+          <strong className="text-quest-purple-light">Summary:</strong> {content.summary}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Quiz ──────────────────────────────────────────────────────────────────────
+
+function QuizView({ content, onSubmit, isSubmitting }: {
+  content: QuizContent; onSubmit: (answer: string) => void; isSubmitting: boolean
+}) {
+  const [selected, setSelected] = useState<number | null>(null)
+
+  return (
+    <div className="space-y-6">
+      <p className="text-lg font-medium text-white leading-relaxed">{content.question}</p>
+      <div className="space-y-3">
+        {content.options.map((option, i) => (
+          <motion.button
+            key={i}
+            whileHover={{ x: 4 }}
+            onClick={() => setSelected(i)}
+            className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all text-sm ${
+              selected === i
+                ? 'border-quest-purple bg-quest-purple/10 text-white'
+                : 'border-quest-border bg-quest-card text-quest-text hover:border-quest-purple/40'
+            }`}
+          >
+            <span className="font-mono mr-3 text-quest-muted">{['A', 'B', 'C', 'D'][i]}.</span>
+            {option}
+          </motion.button>
+        ))}
+      </div>
+      <button
+        onClick={() => selected !== null && onSubmit(String(selected))}
+        disabled={selected === null || isSubmitting}
+        className="btn-primary flex items-center gap-2"
+      >
+        {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+        Submit Answer
+      </button>
+    </div>
+  )
+}
+
+// ── Code ──────────────────────────────────────────────────────────────────────
+
+function CodeView({ content, lessonId, language, onSubmit, isSubmitting }: {
+  content: CodeContent; lessonId: number; language: string
+  onSubmit: (code: string) => void; isSubmitting: boolean
+}) {
+  const [code, setCode] = useState(content.starter_code)
+  const [isExplaining, setIsExplaining] = useState(false)
+  const [explanation, setExplanation] = useState('')
+
+  async function handleExplain() {
+    setIsExplaining(true)
+    try {
+      const text = await explainMistake(lessonId, code, 'Output did not match expected')
+      setExplanation(text)
+    } catch {
+      toast.error('Could not get explanation')
+    } finally {
+      setIsExplaining(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="p-4 bg-quest-purple/10 border border-quest-purple/20 rounded-xl">
+        <h3 className="font-semibold text-quest-purple-light mb-2">Task</h3>
+        <p className="text-quest-text text-sm leading-relaxed whitespace-pre-line">{content.instructions}</p>
+      </div>
+
+      <Editor value={code} onChange={setCode} language={language} height="200px" />
+
+      <HintSystem lessonId={lessonId} userCode={code} />
+
+      <button onClick={() => onSubmit(code)} disabled={isSubmitting} className="btn-primary flex items-center gap-2">
+        {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+        Run & Submit
+      </button>
+
+      {explanation ? (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-sm text-quest-text leading-relaxed"
+        >
+          <p className="font-semibold text-blue-400 mb-1">AI Explanation</p>
+          {explanation}
+        </motion.div>
+      ) : (
+        <button
+          onClick={handleExplain}
+          disabled={isExplaining}
+          className="text-sm text-quest-muted hover:text-quest-text flex items-center gap-1 transition-colors"
+        >
+          {isExplaining ? <Loader2 className="w-3 h-3 animate-spin" /> : <HelpCircle className="w-3 h-3" />}
+          Explain my mistake
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
+export default function LessonPage() {
+  const { lessonId } = useParams<{ lessonId: string }>()
+  const navigate = useNavigate()
+  const { currentLesson, currentTopicName, setCurrentLesson, startLesson } = useLessonStore()
+  const { user, updateXP } = useUserStore()
+
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [result, setResult] = useState<{ correct: boolean; feedback: string; xp_earned: number } | null>(null)
+
+  // Fetch if navigating directly (no lesson in store, or different lesson)
+  const { data: fetchedLesson, isLoading } = useQuery({
+    queryKey: ['lesson', lessonId],
+    queryFn: () => fetchLesson(Number(lessonId)),
+    enabled: !currentLesson || currentLesson.id !== Number(lessonId),
+    initialData: currentLesson?.id === Number(lessonId) ? currentLesson : undefined,
+  })
+
+  const lesson: Lesson | undefined = fetchedLesson ?? currentLesson ?? undefined
+
+  useEffect(() => {
+    if (fetchedLesson && (!currentLesson || currentLesson.id !== fetchedLesson.id)) {
+      setCurrentLesson(fetchedLesson)
+    }
+    startLesson()
+  }, [fetchedLesson])
+
+  if (isLoading || !lesson) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-quest-purple" />
+      </div>
+    )
+  }
+
+  async function handleSubmit(answer: string) {
+    if (!lesson) return
+    setIsSubmitting(true)
+    try {
+      const res = await submitLesson(lesson.id, answer, user?.language_preference || 'python')
+      setResult(res)
+      if (res.correct && res.xp_earned > 0) {
+        const newXP = (user?.xp ?? 0) + res.xp_earned
+        updateXP(newXP, Math.max(1, Math.floor(newXP / 100)))
+        toast.success(`+${res.xp_earned} XP earned! 🎉`)
+      }
+    } catch {
+      toast.error('Submission failed. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const typeBadge = {
+    theory: { label: '📖 Theory', cls: 'bg-blue-500/20 text-blue-400' },
+    quiz:   { label: '🧠 Quiz',   cls: 'bg-quest-yellow/20 text-quest-yellow' },
+    code:   { label: '💻 Code',   cls: 'bg-quest-purple/20 text-quest-purple-light' },
+  }[lesson.type]
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="max-w-3xl mx-auto px-4 sm:px-6 py-8"
+    >
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={() => navigate('/roadmap')}
+          className="p-2 rounded-xl hover:bg-quest-card transition-colors text-quest-muted hover:text-quest-text"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          {currentTopicName && <p className="text-xs text-quest-muted">{currentTopicName}</p>}
+          <h1 className="text-xl font-bold text-white">{lesson.title}</h1>
+        </div>
+        <span className={`ml-auto badge-pill text-xs ${typeBadge.cls}`}>{typeBadge.label}</span>
+      </div>
+
+      {/* Content */}
+      <div className="card">
+        <AnimatePresence mode="wait">
+          {(!result || !result.correct) && (
+            <motion.div key="lesson" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              {lesson.type === 'theory' && (
+                <>
+                  <TheoryView content={lesson.content_json as TheoryContent} />
+                  <div className="mt-6 pt-6 border-t border-quest-border">
+                    <button onClick={() => handleSubmit('read')} disabled={isSubmitting} className="btn-primary flex items-center gap-2">
+                      {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                      Mark as Read (+{lesson.xp_reward} XP)
+                    </button>
+                  </div>
+                </>
+              )}
+              {lesson.type === 'quiz' && (
+                <QuizView content={lesson.content_json as QuizContent} onSubmit={handleSubmit} isSubmitting={isSubmitting} />
+              )}
+              {lesson.type === 'code' && (
+                <CodeView
+                  content={lesson.content_json as CodeContent}
+                  lessonId={lesson.id}
+                  language={user?.language_preference || 'python'}
+                  onSubmit={handleSubmit}
+                  isSubmitting={isSubmitting}
+                />
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Result */}
+        {result && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`mt-6 p-4 rounded-xl border ${
+              result.correct ? 'bg-quest-green/10 border-quest-green/30' : 'bg-red-500/10 border-red-500/30'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              {result.correct
+                ? <CheckCircle className="w-5 h-5 text-quest-green flex-shrink-0 mt-0.5" />
+                : <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />}
+              <div className="flex-1">
+                <p className={`font-semibold ${result.correct ? 'text-quest-green' : 'text-red-400'}`}>
+                  {result.correct ? 'Correct! 🎉' : 'Not quite...'}
+                </p>
+                <p className="text-quest-text text-sm mt-1 whitespace-pre-wrap">{result.feedback}</p>
+                {result.xp_earned > 0 && (
+                  <p className="text-xs font-medium text-quest-green mt-2">+{result.xp_earned} XP earned!</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-4">
+              {!result.correct && (
+                <button onClick={() => setResult(null)} className="btn-secondary text-sm">Try Again</button>
+              )}
+              {result.correct && (
+                <button onClick={() => navigate('/roadmap')} className="btn-primary flex items-center gap-2 text-sm">
+                  Continue <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </div>
+    </motion.div>
+  )
+}
