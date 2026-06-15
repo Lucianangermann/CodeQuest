@@ -3,18 +3,18 @@ import json
 import os
 from typing import Optional
 
-_client: Optional[anthropic.Anthropic] = None
-MODEL = "claude-3-haiku-20240307"
+_client: Optional[anthropic.AsyncAnthropic] = None
+MODEL = "claude-haiku-4-5-20251001"
 _NO_AI = "AI tutor is not configured. Set ANTHROPIC_API_KEY to enable hints and explanations."
 
 
-def _get_claude() -> Optional[anthropic.Anthropic]:
+def _get_claude() -> Optional[anthropic.AsyncAnthropic]:
     global _client
     if _client is None:
         key = os.getenv("ANTHROPIC_API_KEY")
         if not key:
             return None
-        _client = anthropic.Anthropic(api_key=key)
+        _client = anthropic.AsyncAnthropic(api_key=key)
     return _client
 
 
@@ -44,7 +44,7 @@ async def get_hint(lesson_content: dict, hint_level: int, user_code: str) -> str
         3: "very specific (nearly the solution)",
     }
     instructions = lesson_content.get("instructions", "complete the coding task")
-    msg = client.messages.create(
+    msg = await client.messages.create(
         model=MODEL, max_tokens=200,
         messages=[{"role": "user", "content":
             f"Task: {instructions}\n\nStudent code:\n{user_code}\n\n"
@@ -59,7 +59,7 @@ async def explain_mistake(lesson_content: dict, user_code: str, error: str) -> s
         return _NO_AI
 
     instructions = lesson_content.get("instructions", "complete the coding task")
-    msg = client.messages.create(
+    msg = await client.messages.create(
         model=MODEL, max_tokens=350,
         messages=[{"role": "user", "content":
             f"Task: {instructions}\n\nCode:\n{user_code}\n\nError: {error}\n\n"
@@ -73,7 +73,7 @@ async def chat_response(messages: list, current_topic: str, language: str) -> st
     if not client:
         return "AI tutor requires ANTHROPIC_API_KEY. You can still complete all lessons without it!"
 
-    msg = client.messages.create(
+    msg = await client.messages.create(
         model=MODEL, max_tokens=500,
         system=(
             f"You are a friendly coding tutor for CodeQuest. The student is learning "
@@ -417,53 +417,47 @@ async def generate_training_plan(
     if not client:
         return _stub_training_plan(goal, level, language)
 
-    progress_ctx = f"\nAdjustment context from learner: {progress_notes}" if progress_notes else ""
-    prompt = f"""You are a senior developer and coding coach creating a realistic training plan for someone who wants to become a Junior Developer. Be honest about what is actually required — not just the basics.
+    progress_ctx = f" Adjustment: {progress_notes}" if progress_notes else ""
+    prompt = f"""Create a 5-phase junior developer training plan. Be concise — keep each field short.
 
-User profile:
-- Goal: {goal}
-- Timeline: {timeline}
-- Target company size: {company_target or 'Any'}
-- Current level: {level}
-- Language: {language}
-- Focus area: {framework_focus or 'Fullstack'}{progress_ctx}
+Profile: goal={goal}, timeline={timeline}, company={company_target or 'Any'}, level={level}, language={language}, focus={framework_focus or 'Fullstack'}{progress_ctx}
 
-Generate a multi-phase training plan covering: Core Fundamentals, React/Frontend, Backend/APIs, CS Basics (algorithms/data structures), and Interview Preparation.
+Phases: 1=Core Fundamentals, 2=React/Frontend, 3=Backend/APIs, 4=CS Basics, 5=Interview Prep
 
-Return JSON only. No preamble, no markdown fences. Structure:
+Return ONLY valid JSON, no markdown. Keep all strings short (under 80 chars). Max 4 topics per phase, max 3 subtopics each, max 2 activities per day, only 3 days (Mon/Wed/Fri):
 {{
   "phases": [
     {{
       "phase_number": 1,
-      "title": "Phase 1 — Core ...",
-      "duration_weeks": 6,
-      "goal": "...",
+      "title": "Phase 1 — Core Fundamentals",
+      "duration_weeks": 4,
+      "goal": "one sentence goal",
       "topics": [
-        {{"name": "...", "subtopics": ["..."], "depth": "understand|apply|master", "why_important": "...", "interview_relevance": "low|medium|high"}}
+        {{"name": "Topic", "subtopics": ["a", "b"], "depth": "master", "why_important": "short reason", "interview_relevance": "high"}}
       ],
       "weekly_schedule": [
-        {{"day": "Monday", "duration_minutes": 90, "activities": [
-          {{"type": "theory|coding|project|review|interview_prep|debugging", "title": "...", "description": "...", "resource": "...", "priority": "must|optional"}}
-        ]}}
+        {{"day": "Monday", "duration_minutes": 90, "activities": [{{"type": "theory", "title": "short title", "description": "short desc", "resource": "MDN/url", "priority": "must"}}]}},
+        {{"day": "Wednesday", "duration_minutes": 90, "activities": [{{"type": "coding", "title": "short title", "description": "short desc", "resource": "url", "priority": "must"}}]}},
+        {{"day": "Friday", "duration_minutes": 60, "activities": [{{"type": "review", "title": "short title", "description": "short desc", "resource": "url", "priority": "must"}}]}}
       ],
-      "milestone_project": {{"title": "...", "description": "...", "skills_practiced": ["..."]}},
-      "phase_complete_when": ["..."]
+      "milestone_project": {{"title": "Project title", "description": "one sentence", "skills_practiced": ["skill1", "skill2"]}},
+      "phase_complete_when": ["criterion 1", "criterion 2"]
     }}
   ],
   "interview_preparation": {{
-    "startup": {{"topics": ["..."], "typical_questions": ["..."], "coding_challenges": ["..."]}},
-    "medium_company": {{"topics": ["..."], "typical_questions": ["..."], "coding_challenges": ["..."]}},
-    "large_company": {{"topics": ["..."], "typical_questions": ["..."], "coding_challenges": ["..."]}}
+    "startup": {{"topics": ["t1", "t2"], "typical_questions": ["q1", "q2", "q3"], "coding_challenges": ["c1", "c2"]}},
+    "medium_company": {{"topics": ["t1", "t2"], "typical_questions": ["q1", "q2", "q3"], "coding_challenges": ["c1", "c2"]}},
+    "large_company": {{"topics": ["t1", "t2"], "typical_questions": ["q1", "q2", "q3"], "coding_challenges": ["c1", "c2"]}}
   }},
   "portfolio_requirements": {{
     "minimum_projects": 3,
-    "must_have_features": ["..."],
-    "nice_to_have": ["..."]
+    "must_have_features": ["feature1", "feature2", "feature3"],
+    "nice_to_have": ["nice1", "nice2"]
   }}
 }}"""
 
-    msg = client.messages.create(
-        model=MODEL, max_tokens=4000,
+    msg = await client.messages.create(
+        model=MODEL, max_tokens=6000,
         messages=[{"role": "user", "content": prompt}],
     )
     return _parse_json(msg.content[0].text)
@@ -489,7 +483,7 @@ async def generate_test_question(item_key: str, item_label: str) -> dict:
         '{"question": "...", "expected_answer": "..."}\n'
         "The question should be answerable in 2-3 sentences. The expected_answer is a brief rubric showing what a good answer covers, not a full solution."
     )
-    msg = client.messages.create(
+    msg = await client.messages.create(
         model=MODEL, max_tokens=300,
         messages=[{"role": "user", "content": prompt}],
     )
@@ -545,7 +539,7 @@ async def interview_message(
     api_messages = [{"role": m["role"], "content": m["content"]} for m in messages]
     if not api_messages:
         api_messages = [{"role": "user", "content": "Please begin the interview with your first question."}]
-    msg = client.messages.create(
+    msg = await client.messages.create(
         model=MODEL, max_tokens=500,
         system=system,
         messages=api_messages,
@@ -580,7 +574,7 @@ async def interview_summary(messages: list, company_size: str, focus: str) -> di
         '"overall_feedback": "2-3 sentence honest summary"}'
     )
     all_messages = list(messages) + [{"role": "user", "content": prompt}]
-    msg = client.messages.create(
+    msg = await client.messages.create(
         model=MODEL, max_tokens=600,
         messages=[{"role": m["role"], "content": m["content"]} for m in all_messages],
     )
