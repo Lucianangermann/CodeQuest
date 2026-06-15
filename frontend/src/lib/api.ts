@@ -92,8 +92,8 @@ export async function fetchDashboard(): Promise<DashboardData> {
 }
 
 export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
-  const { data } = await api.get<LeaderboardEntry[]>('/leaderboard/')
-  return data
+  const { data } = await api.get<{ entries: LeaderboardEntry[] }>('/leaderboard/')
+  return data.entries
 }
 
 export async function updateStreak(): Promise<{ streak: number; is_new_day: boolean }> {
@@ -312,5 +312,18 @@ export async function fetchInterviewSession(sessionId: number) {
     qa_pairs: Array<{ role: string; content: string }>
     completed_at: string | null
     created_at: string
+  }
+}
+
+export async function fetchDailyChallenge() {
+  const res = await api.get('/lessons/daily')
+  return res.data as {
+    id: number
+    title: string
+    type: string
+    topic_title: string
+    content_json: Record<string, unknown>
+    is_completed: boolean
+    today: string
   }
 }

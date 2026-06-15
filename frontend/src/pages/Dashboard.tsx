@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { BookOpen, Flame, Zap, Trophy, ChevronRight, Target, AlertCircle, Calendar, Clock } from 'lucide-react'
-import { fetchDashboard, fetchTodaysTasks } from '../lib/api'
+import { fetchDashboard, fetchTodaysTasks, fetchDailyChallenge } from '../lib/api'
 import ProgressBar from '../components/ProgressBar'
 import BadgeCard from '../components/BadgeCard'
 import Heatmap from '../components/Heatmap'
@@ -41,6 +41,12 @@ export default function Dashboard() {
     queryFn: fetchTodaysTasks,
     retry: false,
   })
+  const { data: dailyChallenge } = useQuery({
+    queryKey: ['daily-challenge'],
+    queryFn: fetchDailyChallenge,
+    retry: false,
+    staleTime: 1000 * 60 * 60, // 1 hour
+  })
 
   const greeting = () => {
     const h = new Date().getHours()
@@ -78,6 +84,19 @@ export default function Dashboard() {
       transition={{ duration: 0.3 }}
       className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8"
     >
+      {data && data.streak > 0 && data.lessons_today === 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-4 px-4 py-3 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center gap-3"
+        >
+          <Flame className="w-5 h-5 text-orange-400 flex-shrink-0" />
+          <span className="text-sm text-orange-300">
+            <strong className="text-orange-400">{data.streak}-day streak</strong> — complete a lesson today to keep it alive! 🔥
+          </span>
+        </motion.div>
+      )}
+
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white">
@@ -94,6 +113,29 @@ export default function Dashboard() {
         <StatCard icon={<BookOpen className="w-5 h-5" />} label="Lessons Done" value={data.total_lessons_completed} color="text-quest-green" />
         <StatCard icon={<Flame className="w-5 h-5" />} label="Day Streak" value={data.streak} color="text-orange-400" />
       </div>
+
+      {data?.total_lessons !== undefined && data.total_lessons > 0 && (
+        <div className="card">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-quest-purple" />
+              <h3 className="font-semibold text-white text-sm">Curriculum Progress</h3>
+            </div>
+            <span className="text-sm text-quest-muted">
+              {data.total_lessons_completed}/{data.total_lessons} lessons
+            </span>
+          </div>
+          <div className="w-full bg-quest-border rounded-full h-2">
+            <div
+              className="bg-quest-purple h-2 rounded-full transition-all duration-700"
+              style={{ width: `${Math.min(100, (data.total_lessons_completed / data.total_lessons) * 100)}%` }}
+            />
+          </div>
+          <p className="text-xs text-quest-muted mt-2">
+            {Math.round((data.total_lessons_completed / data.total_lessons) * 100)}% complete
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="card space-y-3">
@@ -179,6 +221,29 @@ export default function Dashboard() {
           <Link to="/training-plan" className="text-xs text-quest-purple hover:underline block">
             View full training plan →
           </Link>
+        </div>
+      )}
+
+      {dailyChallenge && (
+        <div className="card">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Target className="w-5 h-5 text-quest-yellow" />
+              <h3 className="font-semibold text-white text-sm">Daily Challenge</h3>
+              <span className="badge-pill bg-quest-yellow/20 text-quest-yellow text-xs">Today</span>
+            </div>
+            {dailyChallenge.is_completed && (
+              <span className="text-xs text-quest-green font-medium">✓ Completed</span>
+            )}
+          </div>
+          <p className="text-sm text-white font-medium mb-1">{dailyChallenge.title}</p>
+          <p className="text-xs text-quest-muted mb-3">{dailyChallenge.topic_title}</p>
+          <a
+            href={`/lesson/${dailyChallenge.id}`}
+            className={`btn-primary text-sm inline-flex items-center gap-2 ${dailyChallenge.is_completed ? 'opacity-60' : ''}`}
+          >
+            {dailyChallenge.is_completed ? 'Review' : 'Start Challenge'} →
+          </a>
         </div>
       )}
 

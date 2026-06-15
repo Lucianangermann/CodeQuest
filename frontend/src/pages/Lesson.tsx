@@ -169,6 +169,16 @@ export default function LessonPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [result, setResult] = useState<{ correct: boolean; feedback: string; xp_earned: number } | null>(null)
 
+  const NOTES_KEY = `cq_note_${lessonId}`
+  const [note, setNote] = useState(() => localStorage.getItem(NOTES_KEY) || '')
+  const [noteSaved, setNoteSaved] = useState(false)
+
+  function saveNote() {
+    localStorage.setItem(NOTES_KEY, note)
+    setNoteSaved(true)
+    setTimeout(() => setNoteSaved(false), 2000)
+  }
+
   // Fetch if navigating directly (no lesson in store, or different lesson)
   const { data: fetchedLesson, isLoading } = useQuery({
     queryKey: ['lesson', lessonId],
@@ -208,6 +218,11 @@ export default function LessonPage() {
         queryClient.invalidateQueries({ queryKey: ['topics'] })
         queryClient.invalidateQueries({ queryKey: ['topic-lessons', lesson.topic_id] })
         queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+        if (res.topic_completed) {
+          setTimeout(() => {
+            toast.success('🏆 Topic complete! You\'ve mastered this topic!', { duration: 5000, icon: '🏆' })
+          }, 1000)
+        }
       }
     } catch {
       toast.error('Submission failed. Please try again.')
@@ -312,6 +327,24 @@ export default function LessonPage() {
             </div>
           </motion.div>
         )}
+
+        {/* Personal Notes */}
+        <div className="mt-6 pt-6 border-t border-quest-border">
+          <p className="text-xs text-quest-muted font-semibold uppercase tracking-wide mb-2">My Notes</p>
+          <textarea
+            value={note}
+            onChange={e => { setNote(e.target.value); setNoteSaved(false) }}
+            placeholder="Write notes about this lesson..."
+            rows={3}
+            className="w-full bg-quest-bg border border-quest-border rounded-xl px-3 py-2 text-sm text-white placeholder-quest-muted focus:outline-none focus:border-quest-purple resize-none"
+          />
+          <button
+            onClick={saveNote}
+            className="mt-2 text-xs text-quest-muted hover:text-quest-text transition-colors"
+          >
+            {noteSaved ? '✓ Saved' : 'Save notes'}
+          </button>
+        </div>
       </div>
     </motion.div>
   )

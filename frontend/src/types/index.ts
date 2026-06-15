@@ -228,6 +228,7 @@ export interface DashboardData {
   lessons_this_week: number
   xp_today: number
   total_lessons_completed: number
+  total_lessons: number
   current_topic?: {
     id: number
     title: string
@@ -250,6 +251,7 @@ export interface SubmitResult {
   xp_earned: number
   output?: string
   error?: string
+  topic_completed?: boolean
 }
 
 export interface ProfileData {

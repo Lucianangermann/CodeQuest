@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
 from pydantic import BaseModel
+from datetime import date as _date
 from models.schemas import SubmitAnswerRequest, SubmitAnswerResponse
 from db.connection import acquire
 from services.code_runner import execute_code
@@ -90,6 +91,34 @@ class RunCodeRequest(BaseModel):
 async def run_code_playground(body: RunCodeRequest, user_id: str = Depends(get_current_user)):
     result = await execute_code(body.code, body.language)
     return {"output": result.get("output", ""), "error": result.get("error", "")}
+
+
+@router.get("/daily")
+async def get_daily_challenge(user_id: Optional[str] = Depends(get_optional_user)):
+    today = _date.today()
+    day_seed = today.year * 1000 + today.timetuple().tm_yday
+    async with acquire() as conn:
+        # Pick a code lesson, cycling by day
+        total = await conn.fetchval("SELECT COUNT(*) FROM lessons WHERE type = 'code'")
+        if not total:
+            raise HTTPException(404, "No lessons available")
+        offset = day_seed % int(total)
+        lesson = await conn.fetchrow(
+            """SELECT l.*, t.title AS topic_title
+               FROM lessons l JOIN topics t ON t.id = l.topic_id
+               WHERE l.type = 'code'
+               ORDER BY l.id LIMIT 1 OFFSET $1""",
+            offset,
+        )
+        is_completed = False
+        if user_id and lesson:
+            is_completed = bool(await conn.fetchval(
+                "SELECT 1 FROM user_progress WHERE user_id=$1 AND lesson_id=$2",
+                user_id, lesson["id"],
+            ))
+    if not lesson:
+        raise HTTPException(404, "No lesson found")
+    return {**dict(lesson), "is_completed": is_completed, "today": today.isoformat()}
 
 
 @router.get("/{lesson_id}")
@@ -220,6 +249,20 @@ async def submit_lesson(
         elif correct and already_done:
             feedback += " (Already completed — no XP awarded again.)"
 
+        topic_completed = False
+        if correct and not already_done and lesson["topic_id"]:
+            _total = await conn.fetchval(
+                "SELECT COUNT(*) FROM lessons WHERE topic_id = $1", lesson["topic_id"]
+            )
+            _done = await conn.fetchval(
+                """SELECT COUNT(*) FROM user_progress up
+                   JOIN lessons l ON l.id = up.lesson_id
+                   WHERE up.user_id = $1 AND l.topic_id = $2""",
+                user_id, lesson["topic_id"],
+            )
+            topic_completed = _total > 0 and _done >= _total
+
     return SubmitAnswerResponse(
-        correct=correct, feedback=feedback, xp_earned=xp_earned, output=output, error=error_out
+        correct=correct, feedback=feedback, xp_earned=xp_earned, output=output, error=error_out,
+        topic_completed=topic_completed,
     )

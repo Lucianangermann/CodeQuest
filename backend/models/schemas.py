@@ -13,6 +13,7 @@ class SubmitAnswerResponse(BaseModel):
     xp_earned: int
     output: Optional[str] = None
     error: Optional[str] = None
+    topic_completed: bool = False
 
 
 class HintRequest(BaseModel):
@@ -86,6 +87,7 @@ class DashboardStats(BaseModel):
     xp_today: int
     total_lessons_completed: int
     lessons_this_week: int = 0
+    total_lessons: int = 0
     current_topic: Optional[dict] = None
     recent_badges: List[dict]
     activity_data: List[dict]

@@ -79,6 +79,7 @@ async def get_dashboard(user_id: str = Depends(get_current_user)):
                FROM activity_log WHERE user_id = $1 AND date >= $2""",
             user_id, week_start,
         )
+        total_lessons = await conn.fetchval("SELECT COUNT(*) FROM lessons")
 
     td = dict(today_row) if today_row else {}
     return DashboardStats(
@@ -92,6 +93,7 @@ async def get_dashboard(user_id: str = Depends(get_current_user)):
         xp_today=td.get("xp_earned", 0),
         total_lessons_completed=total_completed or 0,
         lessons_this_week=int(lessons_this_week or 0),
+        total_lessons=int(total_lessons or 0),
         current_topic=current_topic,
         recent_badges=[dict(b) for b in badges],
         activity_data=[dict(a) for a in activity],

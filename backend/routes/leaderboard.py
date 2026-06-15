@@ -8,11 +8,17 @@ from deps import get_optional_user
 router = APIRouter()
 
 
-@router.get("/", response_model=List[LeaderboardEntry])
-async def get_leaderboard(user_id: Optional[str] = Depends(get_optional_user)):
+@router.get("/")
+async def get_leaderboard(
+    user_id: Optional[str] = Depends(get_optional_user),
+    page: int = 1,
+    per_page: int = 20,
+):
     seven_ago = date.today() - timedelta(days=7)
+    offset = (page - 1) * per_page
 
     async with acquire() as conn:
+        total_count = await conn.fetchval("SELECT COUNT(*) FROM users")
         rows = await conn.fetch(
             """
             SELECT u.id, u.username, u.avatar_url, SUM(al.xp_earned) AS weekly_xp
@@ -21,14 +27,14 @@ async def get_leaderboard(user_id: Optional[str] = Depends(get_optional_user)):
             WHERE al.date >= $1
             GROUP BY u.id, u.username, u.avatar_url
             ORDER BY weekly_xp DESC
-            LIMIT 50
+            LIMIT $2 OFFSET $3
             """,
-            seven_ago,
+            seven_ago, per_page, offset,
         )
 
-    return [
+    entries = [
         LeaderboardEntry(
-            rank=i + 1,
+            rank=offset + i + 1,
             user_id=str(r["id"]),
             username=r["username"],
             avatar_url=r.get("avatar_url"),
@@ -37,3 +43,9 @@ async def get_leaderboard(user_id: Optional[str] = Depends(get_optional_user)):
         )
         for i, r in enumerate(rows)
     ]
+    return {
+        "entries": [e.model_dump() for e in entries],
+        "page": page,
+        "per_page": per_page,
+        "total": total_count,
+    }
