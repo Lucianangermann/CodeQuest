@@ -50,8 +50,13 @@ export const translations: Record<Lang, Record<string, string>> = {
     'dash.project': 'Project',
     'dash.xpEarned': 'XP earned',
     'dash.complete': 'Complete',
+    'dash.emptyState': 'Complete your first lesson to earn XP, build your streak, and unlock topics.',
 
     // Roadmap
+    'road.title': 'Learning Roadmap',
+    'road.subtitle': 'Master programming step by step',
+    'road.topics': 'Topics',
+    'road.lessons': 'lessons',
     'road.searchPlaceholder': 'Search topics...',
     'road.noTopics': 'No topics found',
     'road.startLesson': 'Start Lesson',
@@ -170,8 +175,13 @@ export const translations: Record<Lang, Record<string, string>> = {
     'dash.project': 'Projekt',
     'dash.xpEarned': 'XP verdient',
     'dash.complete': 'Abgeschlossen',
+    'dash.emptyState': 'Schließe deine erste Lektion ab, um XP zu verdienen, deinen Streak zu starten und Themen freizuschalten.',
 
     // Roadmap
+    'road.title': 'Lernpfad',
+    'road.subtitle': 'Lerne Programmieren Schritt für Schritt',
+    'road.topics': 'Themen',
+    'road.lessons': 'Lektionen',
     'road.searchPlaceholder': 'Themen suchen...',
     'road.noTopics': 'Keine Themen gefunden',
     'road.startLesson': 'Lektion starten',

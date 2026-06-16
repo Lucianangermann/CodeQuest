@@ -44,13 +44,15 @@ export async function fetchTopics(language = 'python'): Promise<Topic[]> {
 }
 
 export async function fetchTopicLessons(topicId: number, language = 'python'): Promise<Lesson[]> {
-  const { data } = await api.get<Lesson[]>(`/topics/${topicId}/lessons`, { params: { language } })
+  const { uiLanguage } = useUserStore.getState()
+  const { data } = await api.get<Lesson[]>(`/topics/${topicId}/lessons`, { params: { language, ui_lang: uiLanguage } })
   return data
 }
 
 // Lessons
 export async function fetchLesson(lessonId: number): Promise<Lesson> {
-  const { data } = await api.get<Lesson>(`/lessons/${lessonId}`)
+  const { uiLanguage } = useUserStore.getState()
+  const { data } = await api.get<Lesson>(`/lessons/${lessonId}`, { params: { ui_lang: uiLanguage } })
   return data
 }
 

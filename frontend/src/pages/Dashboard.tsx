@@ -196,7 +196,7 @@ export default function Dashboard() {
           <div className="text-6xl mb-4">🚀</div>
           <h2 className="text-xl font-bold text-white mb-2">Your journey starts here!</h2>
           <p className="text-quest-muted mb-6 max-w-sm mx-auto">
-            Complete your first lesson to earn XP, build your streak, and unlock topics.
+            {t('dash.emptyState')}
           </p>
           <Link to="/roadmap" className="btn-primary inline-flex items-center gap-2">
             {t('dash.goToRoadmap')} <ChevronRight className="w-4 h-4" />
@@ -212,7 +212,7 @@ export default function Dashboard() {
               <h3 className="font-semibold text-white text-sm">Curriculum Progress</h3>
             </div>
             <span className="text-sm text-quest-muted">
-              {data.total_lessons_completed}/{data.total_lessons} lessons
+              {data.total_lessons_completed}/{data.total_lessons} {t('road.lessons')}
             </span>
           </div>
           <div className="w-full bg-quest-border rounded-full h-2">
@@ -324,7 +324,7 @@ export default function Dashboard() {
               )}
               <ProgressBar value={data.current_topic.completed} max={data.current_topic.total} size="sm" />
               <p className="text-xs text-quest-muted mt-1">
-                {data.current_topic.completed}/{data.current_topic.total} lessons
+                {data.current_topic.completed}/{data.current_topic.total} {t('road.lessons')}
               </p>
             </div>
           </div>

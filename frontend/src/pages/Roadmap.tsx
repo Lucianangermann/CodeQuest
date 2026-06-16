@@ -108,14 +108,14 @@ export default function Roadmap() {
       className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
     >
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">Learning Roadmap</h1>
-        <p className="text-quest-muted mt-1">Master programming step by step</p>
+        <h1 className="text-3xl font-bold text-white">{t('road.title')}</h1>
+        <p className="text-quest-muted mt-1">{t('road.subtitle')}</p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Topic nodes */}
         <div className="lg:w-auto">
-          <h2 className="text-sm font-semibold text-quest-muted uppercase tracking-wide mb-4">Topics</h2>
+          <h2 className="text-sm font-semibold text-quest-muted uppercase tracking-wide mb-4">{t('road.topics')}</h2>
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-quest-muted" />
             <input
@@ -170,7 +170,7 @@ export default function Roadmap() {
                   <p className="text-quest-muted text-sm mt-0.5">{selectedTopic.description}</p>
                 </div>
                 <span className="text-sm text-quest-muted">
-                  {selectedTopic.completed_lessons}/{selectedTopic.total_lessons} lessons
+                  {selectedTopic.completed_lessons}/{selectedTopic.total_lessons} {t('road.lessons')}
                 </span>
               </div>
 

@@ -65,7 +65,7 @@ async def get_topics(language: str = "python", user_id: Optional[str] = Depends(
 
 
 @router.get("/{topic_id}/lessons")
-async def get_topic_lessons(topic_id: int, language: str = "python", user_id: Optional[str] = Depends(get_optional_user)):
+async def get_topic_lessons(topic_id: int, language: str = "python", ui_lang: str = "en", user_id: Optional[str] = Depends(get_optional_user)):
     async with acquire() as conn:
         lessons = await conn.fetch(
             "SELECT * FROM lessons WHERE topic_id = $1 AND (language IS NULL OR language = $2) ORDER BY order_index",
@@ -117,13 +117,31 @@ async def get_topic_lessons(topic_id: int, language: str = "python", user_id: Op
         else:
             return 1
 
-    return [
-        {
+    def apply_translation(lesson_dict, tr):
+        """Merge German translations into lesson dict."""
+        if not tr:
+            return lesson_dict
+        if "title" in tr:
+            lesson_dict["title"] = tr["title"]
+        if "content" in tr:
+            content = dict(lesson_dict.get("content_json") or {})
+            content.update(tr["content"])
+            lesson_dict["content_json"] = content
+        return lesson_dict
+
+    result = []
+    for l in lessons:
+        d = {
             **dict(l),
             "is_completed": l["id"] in completed,
             "xp_earned": completed.get(l["id"], 0),
             "mastery_level": calc_mastery(l["id"]),
             "difficulty": community_diff.get(l["id"]),
         }
-        for l in lessons
-    ]
+        if ui_lang == "de":
+            translations_col = d.pop("translations", None) or {}
+            d = apply_translation(d, translations_col)
+        else:
+            d.pop("translations", None)
+        result.append(d)
+    return result

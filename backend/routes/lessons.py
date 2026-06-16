@@ -164,7 +164,7 @@ async def get_quick_practice(count: int = 5, user_id: str = Depends(get_current_
 
 
 @router.get("/{lesson_id}")
-async def get_lesson(lesson_id: int, user_id: Optional[str] = Depends(get_optional_user)):
+async def get_lesson(lesson_id: int, ui_lang: str = "en", user_id: Optional[str] = Depends(get_optional_user)):
     async with acquire() as conn:
         lesson = await conn.fetchrow("SELECT * FROM lessons WHERE id = $1", lesson_id)
         if not lesson:
@@ -179,7 +179,18 @@ async def get_lesson(lesson_id: int, user_id: Optional[str] = Depends(get_option
             if row:
                 is_completed, xp_earned = True, row["xp_earned"]
 
-    return {**dict(lesson), "is_completed": is_completed, "xp_earned": xp_earned}
+    d = {**dict(lesson), "is_completed": is_completed, "xp_earned": xp_earned}
+    if ui_lang == "de":
+        tr = d.pop("translations", None) or {}
+        if tr.get("title"):
+            d["title"] = tr["title"]
+        if tr.get("content"):
+            content = dict(d.get("content_json") or {})
+            content.update(tr["content"])
+            d["content_json"] = content
+    else:
+        d.pop("translations", None)
+    return d
 
 
 @router.post("/{lesson_id}/submit", response_model=SubmitAnswerResponse)
