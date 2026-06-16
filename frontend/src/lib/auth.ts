@@ -4,7 +4,7 @@ const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 export interface AuthUser {
   id: string
-  email: string
+  email?: string | null
   username: string
   xp: number
   level: number
@@ -19,20 +19,15 @@ export interface AuthResponse {
   user: AuthUser
 }
 
-export async function apiSignup(
-  email: string,
-  password: string,
-  username: string,
-): Promise<AuthResponse> {
+export async function apiSignup(username: string, password: string): Promise<AuthResponse> {
   const { data } = await axios.post<AuthResponse>(`${BASE}/auth/signup`, {
-    email,
-    password,
     username,
+    password,
   })
   return data
 }
 
-export async function apiLogin(email: string, password: string): Promise<AuthResponse> {
-  const { data } = await axios.post<AuthResponse>(`${BASE}/auth/login`, { email, password })
+export async function apiLogin(username: string, password: string): Promise<AuthResponse> {
+  const { data } = await axios.post<AuthResponse>(`${BASE}/auth/login`, { username, password })
   return data
 }

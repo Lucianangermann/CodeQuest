@@ -193,6 +193,7 @@ export interface Lesson {
   order_index: number
   is_completed: boolean
   xp_earned: number
+  language?: string
 }
 
 export interface Badge {
@@ -254,6 +255,8 @@ export interface SubmitResult {
   output?: string
   error?: string
   topic_completed?: boolean
+  expected_output?: string
+  level?: number
 }
 
 export interface ProfileData {

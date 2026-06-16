@@ -16,13 +16,12 @@ ALGO = "HS256"
 
 
 class SignupRequest(BaseModel):
-    email: str
-    password: str
     username: str
+    password: str
 
 
 class LoginRequest(BaseModel):
-    email: str
+    username: str
     password: str
 
 
@@ -37,22 +36,21 @@ def _make_token(user_id: str) -> str:
 @router.post("/signup")
 async def signup(body: SignupRequest):
     async with acquire() as conn:
-        existing = await conn.fetchval("SELECT id FROM users WHERE email = $1", body.email)
+        existing = await conn.fetchval("SELECT id FROM users WHERE username = $1", body.username)
         if existing:
-            raise HTTPException(status_code=400, detail="Email already registered")
+            raise HTTPException(status_code=400, detail="Username already taken")
 
         user_id = str(uuid.uuid4())
         hashed = pwd.hash(body.password)
         await conn.execute(
-            "INSERT INTO users (id, email, username, password_hash) VALUES ($1, $2, $3, $4)",
-            user_id, body.email, body.username, hashed,
+            "INSERT INTO users (id, username, password_hash) VALUES ($1, $2, $3)",
+            user_id, body.username, hashed,
         )
 
     return {
         "token": _make_token(user_id),
         "user": {
             "id": user_id,
-            "email": body.email,
             "username": body.username,
             "xp": 0, "level": 1, "streak": 0,
             "language_preference": "python",
@@ -69,15 +67,15 @@ async def login(body: LoginRequest):
         row = await conn.fetchrow(
             "SELECT id, username, password_hash, xp, level, streak, "
             "language_preference, daily_goal, avatar_url, onboarding_completed "
-            "FROM users WHERE email = $1",
-            body.email,
+            "FROM users WHERE username = $1",
+            body.username,
         )
 
     if not row or not pwd.verify(body.password, row["password_hash"]):
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        raise HTTPException(status_code=401, detail="Invalid username or password")
 
     user = dict(row)
     user["id"] = str(user["id"])
     del user["password_hash"]
 
-    return {"token": _make_token(user["id"]), "user": {**user, "email": body.email}}
+    return {"token": _make_token(user["id"]), "user": user}

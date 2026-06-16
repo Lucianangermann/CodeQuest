@@ -8,6 +8,7 @@ import BadgeCard from '../components/BadgeCard'
 import Heatmap from '../components/Heatmap'
 import StreakDisplay from '../components/StreakDisplay'
 import { CardSkeleton } from '../components/LoadingSkeleton'
+import { useT } from '../i18n/useT'
 
 function StatCard({ icon, label, value, color = 'text-quest-purple', gradient = 'from-quest-purple/8' }: {
   icon: React.ReactNode; label: string; value: string | number; color?: string; gradient?: string
@@ -33,6 +34,8 @@ const ACTIVITY_COLORS: Record<string, string> = {
 }
 
 export default function Dashboard() {
+  const t = useT()
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['dashboard'],
     queryFn: fetchDashboard,
@@ -54,6 +57,14 @@ export default function Dashboard() {
     if (h < 12) return 'Good morning'
     if (h < 18) return 'Good afternoon'
     return 'Good evening'
+  }
+
+  const ACTIVITY_TYPE_LABELS: Record<string, string> = {
+    theory: t('dash.theory'),
+    coding: t('dash.coding'),
+    quiz: t('dash.quiz'),
+    review: t('dash.review'),
+    project: t('dash.project'),
   }
 
   if (isLoading) {
@@ -117,8 +128,8 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<Zap className="w-5 h-5" />} label="Total XP" value={data.xp.toLocaleString()} color="text-quest-purple" gradient="from-quest-purple/10" />
-        <StatCard icon={<Trophy className="w-5 h-5" />} label="Level" value={data.level} color="text-quest-yellow" gradient="from-quest-indigo/10" />
+        <StatCard icon={<Zap className="w-5 h-5" />} label={t('dash.xp')} value={data.xp.toLocaleString()} color="text-quest-purple" gradient="from-quest-purple/10" />
+        <StatCard icon={<Trophy className="w-5 h-5" />} label={t('dash.level')} value={data.level} color="text-quest-yellow" gradient="from-quest-indigo/10" />
         <StatCard icon={<BookOpen className="w-5 h-5" />} label="Lessons Done" value={data.total_lessons_completed} color="text-quest-green" gradient="from-quest-green/10" />
         <motion.div whileHover={{ y: -2 }} className="card relative overflow-hidden flex items-center gap-4">
           <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent rounded-2xl pointer-events-none" />
@@ -126,7 +137,7 @@ export default function Dashboard() {
           <div className="relative flex-1">
             <div className="text-3xl font-extrabold text-white mt-1">{data.streak}</div>
             <div className="text-quest-muted text-sm flex items-center gap-1.5">
-              Day Streak
+              {t('dash.streak')}
               {data.streak_shields > 0 && (
                 <span className="inline-flex items-center gap-0.5 text-xs text-violet-300 bg-violet-500/20 border border-violet-500/30 rounded-full px-1.5 py-0.5 ml-1">
                   🛡️ {data.streak_shields}
@@ -150,7 +161,7 @@ export default function Dashboard() {
             Complete your first lesson to earn XP, build your streak, and unlock topics.
           </p>
           <Link to="/roadmap" className="btn-primary inline-flex items-center gap-2">
-            Start First Lesson <ChevronRight className="w-4 h-4" />
+            {t('dash.goToRoadmap')} <ChevronRight className="w-4 h-4" />
           </Link>
         </motion.div>
       )}
@@ -173,7 +184,7 @@ export default function Dashboard() {
             />
           </div>
           <p className="text-xs text-quest-muted mt-2">
-            {Math.round((data.total_lessons_completed / data.total_lessons) * 100)}% complete
+            {Math.round((data.total_lessons_completed / data.total_lessons) * 100)}% {t('dash.complete')}
           </p>
         </div>
       )}
@@ -198,7 +209,7 @@ export default function Dashboard() {
           </div>
           <ProgressBar value={data.lessons_today * 5} max={data.daily_goal} color="green" />
           <p className="text-xs text-quest-muted">
-            {data.xp_today > 0 ? `+${data.xp_today} XP earned today` : 'Start learning to earn XP!'}
+            {data.xp_today > 0 ? `+${data.xp_today} ${t('dash.xpEarned')}` : 'Start learning to earn XP!'}
           </p>
         </div>
       </div>
@@ -230,7 +241,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-quest-purple" />
-              <h2 className="font-semibold text-white">Today's Tasks</h2>
+              <h2 className="font-semibold text-white">{t('dash.todaysTasks')}</h2>
               {todayData.phase_title && (
                 <span className="text-xs text-quest-muted bg-quest-surface px-2 py-0.5 rounded-full">
                   {todayData.phase_title}
@@ -250,7 +261,7 @@ export default function Dashboard() {
                 className={`flex items-start gap-3 p-3 rounded-lg border ${ACTIVITY_COLORS[act.type] ?? 'bg-quest-surface border-quest-border text-quest-muted'}`}
               >
                 <span className="text-xs font-medium mt-0.5 uppercase tracking-wider opacity-70 w-20 flex-shrink-0">
-                  {act.type.replace('_', ' ')}
+                  {ACTIVITY_TYPE_LABELS[act.type] ?? act.type.replace('_', ' ')}
                 </span>
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-white truncate">{act.title}</p>
@@ -270,11 +281,11 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Target className="w-5 h-5 text-quest-yellow" />
-              <h3 className="font-semibold text-white text-sm">Daily Challenge</h3>
+              <h3 className="font-semibold text-white text-sm">{t('dash.dailyChallenge')}</h3>
               <span className="badge-pill bg-quest-yellow/20 text-quest-yellow text-xs">Today</span>
             </div>
             {dailyChallenge.is_completed && (
-              <span className="text-xs text-quest-green font-medium">✓ Completed</span>
+              <span className="text-xs text-quest-green font-medium">✓ {t('dash.complete')}</span>
             )}
           </div>
           <p className="text-sm text-white font-medium mb-1">{dailyChallenge.title}</p>
@@ -283,19 +294,19 @@ export default function Dashboard() {
             href={`/lesson/${dailyChallenge.id}`}
             className={`btn-primary text-sm inline-flex items-center gap-2 ${dailyChallenge.is_completed ? 'opacity-60' : ''}`}
           >
-            {dailyChallenge.is_completed ? 'Review' : 'Start Challenge'} →
+            {dailyChallenge.is_completed ? 'Review' : t('dash.startChallenge')} →
           </a>
         </div>
       )}
 
       <div className="card">
-        <h2 className="font-semibold text-white mb-4">Activity (Last 90 Days)</h2>
+        <h2 className="font-semibold text-white mb-4">{t('dash.activityHeatmap')} (Last 90 Days)</h2>
         <Heatmap data={data.activity_data} />
       </div>
 
       {data.recent_badges.length > 0 && (
         <div>
-          <h2 className="font-semibold text-white mb-4">Recent Badges</h2>
+          <h2 className="font-semibold text-white mb-4">{t('dash.recentBadges')}</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {data.recent_badges.map((badge) => (
               <BadgeCard key={badge.id} badge={badge} />

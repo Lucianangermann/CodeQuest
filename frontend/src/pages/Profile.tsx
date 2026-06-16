@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Settings, BookOpen, Zap, Flame, Edit3, Check, X, AlertCircle, Bell } from 'lucide-react'
 import { fetchProfile, updateProfile, fetchAllBadges, claimStreakShield, getVapidPublicKey, subscribeToPush, unsubscribeFromPush } from '../lib/api'
 import { useUserStore } from '../store/useUserStore'
+import { useT } from '../i18n/useT'
 import type { ProfileData } from '../types'
 import ProgressBar from '../components/ProgressBar'
 import StreakDisplay from '../components/StreakDisplay'
@@ -13,7 +14,8 @@ import toast from 'react-hot-toast'
 const LANGUAGES = ['python', 'javascript', 'typescript']
 
 export default function Profile() {
-  const { user, setUser } = useUserStore()
+  const { user, setUser, uiLanguage, setUiLanguage } = useUserStore()
+  const t = useT()
   const queryClient = useQueryClient()
   const [editingGoal, setEditingGoal] = useState(false)
   const [goalValue, setGoalValue] = useState(user?.daily_goal ?? 30)
@@ -181,7 +183,7 @@ export default function Profile() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { icon: <Zap className="w-5 h-5" />, label: 'Total XP', value: typedProfile.xp.toLocaleString(), color: 'text-quest-purple' },
+          { icon: <Zap className="w-5 h-5" />, label: t('profile.stats') + ' XP', value: typedProfile.xp.toLocaleString(), color: 'text-quest-purple' },
           { icon: <BookOpen className="w-5 h-5" />, label: 'Lessons', value: typedProfile.total_lessons_completed, color: 'text-quest-green' },
           { icon: <Flame className="w-5 h-5" />, label: 'Streak', value: `${typedProfile.streak}d`, color: 'text-orange-400' },
         ].map(({ icon, label, value, color }) => (
@@ -200,9 +202,36 @@ export default function Profile() {
           <h2 className="font-semibold text-white">Settings</h2>
         </div>
 
-        {/* Language */}
+        {/* App Language */}
         <div>
-          <label className="text-sm font-medium text-quest-text mb-3 block">Preferred Language</label>
+          <label className="text-sm font-medium text-quest-text mb-3 block">{t('profile.uiLanguage')}</label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setUiLanguage('en')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+                uiLanguage === 'en'
+                  ? 'bg-quest-purple border-quest-purple text-white'
+                  : 'bg-quest-card border-quest-border text-quest-muted hover:border-quest-purple/50 hover:text-quest-text'
+              }`}
+            >
+              English
+            </button>
+            <button
+              onClick={() => setUiLanguage('de')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+                uiLanguage === 'de'
+                  ? 'bg-quest-purple border-quest-purple text-white'
+                  : 'bg-quest-card border-quest-border text-quest-muted hover:border-quest-purple/50 hover:text-quest-text'
+              }`}
+            >
+              Deutsch
+            </button>
+          </div>
+        </div>
+
+        {/* Coding Language */}
+        <div>
+          <label className="text-sm font-medium text-quest-text mb-3 block">{t('profile.codingLanguage')}</label>
           <div className="flex flex-wrap gap-2">
             {LANGUAGES.map((lang) => (
               <button
@@ -263,7 +292,7 @@ export default function Profile() {
         {/* Streak Shields */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-quest-text">Streak Shields</label>
+            <label className="text-sm font-medium text-quest-text">{t('profile.streakShields')}</label>
             <span className="text-xs text-quest-muted">New shield every Monday</span>
           </div>
           <div className="flex items-center gap-4 flex-wrap">
@@ -275,11 +304,11 @@ export default function Profile() {
               disabled={claimShieldMutation.isPending || (typedProfile.streak_shields ?? 0) >= 3}
               className="btn-secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {claimShieldMutation.isPending ? 'Claiming...' : 'Claim Shield'}
+              {claimShieldMutation.isPending ? 'Claiming...' : t('profile.claimShield')}
             </button>
           </div>
           <p className="text-xs text-quest-muted mt-2">
-            Shields protect your streak if you miss a day. Max 3 stored at a time.
+            {t('profile.shieldDesc')}
           </p>
         </div>
 
@@ -288,8 +317,8 @@ export default function Profile() {
           <div className="pt-4 border-t border-quest-border">
             <div className="flex items-center justify-between mb-2">
               <div>
-                <h3 className="font-semibold text-white text-sm">Daily Reminders</h3>
-                <p className="text-xs text-quest-muted">Get notified at 8 PM if you haven't practiced</p>
+                <h3 className="font-semibold text-white text-sm">{t('profile.dailyReminders')}</h3>
+                <p className="text-xs text-quest-muted">{t('profile.reminderDesc')}</p>
               </div>
               <Bell className="w-5 h-5 text-quest-muted" />
             </div>
@@ -297,12 +326,12 @@ export default function Profile() {
               <div className="flex items-center justify-between">
                 <span className="text-xs text-quest-green">✓ Reminders enabled</span>
                 <button onClick={disableNotifications} className="text-xs text-quest-muted hover:text-red-400 transition-colors">
-                  Disable
+                  {t('profile.disableReminders')}
                 </button>
               </div>
             ) : (
               <button onClick={enableNotifications} className="btn-secondary text-sm w-full">
-                Enable Reminders 🔔
+                {t('profile.enableReminders')} 🔔
               </button>
             )}
             {Notification.permission === 'denied' && (

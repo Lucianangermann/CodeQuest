@@ -6,6 +6,7 @@ import { Lock, CheckCircle, ChevronRight, AlertCircle, Search, X } from 'lucide-
 import { fetchTopics, fetchTopicLessons } from '../lib/api'
 import { useLessonStore } from '../store/useLessonStore'
 import { useUserStore } from '../store/useUserStore'
+import { useT } from '../i18n/useT'
 import type { Topic, Lesson } from '../types'
 import { ListSkeleton, TopicNodeSkeleton } from '../components/LoadingSkeleton'
 import ProgressBar from '../components/ProgressBar'
@@ -43,15 +44,20 @@ function TopicNode({ topic, isSelected, onSelect }: {
   )
 }
 
-const TYPE_LABELS: Record<string, string> = { theory: '📖 Theory', quiz: '🧠 Quiz', code: '💻 Code' }
-
 export default function Roadmap() {
   const navigate = useNavigate()
   const { setCurrentLesson } = useLessonStore()
   const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null)
   const [search, setSearch] = useState('')
   const { user } = useUserStore()
+  const t = useT()
   const lang = user?.language_preference || 'python'
+
+  const TYPE_LABELS: Record<string, string> = {
+    theory: t('road.theory'),
+    quiz: t('road.quiz'),
+    code: t('road.code'),
+  }
 
   const { data: topics = [], isLoading: loadingTopics, error: topicsError } = useQuery({
     queryKey: ['topics', lang],
@@ -89,7 +95,7 @@ export default function Roadmap() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-quest-muted">
         <AlertCircle className="w-10 h-10 text-red-400" />
-        <p>Could not load topics. Make sure the backend is running.</p>
+        <p>{t('road.loadError')}</p>
       </div>
     )
   }
@@ -114,7 +120,7 @@ export default function Roadmap() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-quest-muted" />
             <input
               type="text"
-              placeholder="Search topics & lessons..."
+              placeholder={t('road.searchPlaceholder')}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="input pl-10 py-2.5 text-sm"
@@ -131,7 +137,7 @@ export default function Roadmap() {
             </div>
           ) : filteredTopics.length === 0 ? (
             <div className="text-center py-12 text-quest-muted">
-              <p>No topics found for "{search}"</p>
+              <p>{t('road.noTopics')} for "{search}"</p>
             </div>
           ) : (
             <div className="flex flex-wrap lg:flex-col gap-3">

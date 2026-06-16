@@ -2,19 +2,21 @@ import { Link, useLocation } from 'react-router-dom'
 import { LayoutDashboard, Map, Brain, Code2, User } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useUserStore } from '../store/useUserStore'
+import { useT } from '../i18n/useT'
 import { fetchDueReviewCount } from '../lib/api'
-
-const NAV_ITEMS = [
-  { path: '/dashboard',  label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/roadmap',    label: 'Roadmap',   icon: Map },
-  { path: '/review',     label: 'Review',    icon: Brain },
-  { path: '/playground', label: 'Playground',icon: Code2 },
-  { path: '/profile',    label: 'Profile',   icon: User },
-]
 
 export default function BottomNav() {
   const location = useLocation()
   const user = useUserStore((s) => s.user)
+  const t = useT()
+
+  const NAV_ITEMS = [
+    { path: '/dashboard',  label: t('nav.dashboard'), icon: LayoutDashboard },
+    { path: '/roadmap',    label: t('nav.roadmap'),   icon: Map },
+    { path: '/review',     label: t('nav.review'),    icon: Brain },
+    { path: '/playground', label: t('nav.playground'),icon: Code2 },
+    { path: '/profile',    label: t('nav.profile'),   icon: User },
+  ]
 
   const { data: reviewCount = 0 } = useQuery({
     queryKey: ['review-count'],

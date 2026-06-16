@@ -3,30 +3,32 @@ import { motion } from 'framer-motion'
 import { LayoutDashboard, Map, Route, Mic, Trophy, User, LogOut, Sun, Moon, Zap, Brain, Code2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useUserStore } from '../store/useUserStore'
+import { useT } from '../i18n/useT'
 import toast from 'react-hot-toast'
-
-const NAV_ITEMS = [
-  { path: '/dashboard',  label: 'Dashboard',   icon: LayoutDashboard },
-  { path: '/roadmap',    label: 'Roadmap',      icon: Map },
-  { path: '/my-path',   label: 'My Path',      icon: Route },
-  { path: '/interview',  label: 'Interview',    icon: Mic },
-  { path: '/review',     label: 'Review',       icon: Brain },
-  { path: '/playground', label: 'Playground',   icon: Code2 },
-  { path: '/leaderboard',label: 'Leaderboard', icon: Trophy },
-  { path: '/profile',    label: 'Profile',      icon: User },
-]
 
 export default function Navbar() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, isDark, toggleDark } = useUserStore()
+  const { user, isDark, toggleDark, uiLanguage, setUiLanguage } = useUserStore()
+  const t = useT()
+
+  const NAV_ITEMS = [
+    { path: '/dashboard',   label: t('nav.dashboard'),   icon: LayoutDashboard },
+    { path: '/roadmap',     label: t('nav.roadmap'),     icon: Map },
+    { path: '/my-path',     label: t('nav.myPath'),      icon: Route },
+    { path: '/interview',   label: t('nav.interview'),   icon: Mic },
+    { path: '/review',      label: t('nav.review'),      icon: Brain },
+    { path: '/playground',  label: t('nav.playground'),  icon: Code2 },
+    { path: '/leaderboard', label: t('nav.leaderboard'), icon: Trophy },
+    { path: '/profile',     label: t('nav.profile'),     icon: User },
+  ]
 
   if (!user) return null
 
   async function handleLogout() {
     await supabase.auth.signOut()
     navigate('/auth')
-    toast.success('Logged out successfully')
+    toast.success(t('nav.loggedOut'))
   }
 
   const xpToNextLevel = (user.level * 100) - user.xp
@@ -97,7 +99,7 @@ export default function Navbar() {
               <div className="w-20 bg-quest-border/30 rounded-full h-1.5">
                 <div className="h-1.5 rounded-full" style={{ width: `${xpProgress}%`, background: 'linear-gradient(90deg, #7c3aed 0%, #818cf8 100%)', boxShadow: '0 0 6px rgba(124,58,237,0.5)' }} />
               </div>
-              <span className="text-xs text-quest-muted">{xpToNextLevel} XP to next level</span>
+              <span className="text-xs text-quest-muted">{xpToNextLevel} {t('nav.xpToNext')}</span>
             </div>
 
             {/* Streak */}
@@ -112,6 +114,15 @@ export default function Navbar() {
               aria-label="Toggle theme"
             >
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+
+            {/* Language toggle */}
+            <button
+              onClick={() => setUiLanguage(uiLanguage === 'en' ? 'de' : 'en')}
+              className="px-2 py-1 rounded-xl text-xs font-bold text-quest-muted hover:text-quest-text hover:bg-quest-border transition-all"
+              aria-label="Toggle language"
+            >
+              {uiLanguage === 'en' ? 'DE' : 'EN'}
             </button>
 
             {/* Logout */}

@@ -1,0 +1,3 @@
+-- Make email optional since we authenticate by username
+ALTER TABLE users ALTER COLUMN email DROP NOT NULL;
+ALTER TABLE users ALTER COLUMN email SET DEFAULT NULL;

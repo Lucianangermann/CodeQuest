@@ -3,20 +3,22 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Brain, Clock, ChevronRight, Loader2 } from 'lucide-react'
 import { fetchDueReviews, submitReviewResult } from '../lib/api'
+import { useT } from '../i18n/useT'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
-const QUALITY_BUTTONS = [
-  { quality: 1, label: 'Hard', cls: 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30' },
-  { quality: 3, label: 'Good', cls: 'bg-quest-yellow/20 text-quest-yellow hover:bg-quest-yellow/30 border border-quest-yellow/30' },
-  { quality: 5, label: 'Easy', cls: 'bg-quest-green/20 text-quest-green hover:bg-quest-green/30 border border-quest-green/30' },
-]
-
 export default function Review() {
   const qc = useQueryClient()
+  const t = useT()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [showAnswer, setShowAnswer] = useState(false)
   const [completed, setCompleted] = useState<number[]>([])
+
+  const QUALITY_BUTTONS = [
+    { quality: 1, label: t('review.hard'), cls: 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30' },
+    { quality: 3, label: t('review.good'), cls: 'bg-quest-yellow/20 text-quest-yellow hover:bg-quest-yellow/30 border border-quest-yellow/30' },
+    { quality: 5, label: t('review.easy'), cls: 'bg-quest-green/20 text-quest-green hover:bg-quest-green/30 border border-quest-green/30' },
+  ]
 
   const { data, isLoading } = useQuery({
     queryKey: ['review-due'],
@@ -56,11 +58,11 @@ export default function Review() {
         className="max-w-2xl mx-auto px-4 py-16 text-center"
       >
         <div className="text-6xl mb-4">🎉</div>
-        <h1 className="text-2xl font-bold text-white mb-2">All caught up!</h1>
+        <h1 className="text-2xl font-bold text-white mb-2">{t('review.allCaughtUp')}</h1>
         <p className="text-quest-muted">
           {completed.length > 0
             ? `You reviewed ${completed.length} card${completed.length === 1 ? '' : 's'} today — well done! 🧠`
-            : 'No reviews due today. Keep learning and come back tomorrow!'}
+            : t('review.nothingDue')}
         </p>
         {due.length === 0 && (
           <p className="text-quest-muted text-sm mt-2">
@@ -121,11 +123,11 @@ export default function Review() {
           </span>
           {reviewedThisSession > 0 && (
             <span className="flex items-center gap-1.5 text-quest-green text-xs">
-              ✓ {reviewedThisSession} done
+              ✓ {reviewedThisSession} {t('review.reviewed')}
             </span>
           )}
         </div>
-        <span className="text-quest-muted text-xs">{remaining} remaining</span>
+        <span className="text-quest-muted text-xs">{remaining} {t('review.remaining')}</span>
       </div>
 
       {/* Progress bar */}
@@ -167,7 +169,7 @@ export default function Review() {
               className="btn-secondary w-full flex items-center justify-center gap-2"
             >
               <ChevronRight className="w-4 h-4" />
-              Show Answer
+              {t('review.showAnswer')}
             </button>
           ) : (
             <motion.div
@@ -182,7 +184,7 @@ export default function Review() {
                 </div>
               </div>
 
-              <p className="text-sm text-quest-muted text-center">How well did you remember?</p>
+              <p className="text-sm text-quest-muted text-center">{t('review.howWell')}</p>
 
               <div className="flex gap-3">
                 {QUALITY_BUTTONS.map(({ quality, label, cls }) => (

@@ -10,6 +10,7 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { fetchLesson, submitLesson, explainMistake, getCodeReview } from '../lib/api'
 import { useLessonStore } from '../store/useLessonStore'
 import { useUserStore } from '../store/useUserStore'
+import { useT } from '../i18n/useT'
 import type { Lesson, QuizContent, CodeContent, TheoryContent } from '../types'
 import Editor from '../components/Editor'
 import HintSystem from '../components/HintSystem'
@@ -63,6 +64,7 @@ function QuizView({ content, onSubmit, isSubmitting }: {
   content: QuizContent; onSubmit: (answer: string) => void; isSubmitting: boolean
 }) {
   const [selected, setSelected] = useState<number | null>(null)
+  const t = useT()
 
   return (
     <div className="space-y-6">
@@ -90,7 +92,7 @@ function QuizView({ content, onSubmit, isSubmitting }: {
         className="btn-primary flex items-center gap-2"
       >
         {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-        Submit Answer
+        {t('lesson.checkAnswer')}
       </button>
     </div>
   )
@@ -105,6 +107,7 @@ function CodeView({ content, lessonId, language, onSubmit, isSubmitting }: {
   const [code, setCode] = useState(content.starter_code)
   const [isExplaining, setIsExplaining] = useState(false)
   const [explanation, setExplanation] = useState('')
+  const t = useT()
 
   async function handleExplain() {
     setIsExplaining(true)
@@ -131,7 +134,7 @@ function CodeView({ content, lessonId, language, onSubmit, isSubmitting }: {
 
       <button onClick={() => onSubmit(code)} disabled={isSubmitting} className="btn-primary flex items-center gap-2">
         {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-        Run & Submit
+        {t('lesson.submitCode')}
       </button>
 
       {explanation ? (
@@ -164,6 +167,7 @@ export default function LessonPage() {
   const navigate = useNavigate()
   const { currentLesson, currentTopicName, setCurrentLesson, startLesson } = useLessonStore()
   const { user, updateXP } = useUserStore()
+  const t = useT()
   const queryClient = useQueryClient()
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -245,7 +249,7 @@ export default function LessonPage() {
           setLevelUp(newLevel)
           setTimeout(() => setLevelUp(null), 4000)
         }
-        toast.success(`+${res.xp_earned} XP earned! 🎉`)
+        toast.success(`+${res.xp_earned} ${t('lesson.xpEarned')} 🎉`)
         queryClient.invalidateQueries({ queryKey: ['topics'] })
         queryClient.invalidateQueries({ queryKey: ['topic-lessons', lesson.topic_id] })
         queryClient.invalidateQueries({ queryKey: ['dashboard'] })
@@ -286,9 +290,9 @@ export default function LessonPage() {
           >
             <span className="text-7xl">⚡</span>
             <h2 className="text-4xl font-extrabold bg-gradient-to-r from-quest-purple-light to-quest-yellow bg-clip-text text-transparent">
-              Level Up!
+              {t('lesson.levelUp')}
             </h2>
-            <p className="text-quest-text text-lg">You reached Level {levelUp}</p>
+            <p className="text-quest-text text-lg">{t('lesson.levelUpDesc')} {levelUp}</p>
             <button
               onClick={() => setLevelUp(null)}
               className="btn-primary mt-2 px-8"
@@ -320,16 +324,16 @@ export default function LessonPage() {
           >
             <span className="text-7xl">🏆</span>
             <h2 className="text-4xl font-extrabold bg-gradient-to-r from-quest-yellow to-orange-400 bg-clip-text text-transparent">
-              Topic Mastered!
+              {t('lesson.topicComplete')}
             </h2>
-            <p className="text-quest-text text-lg">You've completed all lessons in this topic!</p>
+            <p className="text-quest-text text-lg">{t('lesson.topicCompleteDesc')}</p>
             <p className="text-quest-muted text-sm">Keep going — the next topic awaits.</p>
             <div className="flex gap-3 mt-2">
               <button onClick={() => { setTopicComplete(false); navigate('/roadmap') }} className="btn-primary px-6">
-                Next Topic
+                {t('lesson.nextTopic')}
               </button>
               <button onClick={() => setTopicComplete(false)} className="btn-secondary px-6">
-                Stay Here
+                {t('lesson.stayHere')}
               </button>
             </div>
           </motion.div>
@@ -369,7 +373,7 @@ export default function LessonPage() {
                   <div className="mt-6 pt-6 border-t border-quest-border">
                     <button onClick={() => handleSubmit('read')} disabled={isSubmitting} className="btn-primary flex items-center gap-2">
                       {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                      Mark as Read (+{lesson.xp_reward} XP)
+                      {t('lesson.markRead')} (+{lesson.xp_reward} XP)
                     </button>
                   </div>
                 </>
@@ -405,7 +409,7 @@ export default function LessonPage() {
                 : <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />}
               <div className="flex-1">
                 <p className={`font-semibold ${result.correct ? 'text-quest-green' : 'text-red-400'}`}>
-                  {result.correct ? 'Correct! 🎉' : 'Not quite...'}
+                  {result.correct ? `${t('lesson.correct')} 🎉` : t('lesson.incorrect')}
                 </p>
                 {/* For code lessons with diff data, show a short message; otherwise show full feedback */}
                 {lesson.type === 'code' && !result.correct && result.expected_output
@@ -415,7 +419,7 @@ export default function LessonPage() {
                   : <p className="text-quest-text text-sm mt-1 whitespace-pre-wrap">{result.feedback}</p>
                 }
                 {result.xp_earned > 0 && (
-                  <p className="text-xs font-medium text-quest-green mt-2">+{result.xp_earned} XP earned!</p>
+                  <p className="text-xs font-medium text-quest-green mt-2">+{result.xp_earned} {t('lesson.xpEarned')}</p>
                 )}
 
                 {/* AI Code Review section */}
@@ -427,7 +431,7 @@ export default function LessonPage() {
                   >
                     {reviewLoading
                       ? <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing your code...</>
-                      : <><Sparkles className="w-4 h-4" /> Get AI Code Review</>
+                      : <><Sparkles className="w-4 h-4" /> {t('lesson.getAiReview')}</>
                     }
                   </button>
                 )}
@@ -443,7 +447,7 @@ export default function LessonPage() {
                       style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(99,102,241,0.1) 100%)' }}>
                       <div className="flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-quest-purple-light" />
-                        <span className="font-semibold text-sm text-white">AI Code Review</span>
+                        <span className="font-semibold text-sm text-white">{t('lesson.aiReview')}</span>
                       </div>
                       <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                         review.grade === 'Excellent' ? 'bg-quest-green/20 text-quest-green' :
@@ -457,7 +461,7 @@ export default function LessonPage() {
                     <div className="p-4 space-y-3">
                       {/* Strengths */}
                       <div>
-                        <p className="text-xs font-semibold text-quest-green uppercase tracking-wider mb-1.5">What you did well</p>
+                        <p className="text-xs font-semibold text-quest-green uppercase tracking-wider mb-1.5">{t('lesson.aiStrengths')}</p>
                         <ul className="space-y-1">
                           {review.strengths.map((s, i) => (
                             <li key={i} className="flex items-start gap-2 text-sm text-quest-text">
@@ -470,14 +474,14 @@ export default function LessonPage() {
 
                       {/* Suggestion */}
                       <div>
-                        <p className="text-xs font-semibold text-quest-yellow uppercase tracking-wider mb-1.5">One improvement</p>
+                        <p className="text-xs font-semibold text-quest-yellow uppercase tracking-wider mb-1.5">{t('lesson.aiSuggestion')}</p>
                         <p className="text-sm text-quest-text">{review.suggestion}</p>
                       </div>
 
                       {/* Alternative */}
                       {review.alternative && (
                         <div>
-                          <p className="text-xs font-semibold text-quest-purple-light uppercase tracking-wider mb-1.5">Alternative approach</p>
+                          <p className="text-xs font-semibold text-quest-purple-light uppercase tracking-wider mb-1.5">{t('lesson.aiAlternative')}</p>
                           <pre className="text-xs text-quest-text bg-black/30 rounded-lg p-3 overflow-x-auto font-mono border border-quest-border/50">
                             {review.alternative}
                           </pre>
@@ -492,13 +496,13 @@ export default function LessonPage() {
                   <div className="mt-4 rounded-lg overflow-hidden border border-quest-border text-xs font-mono">
                     <div className="grid grid-cols-2">
                       <div className="bg-quest-green/10 border-r border-quest-border p-3">
-                        <p className="text-quest-green font-semibold mb-2 text-xs uppercase tracking-wider">Expected</p>
+                        <p className="text-quest-green font-semibold mb-2 text-xs uppercase tracking-wider">{t('lesson.expectedOutput')}</p>
                         {result.expected_output.trim().split('\n').map((line, i) => (
                           <div key={i} className="text-quest-green/80">{line || <span className="opacity-40">(empty)</span>}</div>
                         ))}
                       </div>
                       <div className="bg-red-500/10 p-3">
-                        <p className="text-red-400 font-semibold mb-2 text-xs uppercase tracking-wider">Your Output</p>
+                        <p className="text-red-400 font-semibold mb-2 text-xs uppercase tracking-wider">{t('lesson.yourOutput')}</p>
                         {result.output
                           ? result.output.trim().split('\n').map((line, i) => {
                               const expLine = result.expected_output!.trim().split('\n')[i]
