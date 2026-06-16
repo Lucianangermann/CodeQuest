@@ -195,6 +195,7 @@ export interface Lesson {
   xp_earned: number
   language?: string
   mastery_level?: number
+  concept_intro?: string | null
 }
 
 export interface Badge {

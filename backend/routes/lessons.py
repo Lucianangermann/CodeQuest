@@ -179,7 +179,24 @@ async def get_lesson(lesson_id: int, ui_lang: str = "en", user_id: Optional[str]
             if row:
                 is_completed, xp_earned = True, row["xp_earned"]
 
-    d = {**dict(lesson), "is_completed": is_completed, "xp_earned": xp_earned}
+        # For code/debug/advanced lessons: fetch concept recap from topic's theory lesson
+        concept_intro: Optional[str] = None
+        if lesson["type"] in ("code", "debug", "advanced"):
+            theory = await conn.fetchrow(
+                """SELECT content_json, translations FROM lessons
+                   WHERE topic_id = $1 AND type = 'theory'
+                   ORDER BY order_index LIMIT 1""",
+                lesson["topic_id"],
+            )
+            if theory:
+                if ui_lang == "de":
+                    tr = theory["translations"] or {}
+                    de_content = tr.get("content") or {}
+                    concept_intro = de_content.get("summary") or (theory["content_json"] or {}).get("summary")
+                else:
+                    concept_intro = (theory["content_json"] or {}).get("summary")
+
+    d = {**dict(lesson), "is_completed": is_completed, "xp_earned": xp_earned, "concept_intro": concept_intro}
     if ui_lang == "de":
         tr = d.pop("translations", None) or {}
         if tr.get("title"):

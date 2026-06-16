@@ -100,13 +100,14 @@ function QuizView({ content, onSubmit, isSubmitting }: {
 
 // ── Code ──────────────────────────────────────────────────────────────────────
 
-function CodeView({ content, lessonId, language, onSubmit, isSubmitting }: {
+function CodeView({ content, lessonId, language, onSubmit, isSubmitting, conceptIntro }: {
   content: CodeContent; lessonId: number; language: string
-  onSubmit: (code: string) => void; isSubmitting: boolean
+  onSubmit: (code: string) => void; isSubmitting: boolean; conceptIntro?: string | null
 }) {
   const [code, setCode] = useState(content.starter_code)
   const [isExplaining, setIsExplaining] = useState(false)
   const [explanation, setExplanation] = useState('')
+  const [showIntro, setShowIntro] = useState(true)
   const t = useT()
 
   async function handleExplain() {
@@ -123,6 +124,20 @@ function CodeView({ content, lessonId, language, onSubmit, isSubmitting }: {
 
   return (
     <div className="space-y-4">
+      {conceptIntro && (
+        <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+          <button
+            onClick={() => setShowIntro(s => !s)}
+            className="flex items-center gap-2 w-full text-left"
+          >
+            <span className="text-amber-400 font-semibold text-sm">💡 Konzept-Erinnerung</span>
+            <ChevronRight className={`w-4 h-4 text-amber-400 ml-auto transition-transform duration-200 ${showIntro ? 'rotate-90' : ''}`} />
+          </button>
+          {showIntro && (
+            <p className="text-quest-text text-sm mt-2 leading-relaxed">{conceptIntro}</p>
+          )}
+        </div>
+      )}
       <div className="p-4 bg-quest-purple/10 border border-quest-purple/20 rounded-xl">
         <h3 className="font-semibold text-quest-purple-light mb-2">Task</h3>
         <p className="text-quest-text text-sm leading-relaxed whitespace-pre-line">{content.instructions}</p>
@@ -541,6 +556,7 @@ export default function LessonPage() {
                   language={lesson.language || 'python'}
                   onSubmit={handleSubmit}
                   isSubmitting={isSubmitting}
+                  conceptIntro={lesson.concept_intro}
                 />
               )}
             </motion.div>
