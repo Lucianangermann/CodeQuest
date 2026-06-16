@@ -120,7 +120,21 @@ export default function Dashboard() {
         <StatCard icon={<Zap className="w-5 h-5" />} label="Total XP" value={data.xp.toLocaleString()} color="text-quest-purple" gradient="from-quest-purple/10" />
         <StatCard icon={<Trophy className="w-5 h-5" />} label="Level" value={data.level} color="text-quest-yellow" gradient="from-quest-indigo/10" />
         <StatCard icon={<BookOpen className="w-5 h-5" />} label="Lessons Done" value={data.total_lessons_completed} color="text-quest-green" gradient="from-quest-green/10" />
-        <StatCard icon={<Flame className="w-5 h-5" />} label="Day Streak" value={data.streak} color="text-orange-400" gradient="from-orange-500/10" />
+        <motion.div whileHover={{ y: -2 }} className="card relative overflow-hidden flex items-center gap-4">
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent rounded-2xl pointer-events-none" />
+          <div className="text-orange-400 bg-current/10 rounded-xl p-3 relative"><Flame className="w-5 h-5" /></div>
+          <div className="relative flex-1">
+            <div className="text-3xl font-extrabold text-white mt-1">{data.streak}</div>
+            <div className="text-quest-muted text-sm flex items-center gap-1.5">
+              Day Streak
+              {data.streak_shields > 0 && (
+                <span className="inline-flex items-center gap-0.5 text-xs text-violet-300 bg-violet-500/20 border border-violet-500/30 rounded-full px-1.5 py-0.5 ml-1">
+                  🛡️ {data.streak_shields}
+                </span>
+              )}
+            </div>
+          </div>
+        </motion.div>
       </div>
 
       {data.total_lessons_completed === 0 && (

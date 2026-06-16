@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Settings, BookOpen, Zap, Flame, Edit3, Check, X, AlertCircle } from 'lucide-react'
-import { fetchProfile, updateProfile, fetchAllBadges } from '../lib/api'
+import { fetchProfile, updateProfile, fetchAllBadges, claimStreakShield } from '../lib/api'
 import { useUserStore } from '../store/useUserStore'
 import type { ProfileData } from '../types'
 import ProgressBar from '../components/ProgressBar'
@@ -54,6 +54,20 @@ export default function Profile() {
       toast.success('Daily goal updated!')
     },
     onError: () => toast.error('Could not update goal'),
+  })
+
+  const claimShieldMutation = useMutation({
+    mutationFn: claimStreakShield,
+    onSuccess: (result) => {
+      queryClient.setQueryData<ProfileData>(['profile'], (old) =>
+        old ? { ...old, streak_shields: result.shields } : old
+      )
+      if (user) setUser({ ...user, streak_shields: result.shields })
+      toast.success(result.message)
+    },
+    onError: (err: { response?: { data?: { detail?: string } } }) => {
+      toast.error(err?.response?.data?.detail || 'Could not claim shield')
+    },
   })
 
   if (isLoading) {
@@ -189,6 +203,29 @@ export default function Profile() {
           ) : (
             <p className="text-2xl font-bold text-white">{typedProfile.daily_goal} min</p>
           )}
+        </div>
+
+        {/* Streak Shields */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium text-quest-text">Streak Shields</label>
+            <span className="text-xs text-quest-muted">New shield every Monday</span>
+          </div>
+          <div className="flex items-center gap-4 flex-wrap">
+            <p className="text-2xl font-bold text-white">
+              🛡️ {typedProfile.streak_shields ?? 0} / 3
+            </p>
+            <button
+              onClick={() => claimShieldMutation.mutate()}
+              disabled={claimShieldMutation.isPending || (typedProfile.streak_shields ?? 0) >= 3}
+              className="btn-secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {claimShieldMutation.isPending ? 'Claiming...' : 'Claim Shield'}
+            </button>
+          </div>
+          <p className="text-xs text-quest-muted mt-2">
+            Shields protect your streak if you miss a day. Max 3 stored at a time.
+          </p>
         </div>
       </div>
 

@@ -63,6 +63,22 @@ async def _award_badges(
         )
         topic_done = total_in_topic > 0 and done_in_topic >= total_in_topic
 
+    # Count fully-completed topics for multi-topic badges
+    topics_completed_count = await conn.fetchval(
+        """SELECT COUNT(*) FROM (
+               SELECT l.topic_id
+               FROM lessons l
+               GROUP BY l.topic_id
+               HAVING COUNT(l.id) > 0
+                  AND COUNT(l.id) = (
+                      SELECT COUNT(*) FROM user_progress up
+                      JOIN lessons l2 ON l2.id = up.lesson_id
+                      WHERE up.user_id = $1 AND l2.topic_id = l.topic_id
+                  )
+           ) AS completed_topics""",
+        user_id,
+    )
+
     for b in badges:
         if b["id"] in owned:
             continue
@@ -74,6 +90,7 @@ async def _award_badges(
             or (t == "streak" and streak >= cond.get("days", 999))
             or (t == "first_attempt_streak" and first_attempt_count >= cond.get("count", 999))
             or (t == "topic_completed" and topic_done)
+            or (t == "topics_completed" and topics_completed_count >= cond.get("count", 999))
         )
         if earned:
             await conn.execute(
@@ -167,6 +184,8 @@ async def submit_lesson(
         )
 
         correct, feedback, output, error_out = False, "", None, None
+        expected_output_val: Optional[str] = None
+        level_val: Optional[int] = None
 
         if lesson["type"] == "quiz":
             try:
@@ -187,13 +206,14 @@ async def submit_lesson(
             output = result.get("output", "")
             error_out = result.get("error", "")
             expected = content.get("expected_output", "")
+            expected_output_val = expected
             if error_out and not output:
                 correct, feedback = False, f"Your code has an error:\n{error_out}"
             else:
                 correct = _check_output(output, expected)
                 feedback = (
                     "Perfect! Your code produced the correct output." if correct
-                    else f"Not quite right.\n\nExpected:\n{expected.strip()}\n\nYour output:\n{output.strip() or '(empty)'}"
+                    else "Not quite right."
                 )
 
         elif lesson["type"] == "theory":
@@ -221,6 +241,7 @@ async def submit_lesson(
                 "UPDATE users SET xp = $1, level = $2 WHERE id = $3",
                 new_xp, new_level, user_id,
             )
+            level_val = new_level
             await conn.execute("SELECT log_lesson_activity($1, $2)", user_id, xp_earned)
 
             total_done = await conn.fetchval(
@@ -230,7 +251,7 @@ async def submit_lesson(
                 "SELECT COUNT(*) FROM user_progress WHERE user_id = $1 AND first_attempt = TRUE",
                 user_id,
             )
-            new_streak, _ = await update_user_streak(conn, user_id)
+            new_streak, _, _shield = await update_user_streak(conn, user_id)
             await _award_badges(
                 conn, user_id, new_xp, total_done,
                 streak=new_streak,
@@ -265,4 +286,6 @@ async def submit_lesson(
     return SubmitAnswerResponse(
         correct=correct, feedback=feedback, xp_earned=xp_earned, output=output, error=error_out,
         topic_completed=topic_completed,
+        expected_output=expected_output_val,
+        level=level_val,
     )

@@ -14,6 +14,8 @@ class SubmitAnswerResponse(BaseModel):
     output: Optional[str] = None
     error: Optional[str] = None
     topic_completed: bool = False
+    expected_output: Optional[str] = None
+    level: Optional[int] = None
 
 
 class HintRequest(BaseModel):
@@ -82,6 +84,7 @@ class DashboardStats(BaseModel):
     xp: int
     level: int
     streak: int
+    streak_shields: int = 0
     daily_goal: int
     lessons_today: int
     xp_today: int
@@ -106,3 +109,4 @@ class StreakUpdateResponse(BaseModel):
     streak: int
     is_new_day: bool
     badges_earned: List[dict]
+    shield_used: bool = False

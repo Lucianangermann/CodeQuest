@@ -106,8 +106,13 @@ export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
   return data.entries
 }
 
-export async function updateStreak(): Promise<{ streak: number; is_new_day: boolean }> {
+export async function updateStreak(): Promise<{ streak: number; is_new_day: boolean; shield_used?: boolean }> {
   const { data } = await api.post('/user/streak')
+  return data
+}
+
+export async function claimStreakShield(): Promise<{ shields: number; message: string }> {
+  const { data } = await api.post('/user/claim-shield')
   return data
 }
 

@@ -167,8 +167,12 @@ export default function LessonPage() {
   const queryClient = useQueryClient()
 
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [result, setResult] = useState<{ correct: boolean; feedback: string; xp_earned: number } | null>(null)
+  const [result, setResult] = useState<{
+    correct: boolean; feedback: string; xp_earned: number;
+    output?: string; expected_output?: string; level?: number
+  } | null>(null)
   const [levelUp, setLevelUp] = useState<number | null>(null)
+  const [topicComplete, setTopicComplete] = useState(false)
 
   const NOTES_KEY = `cq_note_${lessonId}`
   const [note, setNote] = useState(() => localStorage.getItem(NOTES_KEY) || '')
@@ -214,9 +218,10 @@ export default function LessonPage() {
       setResult(res)
       if (res.correct && res.xp_earned > 0) {
         const newXP = (user?.xp ?? 0) + res.xp_earned
-        updateXP(newXP, Math.max(1, Math.floor(newXP / 100)))
-        if (res.level > (user?.level ?? 1)) {
-          setLevelUp(res.level)
+        const newLevel = res.level ?? Math.max(1, Math.floor(newXP / 100))
+        updateXP(newXP, newLevel)
+        if (newLevel > (user?.level ?? 1)) {
+          setLevelUp(newLevel)
           setTimeout(() => setLevelUp(null), 4000)
         }
         toast.success(`+${res.xp_earned} XP earned! 🎉`)
@@ -224,9 +229,7 @@ export default function LessonPage() {
         queryClient.invalidateQueries({ queryKey: ['topic-lessons', lesson.topic_id] })
         queryClient.invalidateQueries({ queryKey: ['dashboard'] })
         if (res.topic_completed) {
-          setTimeout(() => {
-            toast.success('🏆 Topic complete! You\'ve mastered this topic!', { duration: 5000, icon: '🏆' })
-          }, 1000)
+          setTimeout(() => setTopicComplete(true), 800)
         }
       }
     } catch {
@@ -271,6 +274,43 @@ export default function LessonPage() {
             >
               Continue
             </button>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+
+    {/* Topic Completion Overlay */}
+    <AnimatePresence>
+      {topicComplete && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => setTopicComplete(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.8, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            className="flex flex-col items-center gap-4 text-center px-8 py-10 rounded-2xl bg-quest-card border border-quest-yellow/40 shadow-2xl max-w-sm w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="text-7xl">🏆</span>
+            <h2 className="text-4xl font-extrabold bg-gradient-to-r from-quest-yellow to-orange-400 bg-clip-text text-transparent">
+              Topic Mastered!
+            </h2>
+            <p className="text-quest-text text-lg">You've completed all lessons in this topic!</p>
+            <p className="text-quest-muted text-sm">Keep going — the next topic awaits.</p>
+            <div className="flex gap-3 mt-2">
+              <button onClick={() => { setTopicComplete(false); navigate('/roadmap') }} className="btn-primary px-6">
+                Next Topic
+              </button>
+              <button onClick={() => setTopicComplete(false)} className="btn-secondary px-6">
+                Stay Here
+              </button>
+            </div>
           </motion.div>
         </motion.div>
       )}
@@ -346,9 +386,43 @@ export default function LessonPage() {
                 <p className={`font-semibold ${result.correct ? 'text-quest-green' : 'text-red-400'}`}>
                   {result.correct ? 'Correct! 🎉' : 'Not quite...'}
                 </p>
-                <p className="text-quest-text text-sm mt-1 whitespace-pre-wrap">{result.feedback}</p>
+                {/* For code lessons with diff data, show a short message; otherwise show full feedback */}
+                {lesson.type === 'code' && !result.correct && result.expected_output
+                  ? result.feedback !== 'Not quite right.' && (
+                      <p className="text-quest-text text-sm mt-1 whitespace-pre-wrap">{result.feedback}</p>
+                    )
+                  : <p className="text-quest-text text-sm mt-1 whitespace-pre-wrap">{result.feedback}</p>
+                }
                 {result.xp_earned > 0 && (
                   <p className="text-xs font-medium text-quest-green mt-2">+{result.xp_earned} XP earned!</p>
+                )}
+                {/* Diff view for wrong code output */}
+                {lesson.type === 'code' && !result.correct && result.expected_output && (
+                  <div className="mt-4 rounded-lg overflow-hidden border border-quest-border text-xs font-mono">
+                    <div className="grid grid-cols-2">
+                      <div className="bg-quest-green/10 border-r border-quest-border p-3">
+                        <p className="text-quest-green font-semibold mb-2 text-xs uppercase tracking-wider">Expected</p>
+                        {result.expected_output.trim().split('\n').map((line, i) => (
+                          <div key={i} className="text-quest-green/80">{line || <span className="opacity-40">(empty)</span>}</div>
+                        ))}
+                      </div>
+                      <div className="bg-red-500/10 p-3">
+                        <p className="text-red-400 font-semibold mb-2 text-xs uppercase tracking-wider">Your Output</p>
+                        {result.output
+                          ? result.output.trim().split('\n').map((line, i) => {
+                              const expLine = result.expected_output!.trim().split('\n')[i]
+                              const differs = line !== expLine
+                              return (
+                                <div key={i} className={differs ? 'text-red-400' : 'text-quest-muted'}>
+                                  {line || <span className="opacity-40">(empty)</span>}
+                                </div>
+                              )
+                            })
+                          : <span className="text-red-400/50">(no output)</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

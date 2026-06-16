@@ -5,6 +5,7 @@ export interface User {
   xp: number
   level: number
   streak: number
+  streak_shields?: number
   last_active?: string
   language_preference: string
   daily_goal: number
@@ -223,6 +224,7 @@ export interface DashboardData {
   xp: number
   level: number
   streak: number
+  streak_shields: number
   daily_goal: number
   lessons_today: number
   lessons_this_week: number
@@ -261,6 +263,7 @@ export interface ProfileData {
   xp: number
   level: number
   streak: number
+  streak_shields?: number
   language_preference: string
   daily_goal: number
   badges: Badge[]

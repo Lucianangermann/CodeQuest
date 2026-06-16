@@ -88,6 +88,7 @@ async def get_dashboard(user_id: str = Depends(get_current_user)):
         xp=user["xp"] or 0,
         level=user["level"] or 1,
         streak=user["streak"] or 0,
+        streak_shields=user["streak_shields"] if user["streak_shields"] is not None else 0,
         daily_goal=user["daily_goal"] or 3,
         lessons_today=td.get("lessons_completed", 0),
         xp_today=td.get("xp_earned", 0),
@@ -107,7 +108,7 @@ async def update_streak(user_id: str = Depends(get_current_user)):
         if not user_check:
             raise HTTPException(status_code=404, detail="User not found")
 
-        streak, is_new_day = await update_user_streak(conn, user_id)
+        streak, is_new_day, shield_used = await update_user_streak(conn, user_id)
 
         earned: list[dict] = []
         if is_new_day:
@@ -126,14 +127,50 @@ async def update_streak(user_id: str = Depends(get_current_user)):
                     )
                     earned.append(dict(b))
 
-    return StreakUpdateResponse(streak=streak, is_new_day=is_new_day, badges_earned=earned)
+        # Auto-award 1 shield on Mondays if user has fewer than 3
+        today = date.today()
+        if today.weekday() == 0:  # Monday
+            user_row = await conn.fetchrow(
+                "SELECT streak_shields FROM users WHERE id = $1", user_id
+            )
+            current_shields = user_row["streak_shields"] if user_row and user_row["streak_shields"] is not None else 0
+            if current_shields < 3:
+                await conn.execute(
+                    "UPDATE users SET streak_shields = streak_shields + 1 WHERE id = $1 AND streak_shields < 3",
+                    user_id,
+                )
+
+    return StreakUpdateResponse(streak=streak, is_new_day=is_new_day, badges_earned=earned, shield_used=shield_used)
+
+
+@router.post("/claim-shield")
+async def claim_shield(user_id: str = Depends(get_current_user)):
+    async with acquire() as conn:
+        user_row = await conn.fetchrow(
+            "SELECT streak_shields FROM users WHERE id = $1", user_id
+        )
+        if not user_row:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        current_shields = user_row["streak_shields"] if user_row["streak_shields"] is not None else 0
+        if current_shields >= 3:
+            raise HTTPException(status_code=400, detail="You already have the maximum of 3 shields.")
+
+        new_shields = await conn.fetchval(
+            "UPDATE users SET streak_shields = streak_shields + 1 WHERE id = $1 AND streak_shields < 3 RETURNING streak_shields",
+            user_id,
+        )
+        if new_shields is None:
+            raise HTTPException(status_code=400, detail="Could not claim shield.")
+
+    return {"shields": new_shields, "message": "Shield claimed! Your streak is now protected."}
 
 
 @router.get("/profile")
 async def get_profile(user_id: str = Depends(get_current_user)):
     async with acquire() as conn:
         user = await conn.fetchrow(
-            "SELECT id, email, username, avatar_url, xp, level, streak, "
+            "SELECT id, email, username, avatar_url, xp, level, streak, streak_shields, "
             "language_preference, daily_goal, created_at FROM users WHERE id = $1",
             user_id,
         )
