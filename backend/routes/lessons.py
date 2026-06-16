@@ -186,6 +186,7 @@ async def submit_lesson(
         correct, feedback, output, error_out = False, "", None, None
         expected_output_val: Optional[str] = None
         level_val: Optional[int] = None
+        test_results_val: Optional[list] = None
 
         if lesson["type"] == "quiz":
             try:
@@ -202,19 +203,55 @@ async def submit_lesson(
                 feedback = f"Not quite. The correct answer is: {correct_text}. {content.get('explanation', '')}"
 
         elif lesson["type"] == "code":
-            result = await execute_code(body.answer, body.language)
-            output = result.get("output", "")
-            error_out = result.get("error", "")
-            expected = content.get("expected_output", "")
-            expected_output_val = expected
-            if error_out and not output:
-                correct, feedback = False, f"Your code has an error:\n{error_out}"
-            else:
-                correct = _check_output(output, expected)
+            # Check for input-based test cases (new multi-test format)
+            all_test_cases = content.get("test_cases", [])
+            input_test_cases = [tc for tc in all_test_cases if "input" in tc]
+
+            if input_test_cases:
+                # Multi-test-case mode: run code once per test case with different stdin
+                results_list = []
+                all_correct = True
+                for tc in input_test_cases:
+                    tc_result = await execute_code(body.answer, body.language, stdin=tc["input"])
+                    tc_out = tc_result.get("output", "")
+                    tc_err = tc_result.get("error", "")
+                    tc_passed = bool(tc_out) and not tc_err and _check_output(tc_out, tc["expected_output"])
+                    if tc_err and not tc_out:
+                        tc_passed = False
+                    if not tc_passed:
+                        all_correct = False
+                    results_list.append({
+                        "description": tc.get("description", "Test case"),
+                        "passed": tc_passed,
+                        "expected": tc["expected_output"],
+                        "actual": tc_out,
+                        "error": tc_err if tc_err else None,
+                    })
+                correct = all_correct
+                passed_count = sum(1 for r in results_list if r["passed"])
                 feedback = (
-                    "Perfect! Your code produced the correct output." if correct
-                    else "Not quite right."
+                    f"All {len(results_list)} tests passed! Great work." if correct
+                    else f"{passed_count}/{len(results_list)} tests passed."
                 )
+                test_results_val = results_list
+                output = None  # not used in multi-test mode
+                error_out = None
+                expected_output_val = None
+            else:
+                # Single expected_output mode (existing behavior, backward compatible)
+                result = await execute_code(body.answer, body.language)
+                output = result.get("output", "")
+                error_out = result.get("error", "")
+                expected = content.get("expected_output", "")
+                expected_output_val = expected
+                if error_out and not output:
+                    correct, feedback = False, f"Your code has an error:\n{error_out}"
+                else:
+                    correct = _check_output(output, expected)
+                    feedback = (
+                        "Perfect! Your code produced the correct output." if correct
+                        else "Not quite right."
+                    )
 
         elif lesson["type"] == "theory":
             correct, feedback = True, "Great! Theory lesson completed."
@@ -288,4 +325,5 @@ async def submit_lesson(
         topic_completed=topic_completed,
         expected_output=expected_output_val,
         level=level_val,
+        test_results=test_results_val,
     )

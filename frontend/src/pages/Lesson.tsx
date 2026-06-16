@@ -130,7 +130,11 @@ function CodeView({ content, lessonId, language, onSubmit, isSubmitting }: {
 
       <Editor value={code} onChange={setCode} language={language} height="200px" />
 
-      <HintSystem lessonId={lessonId} userCode={code} />
+      <HintSystem
+        lessonId={lessonId}
+        userCode={code}
+        staticHints={(content as CodeContent).hints || []}
+      />
 
       <button onClick={() => onSubmit(code)} disabled={isSubmitting} className="btn-primary flex items-center gap-2">
         {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -173,7 +177,9 @@ export default function LessonPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [result, setResult] = useState<{
     correct: boolean; feedback: string; xp_earned: number;
-    output?: string; expected_output?: string; level?: number
+    output?: string; error?: string; topic_completed?: boolean;
+    expected_output?: string; level?: number;
+    test_results?: Array<{ description: string; passed: boolean; expected: string; actual: string; error?: string }>
   } | null>(null)
   const [levelUp, setLevelUp] = useState<number | null>(null)
   const [topicComplete, setTopicComplete] = useState(false)
@@ -240,7 +246,17 @@ export default function LessonPage() {
     setLastSubmittedCode(answer)
     try {
       const res = await submitLesson(lesson.id, answer, lesson.language || 'python')
-      setResult(res)
+      setResult({
+        correct: res.correct,
+        feedback: res.feedback,
+        xp_earned: res.xp_earned,
+        output: res.output,
+        error: res.error,
+        topic_completed: res.topic_completed,
+        expected_output: res.expected_output,
+        level: res.level,
+        test_results: res.test_results,
+      })
       if (res.correct && res.xp_earned > 0) {
         const newXP = (user?.xp ?? 0) + res.xp_earned
         const newLevel = res.level ?? Math.max(1, Math.floor(newXP / 100))
@@ -489,6 +505,46 @@ export default function LessonPage() {
                       )}
                     </div>
                   </motion.div>
+                )}
+
+                {/* Test case results panel */}
+                {result?.test_results && result.test_results.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <h3 className="text-sm font-semibold text-quest-muted">Test Results</h3>
+                    {result.test_results.map((tc, i) => (
+                      <div
+                        key={i}
+                        className={`rounded-xl p-3 border text-sm ${
+                          tc.passed
+                            ? 'bg-quest-green/10 border-quest-green/30'
+                            : 'bg-red-500/10 border-red-500/30'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 font-medium">
+                          <span>{tc.passed ? '✓' : '✗'}</span>
+                          <span className={tc.passed ? 'text-quest-green' : 'text-red-400'}>
+                            {tc.description}
+                          </span>
+                        </div>
+                        {!tc.passed && (
+                          <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-mono">
+                            <div>
+                              <div className="text-quest-muted mb-1">Expected</div>
+                              <div className="bg-quest-bg/50 rounded p-2 text-quest-green whitespace-pre-wrap">
+                                {tc.expected}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-quest-muted mb-1">Got</div>
+                              <div className="bg-quest-bg/50 rounded p-2 text-red-400 whitespace-pre-wrap">
+                                {tc.error || tc.actual || '(no output)'}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 )}
 
                 {/* Diff view for wrong code output */}

@@ -257,6 +257,13 @@ export interface SubmitResult {
   topic_completed?: boolean
   expected_output?: string
   level?: number
+  test_results?: Array<{
+    description: string
+    passed: boolean
+    expected: string
+    actual: string
+    error?: string
+  }>
 }
 
 export interface ProfileData {

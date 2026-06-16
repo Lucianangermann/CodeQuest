@@ -16,6 +16,8 @@ class SubmitAnswerResponse(BaseModel):
     topic_completed: bool = False
     expected_output: Optional[str] = None
     level: Optional[int] = None
+    shield_used: bool = False
+    test_results: Optional[List[dict]] = None  # NEW: per-test-case results
 
 
 class HintRequest(BaseModel):
