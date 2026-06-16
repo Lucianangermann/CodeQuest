@@ -72,9 +72,9 @@ export default function Dashboard() {
 
   const greeting = () => {
     const h = new Date().getHours()
-    if (h < 12) return 'Good morning'
-    if (h < 18) return 'Good afternoon'
-    return 'Good evening'
+    if (h < 12) return t('dash.goodMorning')
+    if (h < 18) return t('dash.goodAfternoon')
+    return t('dash.goodEvening')
   }
 
   const ACTIVITY_TYPE_LABELS: Record<string, string> = {
@@ -100,7 +100,7 @@ export default function Dashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-quest-muted">
         <AlertCircle className="w-10 h-10 text-red-400" />
-        <p>Could not load dashboard. Make sure the backend is running.</p>
+        <p>{t('dash.loadError')}</p>
       </div>
     )
   }
@@ -122,7 +122,7 @@ export default function Dashboard() {
         >
           <Flame className="w-5 h-5 text-orange-400 flex-shrink-0" />
           <span className="text-sm text-orange-300">
-            <strong className="text-orange-400">{data.streak}-day streak</strong> — complete a lesson today to keep it alive! 🔥
+            <strong className="text-orange-400">{data.streak}{t('dash.daySuffix')}</strong> — {t('dash.streakAlert')} 🔥
           </span>
         </motion.div>
       )}
@@ -138,8 +138,8 @@ export default function Dashboard() {
           </h1>
           <p className="text-quest-muted mt-1">
             {data.total_lessons_completed === 0
-              ? 'Welcome to CodeQuest — your coding adventure begins!'
-              : "Keep up the momentum — you're doing great!"}
+              ? t('dash.welcomeFirst')
+              : t('dash.keepGoing')}
           </p>
         </div>
         <StreakDisplay streak={data.streak} large />
@@ -148,7 +148,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={<Zap className="w-5 h-5" />} label={t('dash.xp')} value={data.xp.toLocaleString()} color="text-quest-purple" gradient="from-quest-purple/10" />
         <StatCard icon={<Trophy className="w-5 h-5" />} label={t('dash.level')} value={data.level} color="text-quest-yellow" gradient="from-quest-indigo/10" />
-        <StatCard icon={<BookOpen className="w-5 h-5" />} label="Lessons Done" value={data.total_lessons_completed} color="text-quest-green" gradient="from-quest-green/10" />
+        <StatCard icon={<BookOpen className="w-5 h-5" />} label={t('dash.lessonsDone')} value={data.total_lessons_completed} color="text-quest-green" gradient="from-quest-green/10" />
         <motion.div whileHover={{ y: -2 }} className="card relative overflow-hidden flex items-center gap-4">
           <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent rounded-2xl pointer-events-none" />
           <div className="text-orange-400 bg-current/10 rounded-xl p-3 relative"><Flame className="w-5 h-5" /></div>
@@ -173,12 +173,12 @@ export default function Dashboard() {
           <div className={`card flex items-center gap-3 py-3 border ${league.border} ${league.bg}`}>
             <span className="text-3xl">{league.icon}</span>
             <div className="flex-1">
-              <p className="text-xs text-quest-muted uppercase tracking-wide">Deine Liga</p>
+              <p className="text-xs text-quest-muted uppercase tracking-wide">{t('dash.yourLeague')}</p>
               <p className={`font-bold text-lg ${league.color}`}>{league.name}</p>
             </div>
             {next && (
               <div className="text-right">
-                <p className="text-xs text-quest-muted">Nächste Liga</p>
+                <p className="text-xs text-quest-muted">{t('dash.nextLeague')}</p>
                 <p className="text-xs text-quest-muted">{next.icon} {next.name} ({next.minXp - data.xp} XP)</p>
               </div>
             )}
@@ -194,7 +194,7 @@ export default function Dashboard() {
           style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(99,102,241,0.06) 100%)', borderColor: 'rgba(124,58,237,0.3)' }}
         >
           <div className="text-6xl mb-4">🚀</div>
-          <h2 className="text-xl font-bold text-white mb-2">Your journey starts here!</h2>
+          <h2 className="text-xl font-bold text-white mb-2">{t('dash.journeyStart')}</h2>
           <p className="text-quest-muted mb-6 max-w-sm mx-auto">
             {t('dash.emptyState')}
           </p>
@@ -209,7 +209,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-quest-purple" />
-              <h3 className="font-semibold text-white text-sm">Curriculum Progress</h3>
+              <h3 className="font-semibold text-white text-sm">{t('dash.curriculumProgress')}</h3>
             </div>
             <span className="text-sm text-quest-muted">
               {data.total_lessons_completed}/{data.total_lessons} {t('road.lessons')}
@@ -233,8 +233,8 @@ export default function Dashboard() {
           🧠
         </div>
         <div className="flex-1">
-          <p className="font-semibold text-white text-sm">Quick Practice</p>
-          <p className="text-xs text-quest-muted">5 zufällige Fragen aus deinen Themen testen</p>
+          <p className="font-semibold text-white text-sm">{t('dash.quickPractice')}</p>
+          <p className="text-xs text-quest-muted">{t('dash.quickPracticeDesc')}</p>
         </div>
         <ChevronRight className="w-5 h-5 text-quest-muted" />
       </div>
@@ -242,18 +242,18 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="card space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-white">Level Progress</h2>
+            <h2 className="font-semibold text-white">{t('dash.levelProgress')}</h2>
             <span className="text-quest-muted text-sm">Lv. {data.level} → Lv. {data.level + 1}</span>
           </div>
           <ProgressBar value={xpProgress} max={100} showText />
-          <p className="text-xs text-quest-muted">{100 - xpProgress} XP until next level</p>
+          <p className="text-xs text-quest-muted">{100 - xpProgress} XP {t('dash.untilNextLevel')}</p>
         </div>
 
         <div className="card space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Target className="w-4 h-4 text-quest-green" />
-              <h2 className="font-semibold text-white">Daily Goal</h2>
+              <h2 className="font-semibold text-white">{t('dash.dailyGoal')}</h2>
             </div>
             <span className="text-quest-muted text-sm">{data.lessons_today} / {data.daily_goal} min</span>
           </div>
@@ -280,7 +280,7 @@ export default function Dashboard() {
               style={{ width: `${Math.min(100, data.next_badge.progress * 100)}%` }}
             />
           </div>
-          <p className="text-xs text-quest-muted mt-1">{Math.round(data.next_badge.progress * 100)}% to unlock</p>
+          <p className="text-xs text-quest-muted mt-1">{Math.round(data.next_badge.progress * 100)}% {t('dash.toUnlock')}</p>
         </div>
       )}
 
@@ -288,8 +288,8 @@ export default function Dashboard() {
         <div className="card">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-lg">⚠️</span>
-            <h3 className="font-semibold text-white text-sm">Deine Schwachstellen</h3>
-            <span className="text-xs text-quest-muted ml-auto">Mehr üben →</span>
+            <h3 className="font-semibold text-white text-sm">{t('dash.weakTopics')}</h3>
+            <span className="text-xs text-quest-muted ml-auto">{t('dash.practiceMore')} →</span>
           </div>
           <div className="space-y-2">
             {data.weak_topics.map((topic) => (
@@ -297,15 +297,15 @@ export default function Dashboard() {
                 <span className="text-xl flex-shrink-0">{topic.icon || '📚'}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-white truncate">{topic.title}</p>
-                  <p className="text-xs text-quest-muted">Ø {topic.avg_attempts} Versuche pro Lektion</p>
+                  <p className="text-xs text-quest-muted">Ø {topic.avg_attempts} {t('dash.attemptsPerLesson')}</p>
                 </div>
                 <Link to="/roadmap" className="text-xs text-quest-purple-light hover:underline flex-shrink-0">
-                  Üben
+                  {t('dash.practice')}
                 </Link>
               </div>
             ))}
           </div>
-          <p className="text-xs text-quest-muted mt-3">Diese Themen kosten dich am meisten Versuche — übe sie gezielt.</p>
+          <p className="text-xs text-quest-muted mt-3">{t('dash.weakTopicsHint')}</p>
         </div>
       )}
 

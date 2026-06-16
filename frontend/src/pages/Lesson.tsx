@@ -18,38 +18,86 @@ import toast from 'react-hot-toast'
 
 // ── Theory ────────────────────────────────────────────────────────────────────
 
+const PROSE = [
+  'prose prose-invert prose-sm max-w-none',
+  'prose-headings:text-white prose-headings:font-bold',
+  'prose-strong:text-white',
+  'prose-code:text-quest-purple-light prose-code:bg-quest-border prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:before:content-none prose-code:after:content-none',
+  'prose-ul:text-quest-text prose-li:text-quest-text prose-p:text-quest-text',
+].join(' ')
+
+function CopyableCodeBlock({ language, code }: { language: string; code: string; blockKey?: string }) {
+  const [copied, setCopied] = useState(false)
+  function copy() {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+  return (
+    <div className="rounded-xl overflow-hidden border border-quest-border my-2">
+      <div className="flex items-center justify-between px-4 py-2 bg-[#1e1e2e] border-b border-quest-border">
+        <span className="text-xs text-quest-muted font-mono">{language}</span>
+        <button onClick={copy} className="text-xs text-quest-muted hover:text-quest-text transition-colors">
+          {copied ? '✓ Copied' : '⎘ Copy'}
+        </button>
+      </div>
+      <SyntaxHighlighter language={language} style={vscDarkPlus} customStyle={{ margin: 0, background: '#0d0d1a', fontSize: '13px', padding: '16px' }}>
+        {code}
+      </SyntaxHighlighter>
+    </div>
+  )
+}
+
+function MarkdownContent({ children }: { children: string }) {
+  return (
+    <div className={PROSE}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          code({ className, children: codeChildren, ...props }: React.ComponentPropsWithoutRef<'code'> & { inline?: boolean }) {
+            const match = /language-(\w+)/.exec(className || '')
+            const isBlock = !props.inline && match
+            return isBlock ? (
+              <CopyableCodeBlock language={match[1]} code={String(codeChildren).replace(/\n$/, '')} blockKey={`${match[1]}-${String(codeChildren).slice(0, 20)}`} />
+            ) : (
+              <code className={className} {...props}>{codeChildren}</code>
+            )
+          },
+        }}
+      >
+        {children}
+      </ReactMarkdown>
+    </div>
+  )
+}
+
 function TheoryView({ content }: { content: TheoryContent }) {
   const t = useT()
   return (
-    <div className="space-y-4">
-      {content.sections.map((section, i) => (
-        <div key={i}>
-          {section.type === 'text' ? (
-            <div className="
-              prose prose-invert prose-sm max-w-none
-              prose-headings:text-white prose-headings:font-bold
-              prose-strong:text-white
-              prose-code:text-quest-purple-light prose-code:bg-quest-border prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:before:content-none prose-code:after:content-none
-              prose-ul:text-quest-text prose-li:text-quest-text prose-p:text-quest-text
-            ">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{section.content}</ReactMarkdown>
+    <div className="space-y-5">
+      {content.sections.map((section, i) => {
+        const s = section as any
+        // New format: { heading, content } — content is full markdown with code fences
+        if (s.heading) {
+          return (
+            <div key={i}>
+              <p className="text-xs font-bold text-quest-muted uppercase tracking-wider mb-2">{s.heading}</p>
+              <MarkdownContent>{s.content}</MarkdownContent>
             </div>
-          ) : (
-            <div className="rounded-xl overflow-hidden border border-quest-border">
-              <div className="flex items-center gap-2 px-4 py-2 bg-[#1e1e2e] border-b border-quest-border text-xs text-quest-muted font-mono">
-                {section.language || 'python'}
-              </div>
-              <SyntaxHighlighter
-                language={section.language || 'python'}
-                style={vscDarkPlus}
-                customStyle={{ margin: 0, background: '#0d0d1a', fontSize: '13px', padding: '16px' }}
-              >
-                {section.content}
-              </SyntaxHighlighter>
-            </div>
-          )}
-        </div>
-      ))}
+          )
+        }
+        // Old format: { type: 'text'|'code', content, language? }
+        return (
+          <div key={i}>
+            {section.type === 'text' ? (
+              <MarkdownContent>{section.content}</MarkdownContent>
+            ) : (
+              <CopyableCodeBlock language={section.language || 'python'} code={section.content} blockKey={`${i}-code`} />
+            )}
+          </div>
+        )
+      })}
       {content.summary && (
         <div className="mt-2 p-4 rounded-xl bg-quest-purple/10 border border-quest-purple/20 text-sm text-quest-text">
           <strong className="text-quest-purple-light">{t('lesson.summary')}:</strong> {content.summary}
@@ -105,11 +153,16 @@ function CodeView({ content, lessonId, language, onSubmit, isSubmitting, concept
   content: CodeContent; lessonId: number; language: string
   onSubmit: (code: string) => void; isSubmitting: boolean; conceptIntro?: string | null
 }) {
-  const [code, setCode] = useState(content.starter_code)
+  const DRAFT_KEY = `cq_draft_${lessonId}`
+  const [code, setCode] = useState(() => localStorage.getItem(DRAFT_KEY) || content.starter_code)
   const [isExplaining, setIsExplaining] = useState(false)
   const [explanation, setExplanation] = useState('')
   const [showIntro, setShowIntro] = useState(true)
   const t = useT()
+
+  useEffect(() => {
+    localStorage.setItem(DRAFT_KEY, code)
+  }, [code, DRAFT_KEY])
 
   async function handleExplain() {
     setIsExplaining(true)
@@ -179,10 +232,13 @@ function CodeView({ content, lessonId, language, onSubmit, isSubmitting, concept
         staticHints={(content as CodeContent).hints || []}
       />
 
-      <button onClick={() => onSubmit(code)} disabled={isSubmitting} className="btn-primary flex items-center gap-2">
-        {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-        {t('lesson.submitCode')}
-      </button>
+      <div className="flex items-center justify-between">
+        <button onClick={() => onSubmit(code)} disabled={isSubmitting} className="btn-primary flex items-center gap-2">
+          {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+          {t('lesson.submitCode')}
+        </button>
+        <span className="text-xs text-quest-muted hidden sm:block">Ctrl + Enter</span>
+      </div>
 
       {explanation ? (
         <motion.div
