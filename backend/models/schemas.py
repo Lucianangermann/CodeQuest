@@ -110,3 +110,16 @@ class StreakUpdateResponse(BaseModel):
     is_new_day: bool
     badges_earned: List[dict]
     shield_used: bool = False
+
+
+class CodeReviewRequest(BaseModel):
+    lesson_id: int
+    code: str
+    language: str = "python"
+
+
+class CodeReviewResponse(BaseModel):
+    strengths: list[str]
+    suggestion: str
+    alternative: Optional[str] = None
+    grade: str  # "Good" | "Great" | "Excellent"

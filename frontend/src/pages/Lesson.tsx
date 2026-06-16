@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, CheckCircle, XCircle, Loader2, ChevronRight, HelpCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle, XCircle, Loader2, ChevronRight, HelpCircle, Sparkles } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { fetchLesson, submitLesson, explainMistake } from '../lib/api'
+import { fetchLesson, submitLesson, explainMistake, getCodeReview } from '../lib/api'
 import { useLessonStore } from '../store/useLessonStore'
 import { useUserStore } from '../store/useUserStore'
 import type { Lesson, QuizContent, CodeContent, TheoryContent } from '../types'
@@ -173,6 +173,11 @@ export default function LessonPage() {
   } | null>(null)
   const [levelUp, setLevelUp] = useState<number | null>(null)
   const [topicComplete, setTopicComplete] = useState(false)
+  const [lastSubmittedCode, setLastSubmittedCode] = useState<string>('')
+  const [review, setReview] = useState<{
+    strengths: string[]; suggestion: string; alternative: string | null; grade: string
+  } | null>(null)
+  const [reviewLoading, setReviewLoading] = useState(false)
 
   const NOTES_KEY = `cq_note_${lessonId}`
   const [note, setNote] = useState(() => localStorage.getItem(NOTES_KEY) || '')
@@ -200,6 +205,8 @@ export default function LessonPage() {
       setCurrentLesson(fetchedLesson)
     }
     startLesson()
+    setReview(null)
+    setLastSubmittedCode('')
   }, [fetchedLesson])
 
   if (isLoading || !lesson) {
@@ -210,9 +217,23 @@ export default function LessonPage() {
     )
   }
 
+  async function handleGetReview() {
+    if (!lesson) return
+    setReviewLoading(true)
+    try {
+      const r = await getCodeReview(lesson.id, lastSubmittedCode, lesson.language || 'python')
+      setReview(r)
+    } catch {
+      toast.error('Could not load review. Please try again.')
+    } finally {
+      setReviewLoading(false)
+    }
+  }
+
   async function handleSubmit(answer: string) {
     if (!lesson) return
     setIsSubmitting(true)
+    setLastSubmittedCode(answer)
     try {
       const res = await submitLesson(lesson.id, answer, lesson.language || 'python')
       setResult(res)
@@ -396,6 +417,76 @@ export default function LessonPage() {
                 {result.xp_earned > 0 && (
                   <p className="text-xs font-medium text-quest-green mt-2">+{result.xp_earned} XP earned!</p>
                 )}
+
+                {/* AI Code Review section */}
+                {result.correct && lesson.type === 'code' && !review && (
+                  <button
+                    onClick={handleGetReview}
+                    disabled={reviewLoading}
+                    className="mt-3 flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-quest-purple/40 text-quest-purple-light hover:bg-quest-purple/10 transition-all disabled:opacity-50"
+                  >
+                    {reviewLoading
+                      ? <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing your code...</>
+                      : <><Sparkles className="w-4 h-4" /> Get AI Code Review</>
+                    }
+                  </button>
+                )}
+
+                {review && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-4 rounded-xl border border-quest-purple/30 overflow-hidden"
+                  >
+                    {/* Header */}
+                    <div className="px-4 py-3 flex items-center justify-between"
+                      style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(99,102,241,0.1) 100%)' }}>
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-quest-purple-light" />
+                        <span className="font-semibold text-sm text-white">AI Code Review</span>
+                      </div>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                        review.grade === 'Excellent' ? 'bg-quest-green/20 text-quest-green' :
+                        review.grade === 'Great' ? 'bg-blue-400/20 text-blue-400' :
+                        'bg-quest-yellow/20 text-quest-yellow'
+                      }`}>
+                        {review.grade}
+                      </span>
+                    </div>
+
+                    <div className="p-4 space-y-3">
+                      {/* Strengths */}
+                      <div>
+                        <p className="text-xs font-semibold text-quest-green uppercase tracking-wider mb-1.5">What you did well</p>
+                        <ul className="space-y-1">
+                          {review.strengths.map((s, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm text-quest-text">
+                              <CheckCircle className="w-3.5 h-3.5 text-quest-green flex-shrink-0 mt-0.5" />
+                              {s}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Suggestion */}
+                      <div>
+                        <p className="text-xs font-semibold text-quest-yellow uppercase tracking-wider mb-1.5">One improvement</p>
+                        <p className="text-sm text-quest-text">{review.suggestion}</p>
+                      </div>
+
+                      {/* Alternative */}
+                      {review.alternative && (
+                        <div>
+                          <p className="text-xs font-semibold text-quest-purple-light uppercase tracking-wider mb-1.5">Alternative approach</p>
+                          <pre className="text-xs text-quest-text bg-black/30 rounded-lg p-3 overflow-x-auto font-mono border border-quest-border/50">
+                            {review.alternative}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* Diff view for wrong code output */}
                 {lesson.type === 'code' && !result.correct && result.expected_output && (
                   <div className="mt-4 rounded-lg overflow-hidden border border-quest-border text-xs font-mono">

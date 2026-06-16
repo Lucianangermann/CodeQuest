@@ -754,3 +754,44 @@ async def interview_summary(messages: list, company_size: str, focus: str) -> di
         messages=[{"role": m["role"], "content": m["content"]} for m in all_messages],
     )
     return _parse_json(msg.content[0].text)
+
+
+# ── Code Review ───────────────────────────────────────────────────────────────
+
+async def review_code(task: str, expected_output: str, user_code: str, language: str) -> dict:
+    client = _get_claude()
+    if not client:
+        return {
+            "strengths": ["Your code produced the correct output!"],
+            "suggestion": "AI review is not configured. Set ANTHROPIC_API_KEY to enable detailed reviews.",
+            "alternative": None,
+            "grade": "Good",
+        }
+
+    prompt = (
+        f"You are a code reviewer for a programming learning app. Review this student's solution.\n\n"
+        f"Task: {task}\n"
+        f"Expected output: {expected_output}\n"
+        f"Language: {language}\n"
+        f"Student's code:\n{user_code}\n\n"
+        'Return ONLY valid JSON with these fields:\n'
+        '- "strengths": array of 1-2 strings, each max 80 chars, what they did well\n'
+        '- "suggestion": string, one specific improvement (style, efficiency, or best practice)\n'
+        '- "alternative": string with cleaner code snippet, or null if already good\n'
+        '- "grade": "Good", "Great", or "Excellent"\n\n'
+        "Be encouraging but specific. Keep response concise. Return ONLY the JSON object."
+    )
+
+    try:
+        msg = await client.messages.create(
+            model=MODEL, max_tokens=500,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return _parse_json(msg.content[0].text)
+    except Exception:
+        return {
+            "strengths": ["Your code produced the correct output!"],
+            "suggestion": "Could not parse review response. Please try again.",
+            "alternative": None,
+            "grade": "Good",
+        }

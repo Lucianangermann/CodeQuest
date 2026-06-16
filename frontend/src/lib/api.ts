@@ -342,3 +342,13 @@ export async function fetchDailyChallenge() {
     today: string
   }
 }
+
+// AI Code Review
+export async function getCodeReview(
+  lessonId: number,
+  code: string,
+  language: string,
+): Promise<{ strengths: string[]; suggestion: string; alternative: string | null; grade: string }> {
+  const { data } = await api.post('/ai/review', { lesson_id: lessonId, code, language })
+  return data
+}

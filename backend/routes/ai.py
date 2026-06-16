@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
-from models.schemas import HintRequest, HintResponse, ExplainRequest, ExplainResponse, ChatRequest, ChatResponse
+from models.schemas import HintRequest, HintResponse, ExplainRequest, ExplainResponse, ChatRequest, ChatResponse, CodeReviewRequest, CodeReviewResponse
 from db.connection import acquire
-from services.claude import get_hint, explain_mistake, chat_response
+from services.claude import get_hint, explain_mistake, chat_response, review_code
 from deps import get_current_user
 
 router = APIRouter()
@@ -39,3 +39,20 @@ async def ai_chat(body: ChatRequest, user_id: str = Depends(get_current_user)):
 
     reply = await chat_response([m.model_dump() for m in body.messages], body.current_topic, body.language)
     return ChatResponse(message=reply)
+
+
+@router.post("/review", response_model=CodeReviewResponse)
+async def review_code_endpoint(body: CodeReviewRequest, user_id: str = Depends(get_current_user)):
+    async with acquire() as conn:
+        lesson = await conn.fetchrow(
+            "SELECT content_json FROM lessons WHERE id = $1 AND type = 'code'", body.lesson_id
+        )
+        if not lesson:
+            raise HTTPException(status_code=404, detail="Lesson not found or not a code lesson")
+
+    content = lesson["content_json"]
+    task = content.get("instructions", "Complete the coding task")
+    expected = content.get("expected_output", "")
+
+    result = await review_code(task, expected, body.code, body.language)
+    return CodeReviewResponse(**result)
