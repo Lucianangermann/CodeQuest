@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Settings, BookOpen, Zap, Flame, Edit3, Check, X, AlertCircle } from 'lucide-react'
-import { fetchProfile, updateProfile, fetchAllBadges, claimStreakShield } from '../lib/api'
+import { Settings, BookOpen, Zap, Flame, Edit3, Check, X, AlertCircle, Bell } from 'lucide-react'
+import { fetchProfile, updateProfile, fetchAllBadges, claimStreakShield, getVapidPublicKey, subscribeToPush, unsubscribeFromPush } from '../lib/api'
 import { useUserStore } from '../store/useUserStore'
 import type { ProfileData } from '../types'
 import ProgressBar from '../components/ProgressBar'
@@ -17,6 +17,8 @@ export default function Profile() {
   const queryClient = useQueryClient()
   const [editingGoal, setEditingGoal] = useState(false)
   const [goalValue, setGoalValue] = useState(user?.daily_goal ?? 30)
+  const [notifEnabled, setNotifEnabled] = useState(false)
+  const [notifSupported, setNotifSupported] = useState(false)
 
   const { data: profile, isLoading, error } = useQuery({
     queryKey: ['profile'],
@@ -69,6 +71,59 @@ export default function Profile() {
       toast.error(err?.response?.data?.detail || 'Could not claim shield')
     },
   })
+
+  useEffect(() => {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) return
+    setNotifSupported(true)
+    navigator.serviceWorker.ready.then(reg => {
+      reg.pushManager.getSubscription().then(sub => {
+        setNotifEnabled(!!sub)
+      })
+    })
+  }, [])
+
+  async function enableNotifications() {
+    const permission = await Notification.requestPermission()
+    if (permission !== 'granted') {
+      toast.error('Notification permission denied.')
+      return
+    }
+    const reg = await navigator.serviceWorker.ready
+    const vapidKey = await getVapidPublicKey()
+    // Convert base64url to Uint8Array for applicationServerKey
+    const keyBytes = Uint8Array.from(
+      atob(vapidKey.replace(/-/g, '+').replace(/_/g, '/')),
+      c => c.charCodeAt(0)
+    )
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: keyBytes,
+    })
+    const subJson = sub.toJSON()
+    await subscribeToPush({
+      endpoint: subJson.endpoint!,
+      p256dh: subJson.keys!.p256dh,
+      auth: subJson.keys!.auth,
+    })
+    setNotifEnabled(true)
+    toast.success("Notifications enabled! You'll be reminded at 8 PM if you forget to practice.")
+  }
+
+  async function disableNotifications() {
+    const reg = await navigator.serviceWorker.ready
+    const sub = await reg.pushManager.getSubscription()
+    if (sub) {
+      const subJson = sub.toJSON()
+      await unsubscribeFromPush({
+        endpoint: subJson.endpoint!,
+        p256dh: subJson.keys!.p256dh,
+        auth: subJson.keys!.auth,
+      })
+      await sub.unsubscribe()
+    }
+    setNotifEnabled(false)
+    toast.success('Notifications disabled.')
+  }
 
   if (isLoading) {
     return (
@@ -227,6 +282,34 @@ export default function Profile() {
             Shields protect your streak if you miss a day. Max 3 stored at a time.
           </p>
         </div>
+
+        {/* Daily Reminders */}
+        {notifSupported && (
+          <div className="pt-4 border-t border-quest-border">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h3 className="font-semibold text-white text-sm">Daily Reminders</h3>
+                <p className="text-xs text-quest-muted">Get notified at 8 PM if you haven't practiced</p>
+              </div>
+              <Bell className="w-5 h-5 text-quest-muted" />
+            </div>
+            {notifEnabled ? (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-quest-green">✓ Reminders enabled</span>
+                <button onClick={disableNotifications} className="text-xs text-quest-muted hover:text-red-400 transition-colors">
+                  Disable
+                </button>
+              </div>
+            ) : (
+              <button onClick={enableNotifications} className="btn-secondary text-sm w-full">
+                Enable Reminders 🔔
+              </button>
+            )}
+            {Notification.permission === 'denied' && (
+              <p className="text-xs text-red-400 mt-1">Notifications blocked in browser settings. Allow them to enable reminders.</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Badge Encyclopedia */}

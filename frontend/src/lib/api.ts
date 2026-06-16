@@ -343,6 +343,20 @@ export async function fetchDailyChallenge() {
   }
 }
 
+// Push Notifications
+export async function getVapidPublicKey(): Promise<string> {
+  const { data } = await api.get<{ public_key: string }>('/notifications/vapid-public-key')
+  return data.public_key
+}
+
+export async function subscribeToPush(subscription: { endpoint: string; p256dh: string; auth: string }): Promise<void> {
+  await api.post('/notifications/subscribe', subscription)
+}
+
+export async function unsubscribeFromPush(subscription: { endpoint: string; p256dh: string; auth: string }): Promise<void> {
+  await api.delete('/notifications/unsubscribe', { data: subscription })
+}
+
 // AI Code Review
 export async function getCodeReview(
   lessonId: number,
