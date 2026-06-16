@@ -54,6 +54,24 @@ async def get_dashboard(user_id: str = Depends(get_current_user)):
                 }
                 break
 
+        next_lesson: Optional[dict] = None
+        if current_topic:
+            first_incomplete = await conn.fetchrow(
+                """SELECT id, title, type, order_index
+                   FROM lessons
+                   WHERE topic_id = $1
+                     AND (language IS NULL OR language = (SELECT language_preference FROM users WHERE id = $2))
+                     AND id NOT IN (SELECT lesson_id FROM user_progress WHERE user_id = $2)
+                   ORDER BY order_index LIMIT 1""",
+                current_topic["id"], user_id,
+            )
+            if first_incomplete:
+                next_lesson = {
+                    "id": first_incomplete["id"],
+                    "title": first_incomplete["title"],
+                    "type": first_incomplete["type"],
+                }
+
         badges = await conn.fetch(
             """
             SELECT b.name, b.description, b.icon, ub.earned_at::text AS earned_at
@@ -63,6 +81,10 @@ async def get_dashboard(user_id: str = Depends(get_current_user)):
             """,
             user_id,
         )
+        all_badges = await conn.fetch("SELECT * FROM badges ORDER BY id")
+        owned_ids = {r["badge_id"] for r in await conn.fetch(
+            "SELECT badge_id FROM user_badges WHERE user_id = $1", user_id
+        )}
         activity = await conn.fetch(
             """
             SELECT date::text AS date, lessons_completed, xp_earned
@@ -82,20 +104,63 @@ async def get_dashboard(user_id: str = Depends(get_current_user)):
         total_lessons = await conn.fetchval("SELECT COUNT(*) FROM lessons")
 
     td = dict(today_row) if today_row else {}
+    user_xp = user["xp"] or 0
+    user_streak = user["streak"] or 0
+    completed_count = int(total_completed or 0)
+
+    # Compute next unearned badge closest to completion
+    next_badge: Optional[dict] = None
+    best_progress = -1.0
+    for b in all_badges:
+        if b["id"] in owned_ids:
+            continue
+        cond = b["condition_json"] or {}
+        badge_type = cond.get("type", "")
+        progress_ratio = 0.0
+        goal_label = ""
+        if badge_type == "lessons_completed":
+            goal = cond.get("count", 1)
+            progress_ratio = completed_count / goal if goal else 0.0
+            goal_label = f"{completed_count}/{goal} lessons"
+        elif badge_type == "total_xp":
+            goal = cond.get("amount", 100)
+            progress_ratio = user_xp / goal if goal else 0.0
+            goal_label = f"{user_xp}/{goal} XP"
+        elif badge_type == "streak":
+            goal = cond.get("days", 7)
+            progress_ratio = user_streak / goal if goal else 0.0
+            goal_label = f"{user_streak}/{goal} day streak"
+        else:
+            # Skip complex types (first_attempt_streak, topic_completed, etc.)
+            continue
+        if progress_ratio >= 1.0:
+            continue  # already meets threshold, badge award handles this elsewhere
+        if progress_ratio > best_progress:
+            best_progress = progress_ratio
+            next_badge = {
+                "id": b["id"],
+                "name": b["name"],
+                "icon": b["icon"],
+                "progress": round(progress_ratio, 4),
+                "goal_label": goal_label,
+            }
+
     return DashboardStats(
         username=user["username"],
         avatar_url=user.get("avatar_url"),
-        xp=user["xp"] or 0,
+        xp=user_xp,
         level=user["level"] or 1,
-        streak=user["streak"] or 0,
+        streak=user_streak,
         streak_shields=user["streak_shields"] if user["streak_shields"] is not None else 0,
         daily_goal=user["daily_goal"] or 3,
         lessons_today=td.get("lessons_completed", 0),
         xp_today=td.get("xp_earned", 0),
-        total_lessons_completed=total_completed or 0,
+        total_lessons_completed=completed_count,
         lessons_this_week=int(lessons_this_week or 0),
         total_lessons=int(total_lessons or 0),
         current_topic=current_topic,
+        next_lesson=next_lesson,
+        next_badge=next_badge,
         recent_badges=[dict(b) for b in badges],
         activity_data=[dict(a) for a in activity],
     )

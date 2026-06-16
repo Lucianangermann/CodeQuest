@@ -73,13 +73,29 @@ async def get_topic_lessons(topic_id: int, language: str = "python", user_id: Op
             language,
         )
         completed: dict[int, int] = {}
+        attempts: dict[int, int] = {}
         if user_id:
             rows = await conn.fetch(
                 "SELECT lesson_id, xp_earned FROM user_progress WHERE user_id = $1", user_id
             )
             completed = {r["lesson_id"]: r["xp_earned"] for r in rows}
+            attempt_rows = await conn.fetch(
+                "SELECT lesson_id, attempts FROM lesson_attempts WHERE user_id = $1", user_id
+            )
+            attempts = {r["lesson_id"]: r["attempts"] for r in attempt_rows}
+
+    def calc_mastery(lesson_id: int) -> int:
+        if lesson_id not in completed:
+            return 0
+        n = attempts.get(lesson_id, 4)
+        if n == 1:
+            return 3
+        elif n <= 3:
+            return 2
+        else:
+            return 1
 
     return [
-        {**dict(l), "is_completed": l["id"] in completed, "xp_earned": completed.get(l["id"], 0)}
+        {**dict(l), "is_completed": l["id"] in completed, "xp_earned": completed.get(l["id"], 0), "mastery_level": calc_mastery(l["id"])}
         for l in lessons
     ]

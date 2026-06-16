@@ -214,6 +214,26 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {data.next_badge && (
+        <div className="card">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-2xl">{data.next_badge.icon}</span>
+            <div>
+              <p className="text-xs text-quest-muted">Next Badge</p>
+              <p className="font-semibold text-white text-sm">{data.next_badge.name}</p>
+            </div>
+            <span className="ml-auto text-xs text-quest-muted">{data.next_badge.goal_label}</span>
+          </div>
+          <div className="w-full bg-quest-border rounded-full h-2">
+            <div
+              className="bg-quest-yellow h-2 rounded-full transition-all duration-700"
+              style={{ width: `${Math.min(100, data.next_badge.progress * 100)}%` }}
+            />
+          </div>
+          <p className="text-xs text-quest-muted mt-1">{Math.round(data.next_badge.progress * 100)}% to unlock</p>
+        </div>
+      )}
+
       {data.current_topic && (
         <motion.div
           whileHover={{ scale: 1.01 }}
@@ -222,16 +242,22 @@ export default function Dashboard() {
           <div className="flex items-center gap-4">
             <span className="text-4xl">{data.current_topic.icon || '📚'}</span>
             <div>
-              <p className="text-quest-muted text-sm">Continue learning</p>
+              <p className="text-quest-muted text-sm">Continue where you left off</p>
               <h3 className="text-xl font-bold text-white">{data.current_topic.title}</h3>
+              {data.next_lesson && (
+                <p className="text-xs text-quest-purple mt-0.5 truncate max-w-xs">{data.next_lesson.title}</p>
+              )}
               <ProgressBar value={data.current_topic.completed} max={data.current_topic.total} size="sm" />
               <p className="text-xs text-quest-muted mt-1">
                 {data.current_topic.completed}/{data.current_topic.total} lessons
               </p>
             </div>
           </div>
-          <Link to="/roadmap" className="btn-primary flex items-center gap-2 flex-shrink-0">
-            Continue <ChevronRight className="w-4 h-4" />
+          <Link
+            to={data.next_lesson ? `/lesson/${data.next_lesson.id}` : '/roadmap'}
+            className="btn-primary flex items-center gap-2 flex-shrink-0"
+          >
+            {data.next_lesson ? 'Start Lesson' : 'Continue'} <ChevronRight className="w-4 h-4" />
           </Link>
         </motion.div>
       )}

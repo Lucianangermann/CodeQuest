@@ -203,10 +203,17 @@ export default function Roadmap() {
                         }`}
                         onClick={() => isAccessible && handleStartLesson(lesson)}
                       >
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-lg ${
-                          lesson.is_completed ? 'bg-quest-green/20' : 'bg-quest-border'
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                          lesson.is_completed ? 'bg-quest-green/20 text-xs' : 'bg-quest-border text-lg'
                         }`}>
-                          {lesson.is_completed ? '✅' : String(i + 1)}
+                          {lesson.is_completed
+                            ? (() => {
+                                const lvl = lesson.mastery_level ?? 1
+                                const filled = '⭐'.repeat(lvl)
+                                const empty = '☆'.repeat(3 - lvl)
+                                return <span className="leading-none">{filled}{empty}</span>
+                              })()
+                            : String(i + 1)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-white truncate">{lesson.title}</div>

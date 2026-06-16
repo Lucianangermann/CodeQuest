@@ -194,6 +194,7 @@ export interface Lesson {
   is_completed: boolean
   xp_earned: number
   language?: string
+  mastery_level?: number
 }
 
 export interface Badge {
@@ -238,6 +239,18 @@ export interface DashboardData {
     icon?: string
     completed: number
     total: number
+  }
+  next_lesson?: {
+    id: number
+    title: string
+    type: string
+  }
+  next_badge?: {
+    id: number
+    name: string
+    icon: string
+    progress: number
+    goal_label: string
   }
   recent_badges: Badge[]
   activity_data: ActivityEntry[]

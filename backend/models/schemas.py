@@ -94,6 +94,8 @@ class DashboardStats(BaseModel):
     lessons_this_week: int = 0
     total_lessons: int = 0
     current_topic: Optional[dict] = None
+    next_lesson: Optional[dict] = None
+    next_badge: Optional[dict] = None
     recent_badges: List[dict]
     activity_data: List[dict]
 
