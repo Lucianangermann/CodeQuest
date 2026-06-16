@@ -29,6 +29,19 @@ def _parse_json(text: str) -> dict:
 
 # ── AI Tutor ──────────────────────────────────────────────────────────────────
 
+async def translate_to_german(text: str) -> str:
+    client = _get_claude()
+    if not client:
+        return ""
+    msg = await client.messages.create(
+        model=MODEL, max_tokens=400,
+        messages=[{"role": "user", "content":
+            f"Translate this coding task description to German. Keep code snippets, variable names, and technical terms in English. "
+            f"Return only the translated text, no explanations:\n\n{text}"}],
+    )
+    return msg.content[0].text
+
+
 async def generate_task_intro(instructions: str, starter_code: str, language: str, ui_lang: str = "en") -> str:
     client = _get_claude()
     if not client:

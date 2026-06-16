@@ -1,17 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
+import json
 from pydantic import BaseModel
 from datetime import date as _date
 from models.schemas import SubmitAnswerRequest, SubmitAnswerResponse
 from db.connection import acquire
 from services.code_runner import execute_code
-from services.claude import generate_task_intro
+from services.claude import generate_task_intro, translate_to_german
 from deps import get_current_user, get_optional_user
 from utils.streak import update_user_streak
 
 router = APIRouter()
 
-# Cache task intros per (lesson_id, ui_lang) to avoid repeated AI calls
+# In-memory fast-path cache (populated from DB or newly generated)
 _task_intro_cache: dict[tuple[int, str], str] = {}
 
 
@@ -183,12 +184,21 @@ async def get_lesson(lesson_id: int, ui_lang: str = "en", user_id: Optional[str]
             if row:
                 is_completed, xp_earned = True, row["xp_earned"]
 
-        # For code/debug/advanced lessons: generate a task-specific intro via AI (cached per lesson+lang)
+        _raw_tr = lesson["translations"]
+        existing_tr: dict = (_raw_tr if isinstance(_raw_tr, dict) else json.loads(_raw_tr)) if _raw_tr else {}
+        needs_tr_update = False
+
+        # For code/debug/advanced lessons: task-specific intro (lazy-persisted)
         concept_intro: Optional[str] = None
         if lesson["type"] in ("code", "debug", "advanced"):
+            intro_key = f"task_intro_{ui_lang}"
             cache_key = (lesson_id, ui_lang)
+
             if cache_key in _task_intro_cache:
                 concept_intro = _task_intro_cache[cache_key]
+            elif intro_key in existing_tr:
+                concept_intro = existing_tr[intro_key]
+                _task_intro_cache[cache_key] = concept_intro
             else:
                 content = lesson["content_json"] or {}
                 instructions = content.get("instructions", "")
@@ -197,17 +207,39 @@ async def get_lesson(lesson_id: int, ui_lang: str = "en", user_id: Optional[str]
                     concept_intro = await generate_task_intro(
                         instructions, starter_code, lesson["language"] or "python", ui_lang
                     )
-                    _task_intro_cache[cache_key] = concept_intro or ""
+                    if concept_intro:
+                        _task_intro_cache[cache_key] = concept_intro
+                        existing_tr[intro_key] = concept_intro
+                        needs_tr_update = True
+
+            # For German: also translate instructions if not yet stored
+            if ui_lang == "de":
+                de_content = existing_tr.get("content") or {}
+                if not de_content.get("instructions"):
+                    raw_instructions = (lesson["content_json"] or {}).get("instructions", "")
+                    if raw_instructions:
+                        de_instructions = await translate_to_german(raw_instructions)
+                        if de_instructions:
+                            de_content["instructions"] = de_instructions
+                            existing_tr["content"] = de_content
+                            needs_tr_update = True
+
+        if needs_tr_update:
+            await conn.execute(
+                "UPDATE lessons SET translations = $1::jsonb WHERE id = $2",
+                json.dumps(existing_tr), lesson_id,
+            )
 
     d = {**dict(lesson), "is_completed": is_completed, "xp_earned": xp_earned, "concept_intro": concept_intro}
     if ui_lang == "de":
-        tr = d.pop("translations", None) or {}
+        tr = existing_tr
         if tr.get("title"):
             d["title"] = tr["title"]
         if tr.get("content"):
             content = dict(d.get("content_json") or {})
             content.update(tr["content"])
             d["content_json"] = content
+        d.pop("translations", None)
     else:
         d.pop("translations", None)
     return d

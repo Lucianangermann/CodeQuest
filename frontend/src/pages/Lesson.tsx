@@ -212,7 +212,7 @@ export default function LessonPage() {
   const { lessonId } = useParams<{ lessonId: string }>()
   const navigate = useNavigate()
   const { currentLesson, currentTopicName, setCurrentLesson, startLesson } = useLessonStore()
-  const { user, updateXP } = useUserStore()
+  const { user, updateXP, uiLanguage } = useUserStore()
   const t = useT()
   const queryClient = useQueryClient()
 
@@ -248,7 +248,7 @@ export default function LessonPage() {
 
   // Fetch if navigating directly (no lesson in store, or different lesson)
   const { data: fetchedLesson, isLoading } = useQuery({
-    queryKey: ['lesson', lessonId],
+    queryKey: ['lesson', lessonId, uiLanguage],
     queryFn: () => fetchLesson(Number(lessonId)),
     enabled: !currentLesson || currentLesson.id !== Number(lessonId),
     initialData: currentLesson?.id === Number(lessonId) ? currentLesson : undefined,
