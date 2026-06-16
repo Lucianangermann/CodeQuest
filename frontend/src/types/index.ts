@@ -252,6 +252,7 @@ export interface DashboardData {
     progress: number
     goal_label: string
   }
+  weak_topics?: Array<{ title: string; icon?: string; avg_attempts: number }>
   recent_badges: Badge[]
   activity_data: ActivityEntry[]
 }

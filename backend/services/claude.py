@@ -62,8 +62,10 @@ async def explain_mistake(lesson_content: dict, user_code: str, error: str) -> s
     msg = await client.messages.create(
         model=MODEL, max_tokens=350,
         messages=[{"role": "user", "content":
-            f"Task: {instructions}\n\nCode:\n{user_code}\n\nError: {error}\n\n"
-            "Explain what went wrong in 3-4 encouraging sentences. Guide toward the fix without giving it away."}],
+            f"Aufgabe: {instructions}\n\nCode:\n{user_code}\n\nFehler/Ausgabe: {error}\n\n"
+            "Erkläre in 3-4 ermutigenden Sätzen auf Deutsch, was hier schiefgelaufen ist. "
+            "Sei wie ein freundlicher Lehrer für Anfänger. Gib einen Hinweis zur Lösung, "
+            "aber verate sie nicht direkt. Nutze einfache Sprache ohne Fachbegriffe."}],
     )
     return msg.content[0].text
 

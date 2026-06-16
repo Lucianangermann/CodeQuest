@@ -25,6 +25,21 @@ function StatCard({ icon, label, value, color = 'text-quest-purple', gradient = 
   )
 }
 
+const LEAGUES = [
+  { name: 'Rookie',     minXp: 0,     icon: '🌱', color: 'text-gray-400',    border: 'border-gray-400/30',    bg: 'bg-gray-400/10' },
+  { name: 'Apprentice', minXp: 500,   icon: '⚡', color: 'text-blue-400',    border: 'border-blue-400/30',    bg: 'bg-blue-400/10' },
+  { name: 'Developer',  minXp: 1500,  icon: '💻', color: 'text-green-400',   border: 'border-green-400/30',   bg: 'bg-green-400/10' },
+  { name: 'Senior',     minXp: 3500,  icon: '🔥', color: 'text-orange-400',  border: 'border-orange-400/30',  bg: 'bg-orange-400/10' },
+  { name: 'Architect',  minXp: 7000,  icon: '🏗️', color: 'text-purple-400',  border: 'border-purple-400/30',  bg: 'bg-purple-400/10' },
+  { name: 'Legend',     minXp: 15000, icon: '👑', color: 'text-yellow-400',  border: 'border-yellow-400/30',  bg: 'bg-yellow-400/10' },
+]
+function getLeague(xp: number) {
+  for (let i = LEAGUES.length - 1; i >= 0; i--) {
+    if (xp >= LEAGUES[i].minXp) return LEAGUES[i]
+  }
+  return LEAGUES[0]
+}
+
 const ACTIVITY_COLORS: Record<string, string> = {
   theory: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
   coding: 'bg-quest-purple/20 text-quest-purple border-quest-purple/30',
@@ -148,6 +163,26 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
+      {(() => {
+        const league = getLeague(data.xp)
+        const next = LEAGUES.find(l => l.minXp > data.xp)
+        return (
+          <div className={`card flex items-center gap-3 py-3 border ${league.border} ${league.bg}`}>
+            <span className="text-3xl">{league.icon}</span>
+            <div className="flex-1">
+              <p className="text-xs text-quest-muted uppercase tracking-wide">Deine Liga</p>
+              <p className={`font-bold text-lg ${league.color}`}>{league.name}</p>
+            </div>
+            {next && (
+              <div className="text-right">
+                <p className="text-xs text-quest-muted">Nächste Liga</p>
+                <p className="text-xs text-quest-muted">{next.icon} {next.name} ({next.minXp - data.xp} XP)</p>
+              </div>
+            )}
+          </div>
+        )
+      })()}
+
       {data.total_lessons_completed === 0 && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -231,6 +266,31 @@ export default function Dashboard() {
             />
           </div>
           <p className="text-xs text-quest-muted mt-1">{Math.round(data.next_badge.progress * 100)}% to unlock</p>
+        </div>
+      )}
+
+      {data.weak_topics && data.weak_topics.length > 0 && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-lg">⚠️</span>
+            <h3 className="font-semibold text-white text-sm">Deine Schwachstellen</h3>
+            <span className="text-xs text-quest-muted ml-auto">Mehr üben →</span>
+          </div>
+          <div className="space-y-2">
+            {data.weak_topics.map((topic) => (
+              <div key={topic.title} className="flex items-center gap-3 p-2.5 rounded-lg bg-red-500/5 border border-red-500/15">
+                <span className="text-xl flex-shrink-0">{topic.icon || '📚'}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">{topic.title}</p>
+                  <p className="text-xs text-quest-muted">Ø {topic.avg_attempts} Versuche pro Lektion</p>
+                </div>
+                <Link to="/roadmap" className="text-xs text-quest-purple-light hover:underline flex-shrink-0">
+                  Üben
+                </Link>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-quest-muted mt-3">Diese Themen kosten dich am meisten Versuche — übe sie gezielt.</p>
         </div>
       )}
 

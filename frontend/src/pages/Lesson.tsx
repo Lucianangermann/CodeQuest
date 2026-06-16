@@ -188,6 +188,9 @@ export default function LessonPage() {
     strengths: string[]; suggestion: string; alternative: string | null; grade: string
   } | null>(null)
   const [reviewLoading, setReviewLoading] = useState(false)
+  const [errorExplanation, setErrorExplanation] = useState<string>('')
+  const [isExplainingError, setIsExplainingError] = useState(false)
+  const [showSolution, setShowSolution] = useState(false)
 
   const NOTES_KEY = `cq_note_${lessonId}`
   const [note, setNote] = useState(() => localStorage.getItem(NOTES_KEY) || '')
@@ -240,10 +243,25 @@ export default function LessonPage() {
     }
   }
 
+  async function handleExplainError() {
+    if (!lesson || !result) return
+    setIsExplainingError(true)
+    try {
+      const text = await explainMistake(lesson.id, lastSubmittedCode, result.error || result.output || 'Fehler')
+      setErrorExplanation(text)
+    } catch {
+      toast.error('Konnte Fehler nicht erklären')
+    } finally {
+      setIsExplainingError(false)
+    }
+  }
+
   async function handleSubmit(answer: string) {
     if (!lesson) return
     setIsSubmitting(true)
     setLastSubmittedCode(answer)
+    setErrorExplanation('')
+    setShowSolution(false)
     try {
       const res = await submitLesson(lesson.id, answer, lesson.language || 'python')
       setResult({
@@ -285,6 +303,64 @@ export default function LessonPage() {
     quiz:   { label: '🧠 Quiz',   cls: 'bg-quest-yellow/20 text-quest-yellow' },
     code:   { label: '💻 Code',   cls: 'bg-quest-purple/20 text-quest-purple-light' },
   }[lesson.type]
+
+  function downloadCertificate() {
+    const canvas = document.createElement('canvas')
+    canvas.width = 900
+    canvas.height = 600
+    const ctx = canvas.getContext('2d')!
+    // Background
+    ctx.fillStyle = '#0f0f1a'
+    ctx.fillRect(0, 0, 900, 600)
+    // Outer border
+    ctx.strokeStyle = '#7c3aed'
+    ctx.lineWidth = 8
+    ctx.strokeRect(20, 20, 860, 560)
+    // Inner border
+    ctx.strokeStyle = '#6366f1'
+    ctx.lineWidth = 2
+    ctx.strokeRect(35, 35, 830, 530)
+    // Title
+    ctx.fillStyle = '#9d5cf6'
+    ctx.font = 'bold 20px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('⚡ CodeQuest', 450, 90)
+    ctx.fillStyle = '#ffffff'
+    ctx.font = 'bold 52px sans-serif'
+    ctx.fillText('ZERTIFIKAT', 450, 155)
+    // Decorative line
+    ctx.strokeStyle = '#7c3aed'
+    ctx.lineWidth = 2
+    ctx.beginPath(); ctx.moveTo(150, 175); ctx.lineTo(750, 175); ctx.stroke()
+    // Body text
+    ctx.fillStyle = '#94a3b8'
+    ctx.font = '22px sans-serif'
+    ctx.fillText('Hiermit wird bestätigt, dass', 450, 230)
+    ctx.fillStyle = '#ffffff'
+    ctx.font = 'bold 38px sans-serif'
+    ctx.fillText(user?.username || 'Lernender', 450, 285)
+    ctx.fillStyle = '#94a3b8'
+    ctx.font = '22px sans-serif'
+    ctx.fillText('das Thema erfolgreich abgeschlossen hat:', 450, 335)
+    ctx.fillStyle = '#fbbf24'
+    ctx.font = 'bold 34px sans-serif'
+    ctx.fillText(currentTopicName || 'Programmieren', 450, 395)
+    // Date
+    ctx.strokeStyle = '#7c3aed'
+    ctx.lineWidth = 1
+    ctx.beginPath(); ctx.moveTo(150, 430); ctx.lineTo(750, 430); ctx.stroke()
+    ctx.fillStyle = '#64748b'
+    ctx.font = '16px sans-serif'
+    ctx.fillText(new Date().toLocaleDateString('de-DE', { year: 'numeric', month: 'long', day: 'numeric' }), 450, 460)
+    ctx.fillStyle = '#fbbf24'
+    ctx.font = '48px sans-serif'
+    ctx.fillText('🏆', 450, 530)
+
+    const link = document.createElement('a')
+    link.download = `CodeQuest-Zertifikat-${(currentTopicName || 'Topic').replace(/\s+/g, '-')}.png`
+    link.href = canvas.toDataURL('image/png')
+    link.click()
+  }
 
   return (
     <>
@@ -350,6 +426,12 @@ export default function LessonPage() {
               </button>
               <button onClick={() => setTopicComplete(false)} className="btn-secondary px-6">
                 {t('lesson.stayHere')}
+              </button>
+              <button
+                onClick={downloadCertificate}
+                className="btn-secondary px-6 flex items-center gap-2"
+              >
+                📥 Zertifikat
               </button>
             </div>
           </motion.div>
@@ -505,6 +587,71 @@ export default function LessonPage() {
                       )}
                     </div>
                   </motion.div>
+                )}
+
+                {/* Feature 1: Error Explainer */}
+                {!result.correct && lesson.type === 'code' && (
+                  <div className="mt-3">
+                    {!errorExplanation ? (
+                      <button
+                        onClick={handleExplainError}
+                        disabled={isExplainingError}
+                        className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-red-400/30 text-red-300 hover:bg-red-400/10 transition-all disabled:opacity-50"
+                      >
+                        {isExplainingError
+                          ? <><Loader2 className="w-4 h-4 animate-spin" /> Analysiere Fehler...</>
+                          : <><HelpCircle className="w-4 h-4" /> 🔍 Fehler erklären (Deutsch)</>}
+                      </button>
+                    ) : (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-sm text-quest-text leading-relaxed"
+                      >
+                        <p className="font-semibold text-blue-400 mb-2">🔍 Fehler-Erklärung</p>
+                        <p>{errorExplanation}</p>
+                        <button
+                          onClick={() => setErrorExplanation('')}
+                          className="mt-2 text-xs text-quest-muted hover:text-quest-text transition-colors"
+                        >
+                          Schließen
+                        </button>
+                      </motion.div>
+                    )}
+                  </div>
+                )}
+
+                {/* Feature 2: Solution Comparison */}
+                {result.correct && lesson.type === 'code' && (lesson.content_json as CodeContent).solution && (
+                  <div className="mt-3">
+                    <button
+                      onClick={() => setShowSolution(s => !s)}
+                      className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-quest-green/30 text-quest-green hover:bg-quest-green/10 transition-all"
+                    >
+                      📖 {showSolution ? 'Musterlösung verbergen' : 'Musterlösung ansehen'}
+                    </button>
+                    {showSolution && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-3 rounded-xl overflow-hidden border border-quest-green/30"
+                      >
+                        <div className="px-4 py-2 bg-quest-green/10 border-b border-quest-green/20">
+                          <p className="text-xs font-semibold text-quest-green uppercase tracking-wider">Musterlösung</p>
+                        </div>
+                        <Editor
+                          value={(lesson.content_json as CodeContent).solution!}
+                          onChange={() => {}}
+                          language={lesson.language || 'python'}
+                          readOnly
+                          height="180px"
+                        />
+                        <div className="px-4 py-3 bg-black/20 border-t border-quest-border/30">
+                          <p className="text-xs text-quest-muted">Vergleiche deine Lösung mit der Musterlösung. Gibt es elegantere Wege?</p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
                 )}
 
                 {/* Test case results panel */}

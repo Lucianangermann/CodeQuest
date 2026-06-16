@@ -103,6 +103,22 @@ async def get_dashboard(user_id: str = Depends(get_current_user)):
         )
         total_lessons = await conn.fetchval("SELECT COUNT(*) FROM lessons")
 
+        weak_topics_rows = await conn.fetch(
+            """
+            SELECT t.title, t.icon,
+                   ROUND(AVG(la.attempts)::numeric, 1) AS avg_attempts
+            FROM lesson_attempts la
+            JOIN lessons l ON l.id = la.lesson_id
+            JOIN topics t ON t.id = l.topic_id
+            WHERE la.user_id = $1 AND la.attempts > 1
+            GROUP BY t.id, t.title, t.icon
+            HAVING COUNT(DISTINCT la.lesson_id) >= 2
+            ORDER BY AVG(la.attempts) DESC
+            LIMIT 3
+            """,
+            user_id,
+        )
+
     td = dict(today_row) if today_row else {}
     user_xp = user["xp"] or 0
     user_streak = user["streak"] or 0
@@ -161,6 +177,7 @@ async def get_dashboard(user_id: str = Depends(get_current_user)):
         current_topic=current_topic,
         next_lesson=next_lesson,
         next_badge=next_badge,
+        weak_topics=[dict(r) for r in weak_topics_rows],
         recent_badges=[dict(b) for b in badges],
         activity_data=[dict(a) for a in activity],
     )

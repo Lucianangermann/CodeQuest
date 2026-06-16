@@ -96,6 +96,7 @@ class DashboardStats(BaseModel):
     current_topic: Optional[dict] = None
     next_lesson: Optional[dict] = None
     next_badge: Optional[dict] = None
+    weak_topics: List[dict] = []
     recent_badges: List[dict]
     activity_data: List[dict]
 

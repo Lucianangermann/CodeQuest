@@ -13,6 +13,21 @@ import toast from 'react-hot-toast'
 
 const LANGUAGES = ['python', 'javascript', 'typescript']
 
+const LEAGUES = [
+  { name: 'Rookie',     minXp: 0,     icon: '🌱', color: 'text-gray-400',    border: 'border-gray-400/30',    bg: 'bg-gray-400/10' },
+  { name: 'Apprentice', minXp: 500,   icon: '⚡', color: 'text-blue-400',    border: 'border-blue-400/30',    bg: 'bg-blue-400/10' },
+  { name: 'Developer',  minXp: 1500,  icon: '💻', color: 'text-green-400',   border: 'border-green-400/30',   bg: 'bg-green-400/10' },
+  { name: 'Senior',     minXp: 3500,  icon: '🔥', color: 'text-orange-400',  border: 'border-orange-400/30',  bg: 'bg-orange-400/10' },
+  { name: 'Architect',  minXp: 7000,  icon: '🏗️', color: 'text-purple-400',  border: 'border-purple-400/30',  bg: 'bg-purple-400/10' },
+  { name: 'Legend',     minXp: 15000, icon: '👑', color: 'text-yellow-400',  border: 'border-yellow-400/30',  bg: 'bg-yellow-400/10' },
+]
+function getLeague(xp: number) {
+  for (let i = LEAGUES.length - 1; i >= 0; i--) {
+    if (xp >= LEAGUES[i].minXp) return LEAGUES[i]
+  }
+  return LEAGUES[0]
+}
+
 export default function Profile() {
   const { user, setUser, uiLanguage, setUiLanguage } = useUserStore()
   const t = useT()
@@ -173,6 +188,14 @@ export default function Profile() {
               {typedProfile.total_lessons_completed} lessons
             </div>
             <StreakDisplay streak={typedProfile.streak} />
+            {(() => {
+              const league = getLeague(typedProfile.xp)
+              return (
+                <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${league.border} ${league.bg} ${league.color}`}>
+                  {league.icon} {league.name}
+                </span>
+              )
+            })()}
           </div>
           <div className="mt-3">
             <ProgressBar value={xpProgress} max={100} label={`${typedProfile.xp} XP total`} size="sm" />
