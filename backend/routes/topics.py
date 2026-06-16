@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from typing import Optional, List
+import json
 from models.schemas import TopicWithProgress
 from db.connection import acquire
 from deps import get_optional_user
@@ -139,8 +140,9 @@ async def get_topic_lessons(topic_id: int, language: str = "python", ui_lang: st
             "difficulty": community_diff.get(l["id"]),
         }
         if ui_lang == "de":
-            translations_col = d.pop("translations", None) or {}
-            d = apply_translation(d, translations_col)
+            _raw = d.pop("translations", None)
+            tr_col = (_raw if isinstance(_raw, dict) else json.loads(_raw)) if _raw else {}
+            d = apply_translation(d, tr_col)
         else:
             d.pop("translations", None)
         result.append(d)

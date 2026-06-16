@@ -154,7 +154,7 @@ export interface Topic {
   is_completed: boolean
 }
 
-export type LessonType = 'theory' | 'quiz' | 'code'
+export type LessonType = 'theory' | 'quiz' | 'code' | 'debug' | 'advanced'
 
 export interface TheorySection {
   type: 'text' | 'code'

@@ -384,11 +384,13 @@ export default function LessonPage() {
     }
   }
 
-  const typeBadge = {
-    theory: { label: '📖 Theory', cls: 'bg-blue-500/20 text-blue-400' },
-    quiz:   { label: '🧠 Quiz',   cls: 'bg-quest-yellow/20 text-quest-yellow' },
-    code:   { label: '💻 Code',   cls: 'bg-quest-purple/20 text-quest-purple-light' },
-  }[lesson.type]
+  const typeBadge = ({
+    theory:   { label: '📖 Theory',   cls: 'bg-blue-500/20 text-blue-400' },
+    quiz:     { label: '🧠 Quiz',     cls: 'bg-quest-yellow/20 text-quest-yellow' },
+    code:     { label: '💻 Code',     cls: 'bg-quest-purple/20 text-quest-purple-light' },
+    debug:    { label: '🐛 Debug',    cls: 'bg-red-500/20 text-red-400' },
+    advanced: { label: '⚡ Advanced', cls: 'bg-orange-500/20 text-orange-400' },
+  } as Record<string, { label: string; cls: string }>)[lesson.type]
 
   function downloadCertificate() {
     const canvas = document.createElement('canvas')
@@ -548,7 +550,7 @@ export default function LessonPage() {
           {currentTopicName && <p className="text-xs text-quest-muted">{currentTopicName}</p>}
           <h1 className="text-xl font-bold text-white">{lesson.title}</h1>
         </div>
-        <span className={`ml-auto badge-pill text-xs ${typeBadge.cls}`}>{typeBadge.label}</span>
+        {typeBadge && <span className={`ml-auto badge-pill text-xs ${typeBadge.cls}`}>{typeBadge.label}</span>}
       </div>
 
       {/* Content */}
@@ -570,7 +572,7 @@ export default function LessonPage() {
               {lesson.type === 'quiz' && (
                 <QuizView content={lesson.content_json as QuizContent} onSubmit={handleSubmit} isSubmitting={isSubmitting} />
               )}
-              {lesson.type === 'code' && (
+              {(lesson.type === 'code' || lesson.type === 'debug' || lesson.type === 'advanced') && (
                 <CodeView
                   content={lesson.content_json as CodeContent}
                   lessonId={lesson.id}

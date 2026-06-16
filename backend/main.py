@@ -12,6 +12,71 @@ from routes import auth, topics, lessons, ai, user, leaderboard, onboarding, tra
 from services.push import send_push
 
 
+async def _pregenerate_task_intros():
+    """Background: generate EN + DE task intros for all code lessons missing them."""
+    await asyncio.sleep(10)  # Let startup settle first
+    from db.connection import acquire
+    from services.claude import generate_task_intro, translate_to_german
+    from routes.lessons import _task_intro_cache
+
+    sem = asyncio.Semaphore(3)  # Max 3 concurrent AI calls
+
+    async def _process(lesson):
+        tr = lesson["translations"] or {}
+        content = lesson["content_json"] or {}
+        instructions = content.get("instructions", "")
+        starter_code = content.get("starter_code", "")
+        lang = lesson["language"] or "python"
+        if not instructions:
+            return
+
+        changed = False
+        async with sem:
+            for ui_lang in ("en", "de"):
+                key = f"task_intro_{ui_lang}"
+                cache_key = (lesson["id"], ui_lang)
+                if key not in tr and cache_key not in _task_intro_cache:
+                    try:
+                        intro = await generate_task_intro(instructions, starter_code, lang, ui_lang)
+                        if intro:
+                            tr[key] = intro
+                            _task_intro_cache[cache_key] = intro
+                            changed = True
+                    except Exception:
+                        pass
+            if ui_lang == "de" and not (tr.get("content") or {}).get("instructions"):
+                try:
+                    de_instr = await translate_to_german(instructions)
+                    if de_instr:
+                        de_content = tr.get("content") or {}
+                        de_content["instructions"] = de_instr
+                        tr["content"] = de_content
+                        changed = True
+                except Exception:
+                    pass
+
+        if changed:
+            try:
+                async with acquire() as conn:
+                    await conn.execute(
+                        "UPDATE lessons SET translations = $1 WHERE id = $2",
+                        tr, lesson["id"],
+                    )
+            except Exception:
+                pass
+
+    try:
+        async with acquire() as conn:
+            lessons = await conn.fetch(
+                """SELECT id, type, content_json, language, translations
+                   FROM lessons WHERE type IN ('code','debug','advanced')
+                   AND (translations->>'task_intro_en' IS NULL OR translations->>'task_intro_de' IS NULL)"""
+            )
+        await asyncio.gather(*[_process(l) for l in lessons])
+    except Exception:
+        pass
+
+
 async def _daily_reminder_scheduler():
     """At 20:00 server time, push reminders to users who haven't practiced today."""
     from datetime import datetime, timedelta
@@ -51,8 +116,10 @@ async def _daily_reminder_scheduler():
 async def lifespan(app: FastAPI):
     await init_pool()
     task = asyncio.create_task(_daily_reminder_scheduler())
+    pregen_task = asyncio.create_task(_pregenerate_task_intros())
     yield
     task.cancel()
+    pregen_task.cancel()
     await close_pool()
 
 

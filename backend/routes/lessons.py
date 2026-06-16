@@ -225,9 +225,10 @@ async def get_lesson(lesson_id: int, ui_lang: str = "en", user_id: Optional[str]
                             needs_tr_update = True
 
         if needs_tr_update:
+            # Pass dict directly — asyncpg's jsonb codec encodes it; json.dumps() would double-encode
             await conn.execute(
-                "UPDATE lessons SET translations = $1::jsonb WHERE id = $2",
-                json.dumps(existing_tr), lesson_id,
+                "UPDATE lessons SET translations = $1 WHERE id = $2",
+                existing_tr, lesson_id,
             )
 
     d = {**dict(lesson), "is_completed": is_completed, "xp_earned": xp_earned, "concept_intro": concept_intro}
