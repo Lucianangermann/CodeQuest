@@ -27,6 +27,7 @@ const InterviewSimulator = lazy(() => import('./pages/InterviewSimulator'))
 const Review = lazy(() => import('./pages/Review'))
 const Playground = lazy(() => import('./pages/Playground'))
 const Capstone = lazy(() => import('./pages/Capstone'))
+const GitHubGuide = lazy(() => import('./pages/GitHubGuide'))
 
 function PageLoader() {
   return (
@@ -70,6 +71,7 @@ export default function App() {
                 <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
                 <Route path="/profile"    element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/capstone"   element={<ProtectedRoute><Capstone /></ProtectedRoute>} />
+                <Route path="/github"     element={<ProtectedRoute><GitHubGuide /></ProtectedRoute>} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>

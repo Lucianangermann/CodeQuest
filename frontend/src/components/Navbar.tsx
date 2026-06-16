@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, Map, Route, Mic, Trophy, User, LogOut, Sun, Moon, Zap, Brain, Code2 } from 'lucide-react'
+import { LayoutDashboard, Map, Route, Mic, Trophy, User, LogOut, Sun, Moon, Zap, Brain, Code2, Github } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useUserStore } from '../store/useUserStore'
 import { useT } from '../i18n/useT'
@@ -20,6 +20,7 @@ export default function Navbar() {
     { path: '/review',      label: t('nav.review'),      icon: Brain },
     { path: '/playground',  label: t('nav.playground'),  icon: Code2 },
     { path: '/leaderboard', label: t('nav.leaderboard'), icon: Trophy },
+    { path: '/github',      label: t('nav.github'),      icon: Github },
     { path: '/profile',     label: t('nav.profile'),     icon: User },
   ]
 
