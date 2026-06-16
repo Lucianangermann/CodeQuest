@@ -31,7 +31,6 @@ export default function Navbar() {
     toast.success(t('nav.loggedOut'))
   }
 
-  const xpToNextLevel = (user.level * 100) - user.xp
   const xpProgress = ((user.xp % 100) / 100) * 100
 
   return (
@@ -58,14 +57,14 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-0.5 min-w-0">
             {NAV_ITEMS.map(({ path, label, icon: Icon }) => {
               const isActive = location.pathname === path
               return (
                 <Link
                   key={path}
                   to={path}
-                  className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                     isActive
                       ? 'text-white border border-quest-purple/40'
                       : 'text-quest-muted hover:text-quest-text hover:bg-white/5 border border-transparent'
@@ -86,20 +85,17 @@ export default function Navbar() {
           </div>
 
           {/* Right side: XP, level, theme, logout */}
-          <div className="flex items-center gap-3">
-            {/* Level + XP bar */}
-            <div className="hidden sm:flex flex-col items-end gap-0.5">
-              <div className="flex items-center gap-2 text-xs text-quest-muted">
-                <span className="font-bold text-xs px-1.5 py-0.5 rounded-md"
-                  style={{ background: 'linear-gradient(135deg, #7c3aed22 0%, #6366f122 100%)', color: '#9d5cf6', boxShadow: '0 0 8px rgba(124,58,237,0.2)' }}>
-                  Lv.{user.level}
-                </span>
-                <span>{user.xp} XP</span>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {/* Level + XP — compact, only on large screens */}
+            <div className="hidden lg:flex items-center gap-1.5 text-xs text-quest-muted">
+              <span className="font-bold text-xs px-1.5 py-0.5 rounded-md"
+                style={{ background: 'linear-gradient(135deg, #7c3aed22 0%, #6366f122 100%)', color: '#9d5cf6', boxShadow: '0 0 8px rgba(124,58,237,0.2)' }}>
+                Lv.{user.level}
+              </span>
+              <div className="w-14 bg-quest-border/30 rounded-full h-1.5">
+                <div className="h-1.5 rounded-full" style={{ width: `${xpProgress}%`, background: 'linear-gradient(90deg, #7c3aed 0%, #818cf8 100%)' }} />
               </div>
-              <div className="w-20 bg-quest-border/30 rounded-full h-1.5">
-                <div className="h-1.5 rounded-full" style={{ width: `${xpProgress}%`, background: 'linear-gradient(90deg, #7c3aed 0%, #818cf8 100%)', boxShadow: '0 0 6px rgba(124,58,237,0.5)' }} />
-              </div>
-              <span className="text-xs text-quest-muted">{xpToNextLevel} {t('nav.xpToNext')}</span>
+              <span>{user.xp} XP</span>
             </div>
 
             {/* Streak */}
