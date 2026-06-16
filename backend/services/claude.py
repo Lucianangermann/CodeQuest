@@ -51,23 +51,26 @@ async def generate_task_intro(instructions: str, starter_code: str, language: st
         prompt = (
             f"Aufgabe für den Schüler:\n{instructions}\n\n"
             f"Startcode:\n```{language}\n{starter_code}\n```\n\n"
-            "Erkläre in 1-2 kurzen Sätzen auf Deutsch, WAS der Schüler konkret in den Code schreiben soll "
-            "(nicht das allgemeine Konzept, sondern den spezifischen Ansatz für diese Aufgabe). "
-            "Gib danach ein Mini-Beispiel (3-5 Zeilen Code) das das Muster zeigt, das benötigt wird. "
-            "Format: kurzer Text, dann Codeblock. Kein Markdown-Heading, keine langen Erklärungen."
+            "Schreibe eine kurze Erinnerungskarte (💡 Konzept-Erinnerung) für diese Aufgabe. Struktur:\n"
+            "1. **Ein Satz**: Welches Konzept/Muster wird in dieser Aufgabe benötigt und warum.\n"
+            "2. **Mini-Beispiel** (3-5 Zeilen): Das Muster in seiner einfachsten Form — NICHT die Lösung der Aufgabe.\n"
+            "3. **Ein Satz**: Was konkret der Schüler in dieser spezifischen Aufgabe tun soll.\n\n"
+            "Kein Markdown-Heading. Kein 'Erkläre...'. Direkt und prägnant auf Deutsch. "
+            "Code-Variablennamen auf Englisch lassen."
         )
     else:
         prompt = (
             f"Student task:\n{instructions}\n\n"
             f"Starter code:\n```{language}\n{starter_code}\n```\n\n"
-            "In 1-2 short sentences explain exactly WHAT to write in the code for this specific task "
-            "(not the general concept, but the specific approach needed here). "
-            "Then give a mini example (3-5 lines) showing the pattern needed. "
-            "Format: short text, then code block. No markdown heading, no long explanations."
+            "Write a short concept reminder card (💡 Concept Reminder) for this task. Structure:\n"
+            "1. **One sentence**: Which concept/pattern is needed for this task and why.\n"
+            "2. **Mini example** (3-5 lines): The pattern in its simplest form — NOT the task solution.\n"
+            "3. **One sentence**: What specifically the student should do in this task.\n\n"
+            "No markdown heading. No 'Explain...'. Direct and punchy in English."
         )
 
     msg = await client.messages.create(
-        model=MODEL, max_tokens=200,
+        model=MODEL, max_tokens=300,
         messages=[{"role": "user", "content": prompt}],
     )
     return msg.content[0].text
