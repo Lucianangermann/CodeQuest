@@ -8,7 +8,7 @@ import os
 load_dotenv()
 
 from db.connection import init_pool, close_pool
-from routes import auth, topics, lessons, ai, user, leaderboard, onboarding, training_plan, checklist, weekly_checkin, interview, review, portfolio, notifications
+from routes import auth, topics, lessons, ai, user, leaderboard, onboarding, training_plan, checklist, weekly_checkin, interview, review, portfolio, notifications, capstone
 from services.push import send_push
 
 
@@ -149,6 +149,7 @@ app.include_router(interview.router,      prefix="/interview",      tags=["inter
 app.include_router(review.router,         prefix="/review",         tags=["review"])
 app.include_router(portfolio.router,      prefix="/portfolio",      tags=["portfolio"])
 app.include_router(notifications.router,  prefix="/notifications",  tags=["notifications"])
+app.include_router(capstone.router,       prefix="/capstone",        tags=["capstone"])
 
 
 @app.get("/health")

@@ -374,4 +374,27 @@ export async function getCodeReview(
   return data
 }
 
+// Capstone Project
+export async function fetchCapstone(language: string): Promise<{
+  id: number
+  language: string
+  title: string
+  description: string
+  starter_code: string
+  is_unlocked: boolean
+}> {
+  const { data } = await api.get(`/capstone/${language}`)
+  return data
+}
+
+export async function askCapstone(language: string, topic: string, question: string): Promise<{ answer: string }> {
+  const { data } = await api.post(`/capstone/${language}/ask`, { topic, question, language })
+  return data
+}
+
+export async function evaluateCapstone(language: string, code: string): Promise<{ feedback: string }> {
+  const { data } = await api.post(`/capstone/${language}/evaluate`, { code, language })
+  return data
+}
+
 export default api

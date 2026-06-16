@@ -103,6 +103,21 @@ export const translations: Record<Lang, Record<string, string>> = {
     'lesson.aiExplanation': 'AI Explanation',
     'lesson.summary': 'Summary',
 
+    // Capstone
+    'capstone.locked': 'Complete all lessons to unlock the capstone project',
+    'capstone.goToRoadmap': 'Go to Roadmap →',
+    'capstone.subtitle': 'Final project — apply everything you learned',
+    'capstone.run': 'Run Code',
+    'capstone.running': 'Running...',
+    'capstone.evaluate': '✨ AI Evaluation',
+    'capstone.evaluating': 'Evaluating...',
+    'capstone.help': "I'm stuck — Help me",
+    'capstone.helpDesc': 'Pick a topic to ask about. The AI will explain the concept — without giving away the solution.',
+    'capstone.askBtn': 'Explain Concept',
+    'capstone.asking': 'Explaining...',
+    'capstone.output': 'Output',
+    'capstone.feedback': 'AI Evaluation',
+
     // Review
     'review.allCaughtUp': 'All caught up!',
     'review.nothingDue': 'No reviews due today. Come back tomorrow!',
@@ -232,6 +247,21 @@ export const translations: Record<Lang, Record<string, string>> = {
     'lesson.explainMistake': 'Fehler erklären',
     'lesson.aiExplanation': 'KI-Erklärung',
     'lesson.summary': 'Zusammenfassung',
+
+    // Capstone
+    'capstone.locked': 'Schließe alle Lektionen ab, um das Abschlussprojekt freizuschalten',
+    'capstone.goToRoadmap': 'Zum Lernpfad →',
+    'capstone.subtitle': 'Abschlussprojekt — setze alles Gelernte ein',
+    'capstone.run': 'Code ausführen',
+    'capstone.running': 'Läuft...',
+    'capstone.evaluate': '✨ KI-Bewertung',
+    'capstone.evaluating': 'Wird bewertet...',
+    'capstone.help': 'Ich komme nicht weiter — Hilfe',
+    'capstone.helpDesc': 'Wähle ein Thema, über das du eine Frage stellen möchtest. Die KI erklärt das Konzept — ohne die Lösung zu verraten.',
+    'capstone.askBtn': 'Konzept erklären',
+    'capstone.asking': 'Wird erklärt...',
+    'capstone.output': 'Ausgabe',
+    'capstone.feedback': 'KI-Bewertung',
 
     // Review
     'review.allCaughtUp': 'Alles aktuell!',

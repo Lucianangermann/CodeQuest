@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Lock, CheckCircle, ChevronRight, AlertCircle, Search, X } from 'lucide-react'
-import { fetchTopics, fetchTopicLessons, updateProfile } from '../lib/api'
+import { Lock, CheckCircle, ChevronRight, AlertCircle, Search, X, Trophy } from 'lucide-react'
+import { fetchTopics, fetchTopicLessons, updateProfile, fetchCapstone } from '../lib/api'
 import { useLessonStore } from '../store/useLessonStore'
 import { useUserStore } from '../store/useUserStore'
 import { useT } from '../i18n/useT'
@@ -73,6 +73,11 @@ export default function Roadmap() {
     quiz: t('road.quiz'),
     code: t('road.code'),
   }
+
+  const { data: capstone } = useQuery({
+    queryKey: ['capstone', lang],
+    queryFn: () => fetchCapstone(lang),
+  })
 
   const { data: topics = [], isLoading: loadingTopics, error: topicsError } = useQuery({
     queryKey: ['topics', lang],
@@ -183,6 +188,26 @@ export default function Roadmap() {
                   onSelect={() => setSelectedTopicId(topic.id)}
                 />
               ))}
+              {/* Capstone node */}
+              {capstone && (
+                <motion.button
+                  whileHover={capstone.is_unlocked ? { scale: 1.03 } : {}}
+                  whileTap={capstone.is_unlocked ? { scale: 0.98 } : {}}
+                  onClick={() => capstone.is_unlocked && navigate('/capstone')}
+                  className={`relative flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all duration-200 w-28 ${
+                    capstone.is_unlocked
+                      ? 'border-yellow-500/60 bg-gradient-to-b from-yellow-500/20 to-yellow-500/5 text-yellow-300 cursor-pointer'
+                      : 'border-quest-border bg-quest-border/30 text-quest-muted cursor-not-allowed'
+                  }`}
+                  style={capstone.is_unlocked ? { boxShadow: '0 0 20px rgba(234,179,8,0.25)' } : {}}
+                >
+                  <Trophy className={`w-7 h-7 ${capstone.is_unlocked ? 'text-yellow-400' : 'text-quest-muted'}`} />
+                  <span className="text-xs font-semibold text-center leading-tight">Projekt</span>
+                  {!capstone.is_unlocked && (
+                    <Lock className="absolute -top-2 -right-2 w-4 h-4 text-quest-muted bg-quest-bg rounded-full p-0.5" />
+                  )}
+                </motion.button>
+              )}
             </div>
           )}
         </div>

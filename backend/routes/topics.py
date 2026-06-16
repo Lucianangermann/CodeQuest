@@ -62,7 +62,8 @@ async def get_topics(language: str = "python", user_id: Optional[str] = Depends(
             is_completed=is_completed,
         ))
 
-    return result
+    # Hide topics that have no lessons for the requested language
+    return [t for t in result if t.total_lessons > 0]
 
 
 @router.get("/{topic_id}/lessons")

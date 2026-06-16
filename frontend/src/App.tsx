@@ -26,6 +26,7 @@ const MyPath = lazy(() => import('./pages/MyPath'))
 const InterviewSimulator = lazy(() => import('./pages/InterviewSimulator'))
 const Review = lazy(() => import('./pages/Review'))
 const Playground = lazy(() => import('./pages/Playground'))
+const Capstone = lazy(() => import('./pages/Capstone'))
 
 function PageLoader() {
   return (
@@ -68,6 +69,7 @@ export default function App() {
                 <Route path="/lesson/:lessonId" element={<ProtectedRoute><Lesson /></ProtectedRoute>} />
                 <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
                 <Route path="/profile"    element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/capstone"   element={<ProtectedRoute><Capstone /></ProtectedRoute>} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
