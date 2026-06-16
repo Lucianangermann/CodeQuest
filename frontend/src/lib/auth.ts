@@ -1,7 +1,5 @@
 import axios from 'axios'
 
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-
 export interface AuthUser {
   id: string
   email?: string | null
@@ -20,14 +18,11 @@ export interface AuthResponse {
 }
 
 export async function apiSignup(username: string, password: string): Promise<AuthResponse> {
-  const { data } = await axios.post<AuthResponse>(`${BASE}/auth/signup`, {
-    username,
-    password,
-  })
+  const { data } = await axios.post<AuthResponse>('/api/auth/signup', { username, password })
   return data
 }
 
 export async function apiLogin(username: string, password: string): Promise<AuthResponse> {
-  const { data } = await axios.post<AuthResponse>(`${BASE}/auth/login`, { username, password })
+  const { data } = await axios.post<AuthResponse>('/api/auth/login', { username, password })
   return data
 }
