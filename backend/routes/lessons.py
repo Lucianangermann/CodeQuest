@@ -5,10 +5,14 @@ from datetime import date as _date
 from models.schemas import SubmitAnswerRequest, SubmitAnswerResponse
 from db.connection import acquire
 from services.code_runner import execute_code
+from services.claude import generate_task_intro
 from deps import get_current_user, get_optional_user
 from utils.streak import update_user_streak
 
 router = APIRouter()
+
+# Cache task intros per (lesson_id, ui_lang) to avoid repeated AI calls
+_task_intro_cache: dict[tuple[int, str], str] = {}
 
 
 def _check_output(actual: str, expected: str) -> bool:
@@ -179,22 +183,21 @@ async def get_lesson(lesson_id: int, ui_lang: str = "en", user_id: Optional[str]
             if row:
                 is_completed, xp_earned = True, row["xp_earned"]
 
-        # For code/debug/advanced lessons: fetch concept recap from topic's theory lesson
+        # For code/debug/advanced lessons: generate a task-specific intro via AI (cached per lesson+lang)
         concept_intro: Optional[str] = None
         if lesson["type"] in ("code", "debug", "advanced"):
-            theory = await conn.fetchrow(
-                """SELECT content_json, translations FROM lessons
-                   WHERE topic_id = $1 AND type = 'theory'
-                   ORDER BY order_index LIMIT 1""",
-                lesson["topic_id"],
-            )
-            if theory:
-                if ui_lang == "de":
-                    tr = theory["translations"] or {}
-                    de_content = tr.get("content") or {}
-                    concept_intro = de_content.get("summary") or (theory["content_json"] or {}).get("summary")
-                else:
-                    concept_intro = (theory["content_json"] or {}).get("summary")
+            cache_key = (lesson_id, ui_lang)
+            if cache_key in _task_intro_cache:
+                concept_intro = _task_intro_cache[cache_key]
+            else:
+                content = lesson["content_json"] or {}
+                instructions = content.get("instructions", "")
+                starter_code = content.get("starter_code", "")
+                if instructions:
+                    concept_intro = await generate_task_intro(
+                        instructions, starter_code, lesson["language"] or "python", ui_lang
+                    )
+                    _task_intro_cache[cache_key] = concept_intro or ""
 
     d = {**dict(lesson), "is_completed": is_completed, "xp_earned": xp_earned, "concept_intro": concept_intro}
     if ui_lang == "de":

@@ -134,7 +134,28 @@ function CodeView({ content, lessonId, language, onSubmit, isSubmitting, concept
             <ChevronRight className={`w-4 h-4 text-amber-400 ml-auto transition-transform duration-200 ${showIntro ? 'rotate-90' : ''}`} />
           </button>
           {showIntro && (
-            <p className="text-quest-text text-sm mt-2 leading-relaxed">{conceptIntro}</p>
+            <div className="mt-2 text-sm text-quest-text leading-relaxed prose prose-invert prose-sm max-w-none
+              prose-code:bg-quest-card prose-code:px-1 prose-code:rounded prose-code:text-amber-300
+              prose-pre:bg-quest-card prose-pre:border prose-pre:border-quest-border prose-pre:rounded-lg prose-pre:p-3 prose-pre:text-xs">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  code({ className, children, ...props }: React.ComponentPropsWithoutRef<'code'> & { inline?: boolean }) {
+                    const match = /language-(\w+)/.exec(className || '')
+                    const isBlock = !props.inline && match
+                    return isBlock ? (
+                      <SyntaxHighlighter style={vscDarkPlus} language={match[1]} PreTag="div" customStyle={{ margin: 0, borderRadius: '0.5rem', fontSize: '0.75rem' }}>
+                        {String(children).replace(/\n$/, '')}
+                      </SyntaxHighlighter>
+                    ) : (
+                      <code className={className} {...props}>{children}</code>
+                    )
+                  },
+                }}
+              >
+                {conceptIntro}
+              </ReactMarkdown>
+            </div>
           )}
         </div>
       )}

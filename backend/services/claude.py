@@ -29,6 +29,37 @@ def _parse_json(text: str) -> dict:
 
 # ── AI Tutor ──────────────────────────────────────────────────────────────────
 
+async def generate_task_intro(instructions: str, starter_code: str, language: str, ui_lang: str = "en") -> str:
+    client = _get_claude()
+    if not client:
+        return ""
+
+    if ui_lang == "de":
+        prompt = (
+            f"Aufgabe für den Schüler:\n{instructions}\n\n"
+            f"Startcode:\n```{language}\n{starter_code}\n```\n\n"
+            "Erkläre in 1-2 kurzen Sätzen auf Deutsch, WAS der Schüler konkret in den Code schreiben soll "
+            "(nicht das allgemeine Konzept, sondern den spezifischen Ansatz für diese Aufgabe). "
+            "Gib danach ein Mini-Beispiel (3-5 Zeilen Code) das das Muster zeigt, das benötigt wird. "
+            "Format: kurzer Text, dann Codeblock. Kein Markdown-Heading, keine langen Erklärungen."
+        )
+    else:
+        prompt = (
+            f"Student task:\n{instructions}\n\n"
+            f"Starter code:\n```{language}\n{starter_code}\n```\n\n"
+            "In 1-2 short sentences explain exactly WHAT to write in the code for this specific task "
+            "(not the general concept, but the specific approach needed here). "
+            "Then give a mini example (3-5 lines) showing the pattern needed. "
+            "Format: short text, then code block. No markdown heading, no long explanations."
+        )
+
+    msg = await client.messages.create(
+        model=MODEL, max_tokens=200,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return msg.content[0].text
+
+
 async def get_hint(lesson_content: dict, hint_level: int, user_code: str) -> str:
     hints = lesson_content.get("hints", [])
     if 0 < hint_level <= len(hints):
