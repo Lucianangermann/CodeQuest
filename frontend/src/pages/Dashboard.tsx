@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { BookOpen, Flame, Zap, Trophy, ChevronRight, Target, AlertCircle, Calendar, Clock } from 'lucide-react'
 import { fetchDashboard, fetchTodaysTasks, fetchDailyChallenge } from '../lib/api'
@@ -8,6 +9,7 @@ import BadgeCard from '../components/BadgeCard'
 import Heatmap from '../components/Heatmap'
 import StreakDisplay from '../components/StreakDisplay'
 import { CardSkeleton } from '../components/LoadingSkeleton'
+import QuickPractice from '../components/QuickPractice'
 import { useT } from '../i18n/useT'
 
 function StatCard({ icon, label, value, color = 'text-quest-purple', gradient = 'from-quest-purple/8' }: {
@@ -50,6 +52,7 @@ const ACTIVITY_COLORS: Record<string, string> = {
 
 export default function Dashboard() {
   const t = useT()
+  const [showQuickPractice, setShowQuickPractice] = useState(false)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['dashboard'],
@@ -223,6 +226,18 @@ export default function Dashboard() {
           </p>
         </div>
       )}
+
+      <div className="card flex items-center gap-4 cursor-pointer hover:border-quest-purple/40 transition-all"
+        onClick={() => setShowQuickPractice(true)}>
+        <div className="w-12 h-12 rounded-xl bg-quest-purple/20 flex items-center justify-center text-2xl flex-shrink-0">
+          🧠
+        </div>
+        <div className="flex-1">
+          <p className="font-semibold text-white text-sm">Quick Practice</p>
+          <p className="text-xs text-quest-muted">5 zufällige Fragen aus deinen Themen testen</p>
+        </div>
+        <ChevronRight className="w-5 h-5 text-quest-muted" />
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="card space-y-3">
@@ -400,6 +415,10 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      <AnimatePresence>
+        {showQuickPractice && <QuickPractice onClose={() => setShowQuickPractice(false)} />}
+      </AnimatePresence>
     </motion.div>
   )
 }

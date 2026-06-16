@@ -121,6 +121,11 @@ export async function fetchProfile(): Promise<ProfileData> {
   return data
 }
 
+export async function fetchUserStats() {
+  const { data } = await api.get('/user/stats')
+  return data
+}
+
 export async function updateProfile(fields: Partial<ProfileData>): Promise<ProfileData> {
   const { data } = await api.patch<ProfileData>('/user/profile', fields)
   return data
@@ -366,3 +371,5 @@ export async function getCodeReview(
   const { data } = await api.post('/ai/review', { lesson_id: lessonId, code, language })
   return data
 }
+
+export default api

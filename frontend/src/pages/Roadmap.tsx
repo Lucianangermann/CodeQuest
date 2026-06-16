@@ -217,8 +217,21 @@ export default function Roadmap() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-white truncate">{lesson.title}</div>
-                          <div className="text-xs text-quest-muted mt-0.5">
+                          <div className="text-xs text-quest-muted mt-0.5 flex items-center flex-wrap gap-1">
                             {TYPE_LABELS[lesson.type]} • {lesson.xp_reward} XP
+                            {(lesson as any).difficulty && (
+                              <span className={`ml-1 text-xs px-1.5 py-0.5 rounded font-medium ${
+                                (lesson as any).difficulty === 'easy'
+                                  ? 'bg-quest-green/20 text-quest-green'
+                                  : (lesson as any).difficulty === 'medium'
+                                  ? 'bg-quest-yellow/20 text-quest-yellow'
+                                  : 'bg-red-400/20 text-red-400'
+                              }`}>
+                                {(lesson as any).difficulty === 'easy' ? '🟢 Easy'
+                                 : (lesson as any).difficulty === 'medium' ? '🟡 Medium'
+                                 : '🔴 Hard'}
+                              </span>
+                            )}
                           </div>
                         </div>
                         {isAccessible && !lesson.is_completed && (

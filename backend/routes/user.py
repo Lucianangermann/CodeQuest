@@ -300,6 +300,74 @@ async def update_profile(body: dict, user_id: str = Depends(get_current_user)):
     return r
 
 
+@router.get("/stats")
+async def get_user_stats(user_id: str = Depends(get_current_user)):
+    async with acquire() as conn:
+        user = await conn.fetchrow(
+            "SELECT xp, streak, created_at FROM users WHERE id = $1", user_id
+        )
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        lessons_by_type = await conn.fetch(
+            """SELECT l.type, COUNT(*) AS cnt
+               FROM user_progress up JOIN lessons l ON l.id = up.lesson_id
+               WHERE up.user_id = $1 GROUP BY l.type""",
+            user_id,
+        )
+        lessons_by_lang = await conn.fetch(
+            """SELECT COALESCE(l.language, 'general') AS lang, COUNT(*) AS cnt
+               FROM user_progress up JOIN lessons l ON l.id = up.lesson_id
+               WHERE up.user_id = $1 AND l.type = 'code' GROUP BY l.language""",
+            user_id,
+        )
+        study_days = await conn.fetchval(
+            "SELECT COUNT(DISTINCT date) FROM activity_log WHERE user_id = $1 AND lessons_completed > 0",
+            user_id,
+        )
+        total_completed = await conn.fetchval(
+            "SELECT COUNT(*) FROM user_progress WHERE user_id = $1", user_id
+        )
+        first_attempt = await conn.fetchval(
+            "SELECT COUNT(*) FROM user_progress WHERE user_id = $1 AND first_attempt = TRUE", user_id
+        )
+        best_weekday = await conn.fetchrow(
+            """SELECT EXTRACT(DOW FROM date)::int AS dow, SUM(lessons_completed) AS total
+               FROM activity_log WHERE user_id = $1
+               GROUP BY dow ORDER BY total DESC LIMIT 1""",
+            user_id,
+        )
+        best_topic = await conn.fetchrow(
+            """SELECT t.title, t.icon, COUNT(*) AS cnt
+               FROM user_progress up
+               JOIN lessons l ON l.id = up.lesson_id
+               JOIN topics t ON t.id = l.topic_id
+               WHERE up.user_id = $1
+               GROUP BY t.id, t.title, t.icon
+               ORDER BY cnt DESC LIMIT 1""",
+            user_id,
+        )
+
+    weekdays_de = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
+    total_c = int(total_completed or 0)
+    first_c = int(first_attempt or 0)
+
+    return {
+        "study_days": int(study_days or 0),
+        "avg_xp_per_study_day": round((user["xp"] or 0) / max(1, int(study_days or 1))),
+        "first_attempt_rate": round((first_c / max(1, total_c)) * 100),
+        "lessons_by_type": {r["type"]: int(r["cnt"]) for r in lessons_by_type},
+        "lessons_by_language": {r["lang"]: int(r["cnt"]) for r in lessons_by_lang},
+        "best_weekday": weekdays_de[int(best_weekday["dow"])] if best_weekday and best_weekday["total"] else None,
+        "best_topic": {
+            "title": best_topic["title"],
+            "icon": best_topic["icon"],
+            "count": int(best_topic["cnt"]),
+        } if best_topic else None,
+        "member_since": user["created_at"].strftime("%B %Y") if user.get("created_at") else None,
+    }
+
+
 @router.get("/badges")
 async def get_all_badges(user_id: str = Depends(get_current_user)):
     async with acquire() as conn:

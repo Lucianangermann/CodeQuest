@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import MonacoEditor, { OnMount } from '@monaco-editor/react'
+import MonacoEditor, { OnMount, Monaco } from '@monaco-editor/react'
 import type { editor } from 'monaco-editor'
 
 interface Props {
@@ -8,6 +8,7 @@ interface Props {
   language?: string
   readOnly?: boolean
   height?: string
+  onCtrlEnter?: (value: string) => void
 }
 
 export default function Editor({
@@ -16,12 +17,23 @@ export default function Editor({
   language = 'python',
   readOnly = false,
   height = '240px',
+  onCtrlEnter,
 }: Props) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
+  const monacoRef = useRef<Monaco | null>(null)
 
-  const handleMount: OnMount = (editor) => {
+  const handleMount: OnMount = (editor, monaco) => {
     editorRef.current = editor
-    editor.focus()
+    monacoRef.current = monaco
+    if (!readOnly) {
+      editor.focus()
+      if (onCtrlEnter) {
+        editor.addCommand(
+          monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
+          () => onCtrlEnter(editor.getValue())
+        )
+      }
+    }
   }
 
   return (
@@ -31,6 +43,30 @@ export default function Editor({
         <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
         <div className="w-3 h-3 rounded-full bg-green-500/70" />
         <span className="ml-2 text-xs text-quest-muted font-mono">{language}</span>
+        <div className="ml-auto flex items-center gap-1">
+          {!readOnly && (
+            <button
+              onClick={() => {
+                if (editorRef.current) {
+                  editorRef.current.getAction('editor.action.formatDocument')?.run()
+                }
+              }}
+              className="text-xs text-quest-muted hover:text-quest-text transition-colors px-2 py-0.5 rounded hover:bg-white/10"
+              title="Format code (Alt+Shift+F)"
+            >
+              ⎇ Format
+            </button>
+          )}
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(value)
+            }}
+            className="text-xs text-quest-muted hover:text-quest-text transition-colors px-2 py-0.5 rounded hover:bg-white/10"
+            title="Copy code"
+          >
+            📋
+          </button>
+        </div>
       </div>
       <MonacoEditor
         height={height}

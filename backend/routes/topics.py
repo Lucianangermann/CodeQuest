@@ -72,6 +72,10 @@ async def get_topic_lessons(topic_id: int, language: str = "python", user_id: Op
             topic_id,
             language,
         )
+
+        if not lessons:
+            return []
+
         completed: dict[int, int] = {}
         attempts: dict[int, int] = {}
         if user_id:
@@ -83,6 +87,24 @@ async def get_topic_lessons(topic_id: int, language: str = "python", user_id: Op
                 "SELECT lesson_id, attempts FROM lesson_attempts WHERE user_id = $1", user_id
             )
             attempts = {r["lesson_id"]: r["attempts"] for r in attempt_rows}
+
+        # Community difficulty: avg attempts across all users (not just this user)
+        community_diff = {}
+        diff_rows = await conn.fetch(
+            """SELECT lesson_id, AVG(attempts) AS avg_att
+               FROM lesson_attempts
+               WHERE lesson_id = ANY($1::int[])
+               GROUP BY lesson_id""",
+            [l["id"] for l in lessons],
+        )
+        for r in diff_rows:
+            avg = float(r["avg_att"])
+            if avg <= 1.5:
+                community_diff[r["lesson_id"]] = "easy"
+            elif avg <= 3.0:
+                community_diff[r["lesson_id"]] = "medium"
+            else:
+                community_diff[r["lesson_id"]] = "hard"
 
     def calc_mastery(lesson_id: int) -> int:
         if lesson_id not in completed:
@@ -96,6 +118,12 @@ async def get_topic_lessons(topic_id: int, language: str = "python", user_id: Op
             return 1
 
     return [
-        {**dict(l), "is_completed": l["id"] in completed, "xp_earned": completed.get(l["id"], 0), "mastery_level": calc_mastery(l["id"])}
+        {
+            **dict(l),
+            "is_completed": l["id"] in completed,
+            "xp_earned": completed.get(l["id"], 0),
+            "mastery_level": calc_mastery(l["id"]),
+            "difficulty": community_diff.get(l["id"]),
+        }
         for l in lessons
     ]

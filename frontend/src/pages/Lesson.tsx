@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -128,7 +128,13 @@ function CodeView({ content, lessonId, language, onSubmit, isSubmitting }: {
         <p className="text-quest-text text-sm leading-relaxed whitespace-pre-line">{content.instructions}</p>
       </div>
 
-      <Editor value={code} onChange={setCode} language={language} height="200px" />
+      <Editor
+        value={code}
+        onChange={setCode}
+        language={language}
+        height="200px"
+        onCtrlEnter={onSubmit}
+      />
 
       <HintSystem
         lessonId={lessonId}
@@ -192,6 +198,8 @@ export default function LessonPage() {
   const [isExplainingError, setIsExplainingError] = useState(false)
   const [showSolution, setShowSolution] = useState(false)
 
+  const confettiRef = useRef<HTMLCanvasElement>(null)
+
   const NOTES_KEY = `cq_note_${lessonId}`
   const [note, setNote] = useState(() => localStorage.getItem(NOTES_KEY) || '')
   const [noteSaved, setNoteSaved] = useState(false)
@@ -221,6 +229,48 @@ export default function LessonPage() {
     setReview(null)
     setLastSubmittedCode('')
   }, [fetchedLesson])
+
+  useEffect(() => {
+    if (!result?.correct) return
+    const canvas = confettiRef.current
+    if (!canvas) return
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
+    const ctx = canvas.getContext('2d')!
+    const colors = ['#9d5cf6', '#fbbf24', '#34d399', '#60a5fa', '#f87171', '#a78bfa', '#fb923c']
+    const particles = Array.from({ length: 90 }, () => ({
+      x: Math.random() * canvas.width,
+      y: -20 - Math.random() * 120,
+      vx: (Math.random() - 0.5) * 7,
+      vy: Math.random() * 4 + 2,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      w: Math.random() * 12 + 4,
+      h: Math.random() * 6 + 3,
+      rotation: Math.random() * 360,
+      rotVel: (Math.random() - 0.5) * 14,
+    }))
+    let frame = 0
+    let rafId: number
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      const alpha = Math.max(0, 1 - frame / 80)
+      particles.forEach(p => {
+        ctx.save()
+        ctx.globalAlpha = alpha
+        ctx.translate(p.x, p.y)
+        ctx.rotate((p.rotation * Math.PI) / 180)
+        ctx.fillStyle = p.color
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h)
+        ctx.restore()
+        p.x += p.vx; p.y += p.vy; p.vy += 0.09; p.rotation += p.rotVel
+      })
+      frame++
+      if (frame < 100) rafId = requestAnimationFrame(animate)
+      else ctx.clearRect(0, 0, canvas.width, canvas.height)
+    }
+    animate()
+    return () => cancelAnimationFrame(rafId)
+  }, [result?.correct])
 
   if (isLoading || !lesson) {
     return (
@@ -364,6 +414,11 @@ export default function LessonPage() {
 
   return (
     <>
+    <canvas
+      ref={confettiRef}
+      className="fixed inset-0 pointer-events-none z-30"
+      style={{ width: '100vw', height: '100vh' }}
+    />
     {/* Level-Up Overlay */}
     <AnimatePresence>
       {levelUp !== null && (

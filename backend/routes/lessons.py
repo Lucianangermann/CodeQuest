@@ -138,6 +138,31 @@ async def get_daily_challenge(user_id: Optional[str] = Depends(get_optional_user
     return {**dict(lesson), "is_completed": is_completed, "today": today.isoformat()}
 
 
+@router.get("/quick-practice")
+async def get_quick_practice(count: int = 5, user_id: str = Depends(get_current_user)):
+    """Returns random quiz lessons from topics the user has already started."""
+    async with acquire() as conn:
+        lessons = await conn.fetch(
+            """
+            SELECT l.id, l.title, l.type, l.content_json, l.xp_reward, l.topic_id,
+                   l.language, l.order_index, t.title AS topic_title
+            FROM lessons l
+            JOIN topics t ON t.id = l.topic_id
+            WHERE l.type = 'quiz'
+              AND l.topic_id IN (
+                  SELECT DISTINCT l2.topic_id
+                  FROM user_progress up
+                  JOIN lessons l2 ON l2.id = up.lesson_id
+                  WHERE up.user_id = $1
+              )
+            ORDER BY RANDOM()
+            LIMIT $2
+            """,
+            user_id, min(count, 10),
+        )
+    return [dict(l) for l in lessons]
+
+
 @router.get("/{lesson_id}")
 async def get_lesson(lesson_id: int, user_id: Optional[str] = Depends(get_optional_user)):
     async with acquire() as conn:

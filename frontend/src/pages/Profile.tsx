@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Settings, BookOpen, Zap, Flame, Edit3, Check, X, AlertCircle, Bell } from 'lucide-react'
-import { fetchProfile, updateProfile, fetchAllBadges, claimStreakShield, getVapidPublicKey, subscribeToPush, unsubscribeFromPush } from '../lib/api'
+import { fetchProfile, updateProfile, fetchAllBadges, claimStreakShield, getVapidPublicKey, subscribeToPush, unsubscribeFromPush, fetchUserStats } from '../lib/api'
 import { useUserStore } from '../store/useUserStore'
 import { useT } from '../i18n/useT'
 import type { ProfileData } from '../types'
@@ -48,6 +48,12 @@ export default function Profile() {
   const { data: allBadges = [] } = useQuery({
     queryKey: ['all-badges'],
     queryFn: fetchAllBadges,
+  })
+
+  const { data: stats } = useQuery({
+    queryKey: ['user-stats'],
+    queryFn: fetchUserStats,
+    retry: false,
   })
 
   const languageMutation = useMutation({
@@ -363,6 +369,66 @@ export default function Profile() {
           </div>
         )}
       </div>
+
+      {/* Lernstatistiken */}
+      {stats && (
+        <div className="card space-y-4">
+          <h3 className="font-bold text-white text-lg">📊 Lernstatistiken</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="bg-quest-surface rounded-xl p-3 text-center border border-quest-border/50">
+              <p className="text-2xl font-bold text-white">{stats.study_days}</p>
+              <p className="text-xs text-quest-muted mt-0.5">Lerntage</p>
+            </div>
+            <div className="bg-quest-surface rounded-xl p-3 text-center border border-quest-border/50">
+              <p className="text-2xl font-bold text-quest-green">{stats.first_attempt_rate}%</p>
+              <p className="text-xs text-quest-muted mt-0.5">Ersttreffer-Rate</p>
+            </div>
+            <div className="bg-quest-surface rounded-xl p-3 text-center border border-quest-border/50">
+              <p className="text-2xl font-bold text-quest-purple">{stats.avg_xp_per_study_day}</p>
+              <p className="text-xs text-quest-muted mt-0.5">Ø XP / Tag</p>
+            </div>
+          </div>
+
+          {stats.best_topic && (
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-quest-yellow/5 border border-quest-yellow/20">
+              <span className="text-2xl">{stats.best_topic.icon || '🏆'}</span>
+              <div>
+                <p className="text-xs text-quest-muted">Bestes Thema</p>
+                <p className="text-sm font-semibold text-white">{stats.best_topic.title}</p>
+                <p className="text-xs text-quest-muted">{stats.best_topic.count} Lektionen abgeschlossen</p>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            {stats.best_weekday && (
+              <div className="bg-quest-surface rounded-xl p-3 border border-quest-border/50">
+                <p className="text-xs text-quest-muted mb-1">Aktivster Tag</p>
+                <p className="font-semibold text-white">📅 {stats.best_weekday}</p>
+              </div>
+            )}
+            {stats.member_since && (
+              <div className="bg-quest-surface rounded-xl p-3 border border-quest-border/50">
+                <p className="text-xs text-quest-muted mb-1">Mitglied seit</p>
+                <p className="font-semibold text-white">🗓️ {stats.member_since}</p>
+              </div>
+            )}
+          </div>
+
+          {Object.keys(stats.lessons_by_type).length > 0 && (
+            <div>
+              <p className="text-xs text-quest-muted uppercase tracking-wide mb-2">Lektionen nach Typ</p>
+              <div className="flex gap-2 flex-wrap">
+                {Object.entries(stats.lessons_by_type).map(([type, count]) => (
+                  <span key={type} className="text-xs px-2.5 py-1 rounded-full bg-quest-surface border border-quest-border/50 text-quest-text">
+                    {type === 'theory' ? '📖' : type === 'quiz' ? '🧠' : '💻'} {count as number} {type}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Badge Encyclopedia */}
       <div className="card">
