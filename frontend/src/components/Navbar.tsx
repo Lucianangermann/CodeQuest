@@ -31,8 +31,6 @@ export default function Navbar() {
     toast.success(t('nav.loggedOut'))
   }
 
-  const xpProgress = ((user.xp % 100) / 100) * 100
-
   return (
     <nav className="sticky top-0 z-40 relative" style={{
       background: 'rgba(8, 9, 26, 0.92)',
@@ -86,18 +84,6 @@ export default function Navbar() {
 
           {/* Right side: XP, level, theme, logout */}
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            {/* Level + XP — only show when there's plenty of room */}
-            <div className="hidden xl:flex items-center gap-1.5 text-xs text-quest-muted">
-              <span className="font-bold text-xs px-1.5 py-0.5 rounded-md"
-                style={{ background: 'linear-gradient(135deg, #7c3aed22 0%, #6366f122 100%)', color: '#9d5cf6', boxShadow: '0 0 8px rgba(124,58,237,0.2)' }}>
-                Lv.{user.level}
-              </span>
-              <div className="w-14 bg-quest-border/30 rounded-full h-1.5">
-                <div className="h-1.5 rounded-full" style={{ width: `${xpProgress}%`, background: 'linear-gradient(90deg, #7c3aed 0%, #818cf8 100%)' }} />
-              </div>
-              <span>{user.xp} XP</span>
-            </div>
-
             {/* Streak */}
             <span className="flex items-center gap-1 text-sm font-bold px-2 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400">
               🔥 {user.streak}
