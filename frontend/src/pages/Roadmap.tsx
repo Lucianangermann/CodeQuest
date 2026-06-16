@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
-import { Lock, CheckCircle, ChevronRight, AlertCircle } from 'lucide-react'
+import { Lock, CheckCircle, ChevronRight, AlertCircle, Search, X } from 'lucide-react'
 import { fetchTopics, fetchTopicLessons } from '../lib/api'
 import { useLessonStore } from '../store/useLessonStore'
 import type { Topic, Lesson } from '../types'
@@ -48,6 +48,7 @@ export default function Roadmap() {
   const navigate = useNavigate()
   const { setCurrentLesson } = useLessonStore()
   const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null)
+  const [search, setSearch] = useState('')
 
   const { data: topics = [], isLoading: loadingTopics, error: topicsError } = useQuery({
     queryKey: ['topics'],
@@ -62,6 +63,10 @@ export default function Roadmap() {
       return data
     },
   })
+
+  const filteredTopics = search
+    ? (topics ?? []).filter(t => t.title.toLowerCase().includes(search.toLowerCase()))
+    : (topics ?? [])
 
   const selectedTopic = topics.find((t) => t.id === selectedTopicId) ?? null
 
@@ -102,13 +107,32 @@ export default function Roadmap() {
         {/* Topic nodes */}
         <div className="lg:w-auto">
           <h2 className="text-sm font-semibold text-quest-muted uppercase tracking-wide mb-4">Topics</h2>
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-quest-muted" />
+            <input
+              type="text"
+              placeholder="Search topics & lessons..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="input pl-10 py-2.5 text-sm"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-quest-muted hover:text-quest-text">
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
           {loadingTopics ? (
             <div className="flex flex-wrap gap-3">
               {[...Array(6)].map((_, i) => <TopicNodeSkeleton key={i} />)}
             </div>
+          ) : filteredTopics.length === 0 ? (
+            <div className="text-center py-12 text-quest-muted">
+              <p>No topics found for "{search}"</p>
+            </div>
           ) : (
             <div className="flex flex-wrap lg:flex-col gap-3">
-              {topics.map((topic) => (
+              {filteredTopics.map((topic) => (
                 <TopicNode
                   key={topic.id}
                   topic={topic}

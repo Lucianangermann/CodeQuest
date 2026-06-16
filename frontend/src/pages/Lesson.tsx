@@ -168,6 +168,7 @@ export default function LessonPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [result, setResult] = useState<{ correct: boolean; feedback: string; xp_earned: number } | null>(null)
+  const [levelUp, setLevelUp] = useState<number | null>(null)
 
   const NOTES_KEY = `cq_note_${lessonId}`
   const [note, setNote] = useState(() => localStorage.getItem(NOTES_KEY) || '')
@@ -209,11 +210,15 @@ export default function LessonPage() {
     if (!lesson) return
     setIsSubmitting(true)
     try {
-      const res = await submitLesson(lesson.id, answer, user?.language_preference || 'python')
+      const res = await submitLesson(lesson.id, answer, lesson.language || 'python')
       setResult(res)
       if (res.correct && res.xp_earned > 0) {
         const newXP = (user?.xp ?? 0) + res.xp_earned
         updateXP(newXP, Math.max(1, Math.floor(newXP / 100)))
+        if (res.level > (user?.level ?? 1)) {
+          setLevelUp(res.level)
+          setTimeout(() => setLevelUp(null), 4000)
+        }
         toast.success(`+${res.xp_earned} XP earned! 🎉`)
         queryClient.invalidateQueries({ queryKey: ['topics'] })
         queryClient.invalidateQueries({ queryKey: ['topic-lessons', lesson.topic_id] })
@@ -238,6 +243,39 @@ export default function LessonPage() {
   }[lesson.type]
 
   return (
+    <>
+    {/* Level-Up Overlay */}
+    <AnimatePresence>
+      {levelUp !== null && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+        >
+          <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.8, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            className="flex flex-col items-center gap-4 text-center px-8 py-10 rounded-2xl bg-quest-card border border-quest-purple/40 shadow-2xl max-w-sm w-full mx-4"
+          >
+            <span className="text-7xl">⚡</span>
+            <h2 className="text-4xl font-extrabold bg-gradient-to-r from-quest-purple-light to-quest-yellow bg-clip-text text-transparent">
+              Level Up!
+            </h2>
+            <p className="text-quest-text text-lg">You reached Level {levelUp}</p>
+            <button
+              onClick={() => setLevelUp(null)}
+              className="btn-primary mt-2 px-8"
+            >
+              Continue
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
@@ -282,7 +320,7 @@ export default function LessonPage() {
                 <CodeView
                   content={lesson.content_json as CodeContent}
                   lessonId={lesson.id}
-                  language={user?.language_preference || 'python'}
+                  language={lesson.language || 'python'}
                   onSubmit={handleSubmit}
                   isSubmitting={isSubmitting}
                 />
@@ -347,5 +385,6 @@ export default function LessonPage() {
         </div>
       </div>
     </motion.div>
+    </>
   )
 }

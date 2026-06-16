@@ -10,6 +10,7 @@ const queryClient = new QueryClient({
 })
 
 import Navbar from './components/Navbar'
+import BottomNav from './components/BottomNav'
 import AIChat from './components/AIChat'
 import JobReadyWidget from './components/JobReadyWidget'
 import WeeklyReviewPopup from './components/WeeklyReviewPopup'
@@ -45,7 +46,7 @@ export default function App() {
       <BrowserRouter>
         <div className="min-h-screen bg-quest-bg flex flex-col">
           <Navbar />
-          <main className="flex-1">
+          <main className="flex-1 pb-16 md:pb-0">
             <Routes>
               <Route path="/auth"       element={<Auth />} />
               <Route path="/onboarding" element={<Onboarding />} />
@@ -65,6 +66,7 @@ export default function App() {
           <AIChat />
           <JobReadyWidget />
           <WeeklyReviewPopup />
+          <BottomNav />
         </div>
       </BrowserRouter>
     </QueryClientProvider>

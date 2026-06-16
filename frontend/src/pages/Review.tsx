@@ -44,6 +44,9 @@ export default function Review() {
   }
 
   const due = data?.due ?? []
+  const totalDue = due.length
+  const reviewedThisSession = completed.length
+  const remaining = Math.max(0, totalDue - currentIndex)
 
   if (due.length === 0 || currentIndex >= due.length) {
     return (
@@ -56,9 +59,14 @@ export default function Review() {
         <h1 className="text-2xl font-bold text-white mb-2">All caught up!</h1>
         <p className="text-quest-muted">
           {completed.length > 0
-            ? `You reviewed ${completed.length} card${completed.length === 1 ? '' : 's'} today.`
+            ? `You reviewed ${completed.length} card${completed.length === 1 ? '' : 's'} today — well done! 🧠`
             : 'No reviews due today. Keep learning and come back tomorrow!'}
         </p>
+        {due.length === 0 && (
+          <p className="text-quest-muted text-sm mt-2">
+            Next review scheduled based on your performance.
+          </p>
+        )}
         <div className="mt-8 flex items-center justify-center gap-2 text-quest-muted text-sm">
           <Clock className="w-4 h-4" />
           <span>Spaced repetition keeps knowledge fresh with minimal effort.</span>
@@ -102,6 +110,22 @@ export default function Review() {
         <span className="ml-auto text-sm text-quest-muted">
           {currentIndex + 1} / {due.length}
         </span>
+      </div>
+
+      {/* Stats strip */}
+      <div className="flex items-center justify-between mb-4 text-sm">
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-1.5 text-quest-muted">
+            <Brain className="w-4 h-4 text-quest-purple" />
+            <span><strong className="text-white">{totalDue}</strong> due today</span>
+          </span>
+          {reviewedThisSession > 0 && (
+            <span className="flex items-center gap-1.5 text-quest-green text-xs">
+              ✓ {reviewedThisSession} done
+            </span>
+          )}
+        </div>
+        <span className="text-quest-muted text-xs">{remaining} remaining</span>
       </div>
 
       {/* Progress bar */}

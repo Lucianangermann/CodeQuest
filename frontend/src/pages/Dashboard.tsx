@@ -107,7 +107,11 @@ export default function Dashboard() {
             </span>
             <span className="text-quest-text"> 👋</span>
           </h1>
-          <p className="text-quest-muted mt-1">Keep up the momentum — you're doing great!</p>
+          <p className="text-quest-muted mt-1">
+            {data.total_lessons_completed === 0
+              ? 'Welcome to CodeQuest — your coding adventure begins!'
+              : "Keep up the momentum — you're doing great!"}
+          </p>
         </div>
         <StreakDisplay streak={data.streak} large />
       </div>
@@ -118,6 +122,24 @@ export default function Dashboard() {
         <StatCard icon={<BookOpen className="w-5 h-5" />} label="Lessons Done" value={data.total_lessons_completed} color="text-quest-green" gradient="from-quest-green/10" />
         <StatCard icon={<Flame className="w-5 h-5" />} label="Day Streak" value={data.streak} color="text-orange-400" gradient="from-orange-500/10" />
       </div>
+
+      {data.total_lessons_completed === 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card text-center py-10"
+          style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(99,102,241,0.06) 100%)', borderColor: 'rgba(124,58,237,0.3)' }}
+        >
+          <div className="text-6xl mb-4">🚀</div>
+          <h2 className="text-xl font-bold text-white mb-2">Your journey starts here!</h2>
+          <p className="text-quest-muted mb-6 max-w-sm mx-auto">
+            Complete your first lesson to earn XP, build your streak, and unlock topics.
+          </p>
+          <Link to="/roadmap" className="btn-primary inline-flex items-center gap-2">
+            Start First Lesson <ChevronRight className="w-4 h-4" />
+          </Link>
+        </motion.div>
+      )}
 
       {data?.total_lessons !== undefined && data.total_lessons > 0 && (
         <div className="card">

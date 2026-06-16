@@ -125,27 +125,6 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile nav */}
-        <div className="md:hidden flex justify-around pb-2">
-          {NAV_ITEMS.map(({ path, label, icon: Icon }) => {
-            const isActive = location.pathname === path
-            return (
-              <Link
-                key={path}
-                to={path}
-                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-xs transition-all relative ${
-                  isActive ? 'text-quest-purple-light' : 'text-quest-muted'
-                }`}
-              >
-                {isActive && (
-                  <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-quest-purple-light" />
-                )}
-                <Icon className="w-5 h-5" />
-                {label}
-              </Link>
-            )
-          })}
-        </div>
       </div>
     </nav>
   )
