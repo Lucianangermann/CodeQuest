@@ -1,15 +1,21 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Lock, CheckCircle, ChevronRight, AlertCircle, Search, X } from 'lucide-react'
-import { fetchTopics, fetchTopicLessons } from '../lib/api'
+import { fetchTopics, fetchTopicLessons, updateProfile } from '../lib/api'
 import { useLessonStore } from '../store/useLessonStore'
 import { useUserStore } from '../store/useUserStore'
 import { useT } from '../i18n/useT'
-import type { Topic, Lesson } from '../types'
+import type { Topic, Lesson, ProfileData } from '../types'
 import { ListSkeleton, TopicNodeSkeleton } from '../components/LoadingSkeleton'
 import ProgressBar from '../components/ProgressBar'
+
+const LANGUAGES = [
+  { value: 'python',     label: 'Python',     emoji: '🐍' },
+  { value: 'javascript', label: 'JavaScript', emoji: '⚡' },
+  { value: 'typescript', label: 'TypeScript', emoji: '🔷' },
+]
 
 function TopicNode({ topic, isSelected, onSelect }: {
   topic: Topic; isSelected: boolean; onSelect: () => void
@@ -49,9 +55,18 @@ export default function Roadmap() {
   const { setCurrentLesson } = useLessonStore()
   const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null)
   const [search, setSearch] = useState('')
-  const { user } = useUserStore()
+  const { user, setUser } = useUserStore()
+  const queryClient = useQueryClient()
   const t = useT()
   const lang = user?.language_preference || 'python'
+
+  async function handleLangChange(newLang: string) {
+    if (!user || newLang === lang) return
+    setSelectedTopicId(null)
+    setUser({ ...user, language_preference: newLang })
+    await updateProfile({ language_preference: newLang } as Partial<ProfileData>)
+    queryClient.invalidateQueries({ queryKey: ['topics'] })
+  }
 
   const TYPE_LABELS: Record<string, string> = {
     theory: t('road.theory'),
@@ -107,9 +122,28 @@ export default function Roadmap() {
       transition={{ duration: 0.3 }}
       className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
     >
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">{t('road.title')}</h1>
-        <p className="text-quest-muted mt-1">{t('road.subtitle')}</p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white">{t('road.title')}</h1>
+          <p className="text-quest-muted mt-1">{t('road.subtitle')}</p>
+        </div>
+        {/* Language switcher */}
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-quest-card border border-quest-border">
+          {LANGUAGES.map(({ value, label, emoji }) => (
+            <button
+              key={value}
+              onClick={() => handleLangChange(value)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                lang === value
+                  ? 'bg-quest-purple text-white shadow'
+                  : 'text-quest-muted hover:text-quest-text hover:bg-white/5'
+              }`}
+            >
+              <span>{emoji}</span>
+              <span className="hidden sm:inline">{label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">

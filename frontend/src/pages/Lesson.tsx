@@ -19,6 +19,7 @@ import toast from 'react-hot-toast'
 // ── Theory ────────────────────────────────────────────────────────────────────
 
 function TheoryView({ content }: { content: TheoryContent }) {
+  const t = useT()
   return (
     <div className="space-y-4">
       {content.sections.map((section, i) => (
@@ -51,7 +52,7 @@ function TheoryView({ content }: { content: TheoryContent }) {
       ))}
       {content.summary && (
         <div className="mt-2 p-4 rounded-xl bg-quest-purple/10 border border-quest-purple/20 text-sm text-quest-text">
-          <strong className="text-quest-purple-light">Summary:</strong> {content.summary}
+          <strong className="text-quest-purple-light">{t('lesson.summary')}:</strong> {content.summary}
         </div>
       )}
     </div>
@@ -130,7 +131,7 @@ function CodeView({ content, lessonId, language, onSubmit, isSubmitting, concept
             onClick={() => setShowIntro(s => !s)}
             className="flex items-center gap-2 w-full text-left"
           >
-            <span className="text-amber-400 font-semibold text-sm">💡 Konzept-Erinnerung</span>
+            <span className="text-amber-400 font-semibold text-sm">{t('lesson.conceptReminder')}</span>
             <ChevronRight className={`w-4 h-4 text-amber-400 ml-auto transition-transform duration-200 ${showIntro ? 'rotate-90' : ''}`} />
           </button>
           {showIntro && (
@@ -160,7 +161,7 @@ function CodeView({ content, lessonId, language, onSubmit, isSubmitting, concept
         </div>
       )}
       <div className="p-4 bg-quest-purple/10 border border-quest-purple/20 rounded-xl">
-        <h3 className="font-semibold text-quest-purple-light mb-2">Task</h3>
+        <h3 className="font-semibold text-quest-purple-light mb-2">{t('lesson.task')}</h3>
         <p className="text-quest-text text-sm leading-relaxed whitespace-pre-line">{content.instructions}</p>
       </div>
 
@@ -189,7 +190,7 @@ function CodeView({ content, lessonId, language, onSubmit, isSubmitting, concept
           animate={{ opacity: 1, y: 0 }}
           className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-sm text-quest-text leading-relaxed"
         >
-          <p className="font-semibold text-blue-400 mb-1">AI Explanation</p>
+          <p className="font-semibold text-blue-400 mb-1">{t('lesson.aiExplanation')}</p>
           {explanation}
         </motion.div>
       ) : (
@@ -199,7 +200,7 @@ function CodeView({ content, lessonId, language, onSubmit, isSubmitting, concept
           className="text-sm text-quest-muted hover:text-quest-text flex items-center gap-1 transition-colors"
         >
           {isExplaining ? <Loader2 className="w-3 h-3 animate-spin" /> : <HelpCircle className="w-3 h-3" />}
-          Explain my mistake
+          {t('lesson.explainMistake')}
         </button>
       )}
     </div>
@@ -246,13 +247,11 @@ export default function LessonPage() {
     setTimeout(() => setNoteSaved(false), 2000)
   }
 
-  // Fetch if navigating directly (no lesson in store, or different lesson)
+  // Always fetch when lessonId or uiLanguage changes — language-specific content must be fresh
   const { data: fetchedLesson, isLoading } = useQuery({
     queryKey: ['lesson', lessonId, uiLanguage],
     queryFn: () => fetchLesson(Number(lessonId)),
-    enabled: !currentLesson || currentLesson.id !== Number(lessonId),
-    initialData: currentLesson?.id === Number(lessonId) ? currentLesson : undefined,
-    staleTime: Infinity,
+    staleTime: 5 * 60 * 1000,
   })
 
   const lesson: Lesson | undefined = fetchedLesson ?? currentLesson ?? undefined

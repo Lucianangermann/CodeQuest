@@ -86,8 +86,8 @@ export default function Navbar() {
 
           {/* Right side: XP, level, theme, logout */}
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            {/* Level + XP — compact, only on large screens */}
-            <div className="hidden lg:flex items-center gap-1.5 text-xs text-quest-muted">
+            {/* Level + XP — only show when there's plenty of room */}
+            <div className="hidden xl:flex items-center gap-1.5 text-xs text-quest-muted">
               <span className="font-bold text-xs px-1.5 py-0.5 rounded-md"
                 style={{ background: 'linear-gradient(135deg, #7c3aed22 0%, #6366f122 100%)', color: '#9d5cf6', boxShadow: '0 0 8px rgba(124,58,237,0.2)' }}>
                 Lv.{user.level}

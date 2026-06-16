@@ -124,7 +124,7 @@ export default function Onboarding() {
     onSuccess: () => {
       setBuildStep(BUILD_STEPS.length - 1)
       setTimeout(() => {
-        if (user) setUser({ ...user, onboarding_completed: true })
+        if (user) setUser({ ...user, onboarding_completed: true, language_preference: language! })
         navigate('/my-path')
       }, 600)
     },

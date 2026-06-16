@@ -51,22 +51,21 @@ async def generate_task_intro(instructions: str, starter_code: str, language: st
         prompt = (
             f"Aufgabe für den Schüler:\n{instructions}\n\n"
             f"Startcode:\n```{language}\n{starter_code}\n```\n\n"
-            "Schreibe eine kurze Erinnerungskarte (💡 Konzept-Erinnerung) für diese Aufgabe. Struktur:\n"
+            "Schreibe den Inhalt einer Konzept-Erinnerungskarte für diese Aufgabe. Direkt mit dem Inhalt beginnen — KEIN Titel, KEINE Überschrift, KEIN '💡'. Struktur:\n"
             "1. **Ein Satz**: Welches Konzept/Muster wird in dieser Aufgabe benötigt und warum.\n"
-            "2. **Mini-Beispiel** (3-5 Zeilen): Das Muster in seiner einfachsten Form — NICHT die Lösung der Aufgabe.\n"
+            "2. **Mini-Beispiel** (3-5 Zeilen Code): Das Muster in seiner einfachsten Form — NICHT die Lösung der Aufgabe.\n"
             "3. **Ein Satz**: Was konkret der Schüler in dieser spezifischen Aufgabe tun soll.\n\n"
-            "Kein Markdown-Heading. Kein 'Erkläre...'. Direkt und prägnant auf Deutsch. "
-            "Code-Variablennamen auf Englisch lassen."
+            "Direkt und prägnant auf Deutsch. Code-Variablennamen auf Englisch lassen."
         )
     else:
         prompt = (
             f"Student task:\n{instructions}\n\n"
             f"Starter code:\n```{language}\n{starter_code}\n```\n\n"
-            "Write a short concept reminder card (💡 Concept Reminder) for this task. Structure:\n"
+            "Write the content of a concept reminder card for this task. Start directly with the content — NO title, NO heading, NO '💡'. Structure:\n"
             "1. **One sentence**: Which concept/pattern is needed for this task and why.\n"
-            "2. **Mini example** (3-5 lines): The pattern in its simplest form — NOT the task solution.\n"
+            "2. **Mini example** (3-5 lines of code): The pattern in its simplest form — NOT the task solution.\n"
             "3. **One sentence**: What specifically the student should do in this task.\n\n"
-            "No markdown heading. No 'Explain...'. Direct and punchy in English."
+            "Direct and punchy in English."
         )
 
     msg = await client.messages.create(

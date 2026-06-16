@@ -97,6 +97,11 @@ export const translations: Record<Lang, Record<string, string>> = {
     'lesson.aiGrade': 'Grade',
     'lesson.aiReview': 'AI Code Review',
     'lesson.diffNote': 'Your output does not match the expected output. Check the diff below.',
+    'lesson.task': 'Task',
+    'lesson.conceptReminder': '💡 Concept Reminder',
+    'lesson.explainMistake': 'Explain my mistake',
+    'lesson.aiExplanation': 'AI Explanation',
+    'lesson.summary': 'Summary',
 
     // Review
     'review.allCaughtUp': 'All caught up!',
@@ -222,6 +227,11 @@ export const translations: Record<Lang, Record<string, string>> = {
     'lesson.aiGrade': 'Bewertung',
     'lesson.aiReview': 'KI-Code-Bewertung',
     'lesson.diffNote': 'Deine Ausgabe stimmt nicht mit der erwarteten überein. Sieh dir die Unterschiede unten an.',
+    'lesson.task': 'Aufgabe',
+    'lesson.conceptReminder': '💡 Konzept-Erinnerung',
+    'lesson.explainMistake': 'Fehler erklären',
+    'lesson.aiExplanation': 'KI-Erklärung',
+    'lesson.summary': 'Zusammenfassung',
 
     // Review
     'review.allCaughtUp': 'Alles aktuell!',
