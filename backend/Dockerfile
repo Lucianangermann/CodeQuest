@@ -2,7 +2,8 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y nodejs && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y nodejs npm && rm -rf /var/lib/apt/lists/*
+RUN npm install -g typescript ts-node
 
 # Install deps first (better layer caching)
 COPY requirements.txt .

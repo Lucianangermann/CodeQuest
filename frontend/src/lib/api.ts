@@ -38,13 +38,13 @@ api.interceptors.response.use(
 )
 
 // Topics
-export async function fetchTopics(): Promise<Topic[]> {
-  const { data } = await api.get<Topic[]>('/topics/')
+export async function fetchTopics(language = 'python'): Promise<Topic[]> {
+  const { data } = await api.get<Topic[]>('/topics/', { params: { language } })
   return data
 }
 
-export async function fetchTopicLessons(topicId: number): Promise<Lesson[]> {
-  const { data } = await api.get<Lesson[]>(`/topics/${topicId}/lessons`)
+export async function fetchTopicLessons(topicId: number, language = 'python'): Promise<Lesson[]> {
+  const { data } = await api.get<Lesson[]>(`/topics/${topicId}/lessons`, { params: { language } })
   return data
 }
 

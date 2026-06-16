@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Lock, CheckCircle, ChevronRight, AlertCircle, Search, X } from 'lucide-react'
 import { fetchTopics, fetchTopicLessons } from '../lib/api'
 import { useLessonStore } from '../store/useLessonStore'
+import { useUserStore } from '../store/useUserStore'
 import type { Topic, Lesson } from '../types'
 import { ListSkeleton, TopicNodeSkeleton } from '../components/LoadingSkeleton'
 import ProgressBar from '../components/ProgressBar'
@@ -49,10 +50,12 @@ export default function Roadmap() {
   const { setCurrentLesson } = useLessonStore()
   const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null)
   const [search, setSearch] = useState('')
+  const { user } = useUserStore()
+  const lang = user?.language_preference || 'python'
 
   const { data: topics = [], isLoading: loadingTopics, error: topicsError } = useQuery({
-    queryKey: ['topics'],
-    queryFn: fetchTopics,
+    queryKey: ['topics', lang],
+    queryFn: () => fetchTopics(lang),
     staleTime: 1000 * 60 * 5,
     select: (data) => {
       // Auto-select first non-locked topic on initial load
@@ -71,8 +74,8 @@ export default function Roadmap() {
   const selectedTopic = topics.find((t) => t.id === selectedTopicId) ?? null
 
   const { data: lessons = [], isLoading: loadingLessons } = useQuery({
-    queryKey: ['topic-lessons', selectedTopicId],
-    queryFn: () => fetchTopicLessons(selectedTopicId!),
+    queryKey: ['topic-lessons', selectedTopicId, lang],
+    queryFn: () => fetchTopicLessons(selectedTopicId!, lang),
     enabled: selectedTopicId !== null,
   })
 

@@ -3,6 +3,7 @@ import asyncio
 LANGUAGE_CMDS: dict[str, list[str]] = {
     "python":     ["python3", "-c"],
     "javascript": ["node",    "-e"],
+    "typescript": ["ts-node", "--skip-project", "--compiler-options", '{"module":"commonjs"}', "-e"],
 }
 
 
@@ -11,7 +12,7 @@ async def execute_code(code: str, language: str = "python", stdin: str = "") -> 
     if not cmd:
         return {
             "output": "",
-            "error": f"Language '{language}' not supported locally. Use: python, javascript.",
+            "error": f"Language '{language}' not supported locally. Use: python, javascript, typescript.",
             "status": "Error",
         }
 

@@ -8,14 +8,15 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[TopicWithProgress])
-async def get_topics(user_id: Optional[str] = Depends(get_optional_user)):
+async def get_topics(language: str = "python", user_id: Optional[str] = Depends(get_optional_user)):
     async with acquire() as conn:
         topics = await conn.fetch("SELECT * FROM topics ORDER BY order_index")
 
         counts = {
             r["topic_id"]: r["total"]
             for r in await conn.fetch(
-                "SELECT topic_id, COUNT(*) AS total FROM lessons GROUP BY topic_id"
+                "SELECT topic_id, COUNT(*) AS total FROM lessons WHERE (language IS NULL OR language = $1) GROUP BY topic_id",
+                language,
             )
         }
 
@@ -26,10 +27,11 @@ async def get_topics(user_id: Optional[str] = Depends(get_optional_user)):
                 SELECT l.topic_id, COUNT(*) AS completed
                 FROM user_progress up
                 JOIN lessons l ON l.id = up.lesson_id
-                WHERE up.user_id = $1
+                WHERE up.user_id = $1 AND (l.language IS NULL OR l.language = $2)
                 GROUP BY l.topic_id
                 """,
                 user_id,
+                language,
             )
             completed_by_topic = {r["topic_id"]: r["completed"] for r in rows}
 
@@ -63,10 +65,12 @@ async def get_topics(user_id: Optional[str] = Depends(get_optional_user)):
 
 
 @router.get("/{topic_id}/lessons")
-async def get_topic_lessons(topic_id: int, user_id: Optional[str] = Depends(get_optional_user)):
+async def get_topic_lessons(topic_id: int, language: str = "python", user_id: Optional[str] = Depends(get_optional_user)):
     async with acquire() as conn:
         lessons = await conn.fetch(
-            "SELECT * FROM lessons WHERE topic_id = $1 ORDER BY order_index", topic_id
+            "SELECT * FROM lessons WHERE topic_id = $1 AND (language IS NULL OR language = $2) ORDER BY order_index",
+            topic_id,
+            language,
         )
         completed: dict[int, int] = {}
         if user_id:
