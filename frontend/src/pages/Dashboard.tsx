@@ -259,7 +259,7 @@ export default function Dashboard() {
           </div>
           <ProgressBar value={data.lessons_today * 5} max={data.daily_goal} color="green" />
           <p className="text-xs text-quest-muted">
-            {data.xp_today > 0 ? `+${data.xp_today} ${t('dash.xpEarned')}` : 'Start learning to earn XP!'}
+            {data.xp_today > 0 ? `+${data.xp_today} ${t('dash.xpEarned')}` : t('dash.startLearning')}
           </p>
         </div>
       </div>
@@ -269,7 +269,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-3 mb-3">
             <span className="text-2xl">{data.next_badge.icon}</span>
             <div>
-              <p className="text-xs text-quest-muted">Next Badge</p>
+              <p className="text-xs text-quest-muted">{t('dash.nextBadge')}</p>
               <p className="font-semibold text-white text-sm">{data.next_badge.name}</p>
             </div>
             <span className="ml-auto text-xs text-quest-muted">{data.next_badge.goal_label}</span>
@@ -317,7 +317,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-4">
             <span className="text-4xl">{data.current_topic.icon || '📚'}</span>
             <div>
-              <p className="text-quest-muted text-sm">Continue where you left off</p>
+              <p className="text-quest-muted text-sm">{t('dash.continueWhere')}</p>
               <h3 className="text-xl font-bold text-white">{data.current_topic.title}</h3>
               {data.next_lesson && (
                 <p className="text-xs text-quest-purple mt-0.5 truncate max-w-xs">{data.next_lesson.title}</p>
@@ -332,7 +332,7 @@ export default function Dashboard() {
             to={data.next_lesson ? `/lesson/${data.next_lesson.id}` : '/roadmap'}
             className="btn-primary flex items-center gap-2 flex-shrink-0"
           >
-            {data.next_lesson ? 'Start Lesson' : 'Continue'} <ChevronRight className="w-4 h-4" />
+            {data.next_lesson ? t('dash.startLesson') : t('dash.continueLesson')} <ChevronRight className="w-4 h-4" />
           </Link>
         </motion.div>
       )}
@@ -383,7 +383,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
               <Target className="w-5 h-5 text-quest-yellow" />
               <h3 className="font-semibold text-white text-sm">{t('dash.dailyChallenge')}</h3>
-              <span className="badge-pill bg-quest-yellow/20 text-quest-yellow text-xs">Today</span>
+              <span className="badge-pill bg-quest-yellow/20 text-quest-yellow text-xs">{t('dash.today')}</span>
             </div>
             {dailyChallenge.is_completed && (
               <span className="text-xs text-quest-green font-medium">✓ {t('dash.complete')}</span>
@@ -401,7 +401,7 @@ export default function Dashboard() {
       )}
 
       <div className="card">
-        <h2 className="font-semibold text-white mb-4">{t('dash.activityHeatmap')} (Last 90 Days)</h2>
+        <h2 className="font-semibold text-white mb-4">{t('dash.activityDays')}</h2>
         <Heatmap data={data.activity_data} />
       </div>
 

@@ -8,6 +8,7 @@ import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { useUserStore } from '../store/useUserStore'
+import { useT } from '../i18n/useT'
 import { fetchCapstone, askCapstone, evaluateCapstone, fetchTopics, runCode } from '../lib/api'
 import Editor from '../components/Editor'
 import toast from 'react-hot-toast'
@@ -22,6 +23,7 @@ const PROSE =
 export default function Capstone() {
   const navigate = useNavigate()
   const { user } = useUserStore()
+  const t = useT()
   const lang = user?.language_preference || 'javascript'
 
   const [code, setCode] = useState<string>('')
@@ -115,7 +117,7 @@ export default function Capstone() {
   if (!project) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center text-quest-muted">
-        Kein Projekt für diese Sprache gefunden.
+        {t('capstone.noProject')}
       </div>
     )
   }
@@ -126,15 +128,15 @@ export default function Capstone() {
         <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-quest-border flex items-center justify-center">
           <Lock className="w-10 h-10 text-quest-muted" />
         </div>
-        <h1 className="text-3xl font-bold text-white mb-3">🏆 Capstone Projekt</h1>
+        <h1 className="text-3xl font-bold text-white mb-3">{t('capstone.title')}</h1>
         <p className="text-quest-muted text-lg mb-6">
-          Schließe alle Lektionen deines Lernpfads ab, um das Abschlussprojekt freizuschalten.
+          {t('capstone.locked')}
         </p>
         <button
           onClick={() => navigate('/roadmap')}
           className="btn-primary"
         >
-          Zum Lernpfad →
+          {t('capstone.goToRoadmap')}
         </button>
       </div>
     )
@@ -160,7 +162,7 @@ export default function Capstone() {
             <span className="text-2xl">🏆</span>
             <h1 className="text-2xl font-bold text-white">{project.title}</h1>
           </div>
-          <p className="text-quest-muted text-sm mt-0.5">Abschlussprojekt — setze alles Gelernte ein</p>
+          <p className="text-quest-muted text-sm mt-0.5">{t('capstone.subtitle')}</p>
         </div>
       </div>
 
@@ -182,7 +184,7 @@ export default function Capstone() {
             >
               <div className="flex items-center gap-2 text-quest-purple-light font-semibold">
                 <HelpCircle className="w-5 h-5" />
-                Ich komme nicht weiter — Lernhilfe
+                {t('capstone.help')}
               </div>
               {showHelp ? <ChevronUp className="w-4 h-4 text-quest-muted" /> : <ChevronDown className="w-4 h-4 text-quest-muted" />}
             </button>
@@ -197,14 +199,14 @@ export default function Capstone() {
                   className="mt-4 space-y-3 overflow-hidden"
                 >
                   <p className="text-sm text-quest-muted">
-                    Wähle ein Thema, über das du eine Frage stellen möchtest. Die KI erklärt das Konzept — ohne die Lösung zu verraten.
+                    {t('capstone.helpDesc')}
                   </p>
                   <select
                     value={selectedTopic}
                     onChange={(e) => setSelectedTopic(e.target.value)}
                     className="input text-sm"
                   >
-                    <option value="">— Thema auswählen —</option>
+                    <option value="">{t('capstone.topicPlaceholder')}</option>
                     {topics.map((t) => (
                       <option key={t.id} value={t.title}>{t.title}</option>
                     ))}
@@ -212,7 +214,7 @@ export default function Capstone() {
                   <textarea
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
-                    placeholder="Was möchtest du über dieses Thema wissen?"
+                    placeholder={t('capstone.questionPlaceholder')}
                     rows={2}
                     className="input text-sm resize-none"
                   />
@@ -222,7 +224,7 @@ export default function Capstone() {
                     className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {asking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                    {asking ? 'Wird erklärt...' : 'Konzept erklären'}
+                    {asking ? t('capstone.asking') : t('capstone.askBtn')}
                   </button>
 
                   {answer && (
@@ -264,7 +266,7 @@ export default function Capstone() {
             >
               <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-quest-purple" />
-                KI-Bewertung
+                {t('capstone.feedback')}
               </h3>
               <div className={PROSE}>
                 <ReactMarkdown
@@ -310,7 +312,7 @@ export default function Capstone() {
               className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm bg-quest-border hover:bg-quest-border/80 text-quest-text transition-all disabled:opacity-50"
             >
               {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-              {running ? 'Läuft...' : 'Code ausführen'}
+              {running ? t('capstone.running') : t('capstone.run')}
             </button>
             <button
               onClick={handleEvaluate}
@@ -318,7 +320,7 @@ export default function Capstone() {
               className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm btn-primary disabled:opacity-50"
             >
               {evaluating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              {evaluating ? 'Wird bewertet...' : '✨ KI-Bewertung'}
+              {evaluating ? t('capstone.evaluating') : t('capstone.evaluate')}
             </button>
           </div>
 
@@ -329,7 +331,7 @@ export default function Capstone() {
               animate={{ opacity: 1, y: 0 }}
               className="card"
             >
-              <h3 className="text-sm font-semibold text-quest-muted uppercase tracking-wide mb-3">Ausgabe</h3>
+              <h3 className="text-sm font-semibold text-quest-muted uppercase tracking-wide mb-3">{t('capstone.output')}</h3>
               <pre className="font-mono text-sm text-quest-text bg-[#0d0d1a] rounded-xl p-4 overflow-x-auto whitespace-pre-wrap">
                 {output}
               </pre>

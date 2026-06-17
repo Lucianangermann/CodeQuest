@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, CheckCircle, XCircle, Zap, ChevronRight, Trophy } from 'lucide-react'
 import api from '../lib/api'
+import { useT } from '../i18n/useT'
 
 interface QuizLesson {
   id: number
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export default function QuickPractice({ onClose }: Props) {
+  const t = useT()
   const [questions, setQuestions] = useState<QuizLesson[]>([])
   const [loading, setLoading] = useState(false)
   const [started, setStarted] = useState(false)
@@ -34,14 +36,14 @@ export default function QuickPractice({ onClose }: Props) {
     try {
       const { data } = await api.get<QuizLesson[]>('/lessons/quick-practice?count=5')
       if (data.length === 0) {
-        alert('Schließe erst einige Lektionen ab, um Quick Practice freizuschalten!')
+        alert(t('quick.noLessons'))
         onClose()
         return
       }
       setQuestions(data)
       setStarted(true)
     } catch {
-      alert('Fehler beim Laden der Fragen.')
+      alert(t('quick.loadError'))
       onClose()
     } finally {
       setLoading(false)
@@ -102,18 +104,18 @@ export default function QuickPractice({ onClose }: Props) {
           {!started && !loading && (
             <div className="text-center space-y-4">
               <div className="text-6xl">🧠</div>
-              <h2 className="text-xl font-bold text-white">Wissen testen</h2>
+              <h2 className="text-xl font-bold text-white">{t('quick.testKnowledge')}</h2>
               <p className="text-quest-muted text-sm">
-                5 zufällige Fragen aus deinen bisherigen Themen. Wie viele weißt du noch?
+                {t('quick.description')}
               </p>
               <button onClick={startPractice} className="btn-primary w-full mt-2">
-                Jetzt starten
+                {t('quick.start')}
               </button>
             </div>
           )}
 
           {loading && (
-            <div className="text-center py-8 text-quest-muted">Lade Fragen…</div>
+            <div className="text-center py-8 text-quest-muted">{t('quick.loading')}</div>
           )}
 
           {/* Quiz */}
@@ -122,8 +124,8 @@ export default function QuickPractice({ onClose }: Props) {
               {/* Progress */}
               <div>
                 <div className="flex justify-between text-xs text-quest-muted mb-1">
-                  <span>Frage {current + 1} von {questions.length}</span>
-                  <span>{score} richtig</span>
+                  <span>{t('quick.question')} {current + 1} {t('quick.of')} {questions.length}</span>
+                  <span>{score} {t('quick.correct')}</span>
                 </div>
                 <div className="w-full bg-quest-border rounded-full h-1.5">
                   <div className="bg-quest-purple h-1.5 rounded-full transition-all duration-300"
@@ -171,7 +173,7 @@ export default function QuickPractice({ onClose }: Props) {
                       {q.content_json.explanation}
                     </p>
                     <button onClick={next} className="btn-primary w-full mt-3 flex items-center justify-center gap-2">
-                      {current + 1 >= questions.length ? 'Ergebnis ansehen' : 'Weiter'}
+                      {current + 1 >= questions.length ? t('quick.viewResult') : t('quick.next')}
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </motion.div>
@@ -187,7 +189,7 @@ export default function QuickPractice({ onClose }: Props) {
               <div>
                 <p className="text-4xl font-extrabold text-white">{score}/{questions.length}</p>
                 <p className={`text-lg font-semibold mt-1 ${pct >= 80 ? 'text-quest-yellow' : pct >= 60 ? 'text-quest-green' : 'text-red-400'}`}>
-                  {pct >= 80 ? '🔥 Ausgezeichnet!' : pct >= 60 ? '👍 Gut gemacht!' : '💪 Weiter üben!'}
+                  {pct >= 80 ? t('quick.excellent') : pct >= 60 ? t('quick.goodJob') : t('quick.keepPracticing')}
                 </p>
               </div>
               <div className="w-full bg-quest-border rounded-full h-3">
@@ -195,11 +197,11 @@ export default function QuickPractice({ onClose }: Props) {
                   style={{ width: `${pct}%` }} />
               </div>
               <div className="flex gap-3 pt-2">
-                <button onClick={onClose} className="btn-secondary flex-1">Schließen</button>
+                <button onClick={onClose} className="btn-secondary flex-1">{t('quick.close')}</button>
                 <button onClick={() => {
                   setStarted(false); setFinished(false); setCurrent(0);
                   setScore(0); setSelected(null); setAnswered(false); setQuestions([])
-                }} className="btn-primary flex-1">Nochmal</button>
+                }} className="btn-primary flex-1">{t('quick.tryAgain')}</button>
               </div>
             </div>
           )}

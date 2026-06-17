@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Route, ChevronDown, ChevronUp, RefreshCw, BookOpen, Code2, FlaskConical, RotateCcw, Mic, Bug, CheckCircle, Circle, Trophy, Briefcase, FolderOpen, Github, ExternalLink, Plus, Trash2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { fetchTrainingPlan, adjustTrainingPlan, advancePhase, fetchPortfolioProjects, createPortfolioProject, deletePortfolioProject } from '../lib/api'
+import { useT } from '../i18n/useT'
 import type { PlanPhase, PlanActivity, PlanTopic } from '../types'
 
 // ── Icons & colours ──────────────────────────────────────────────────────────
@@ -43,6 +44,7 @@ const DAYS_ORDER = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Sat
 
 function TopicCard({ topic }: { topic: PlanTopic }) {
   const [open, setOpen] = useState(false)
+  const t = useT()
   return (
     <div className="border border-white/10 rounded-xl">
       <button
@@ -57,7 +59,7 @@ function TopicCard({ topic }: { topic: PlanTopic }) {
         </div>
         <div className="flex items-center gap-1.5 shrink-0 ml-2">
           <span className={`text-xs font-medium ${RELEVANCE_COLOR[topic.interview_relevance]}`}>
-            {topic.interview_relevance === 'high' ? '🔥 High' : topic.interview_relevance === 'medium' ? '⚡ Med' : '− Low'} interview
+            {topic.interview_relevance === 'high' ? `🔥 ${t('path.high')}` : topic.interview_relevance === 'medium' ? `⚡ ${t('path.med')}` : `− ${t('path.low')}`} {t('path.interview')}
           </span>
           {open ? <ChevronUp size={14} className="text-gray-500" /> : <ChevronDown size={14} className="text-gray-500" />}
         </div>
@@ -78,6 +80,7 @@ function TopicCard({ topic }: { topic: PlanTopic }) {
 
 function DayCard({ day, isToday }: { day: { day: string; duration_minutes: number; activities: PlanActivity[] }; isToday: boolean }) {
   const [open, setOpen] = useState(isToday)
+  const t = useT()
   const must = day.activities.filter((a) => a.priority === 'must')
   const optional = day.activities.filter((a) => a.priority === 'optional')
 
@@ -85,12 +88,12 @@ function DayCard({ day, isToday }: { day: { day: string; duration_minutes: numbe
     <div className={`rounded-xl border transition-all ${isToday ? 'border-violet-500/60 bg-violet-500/5' : 'border-white/10 bg-quest-card'}`}>
       <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between p-4 text-left">
         <div className="flex items-center gap-3">
-          {isToday && <span className="text-xs font-bold text-violet-400 bg-violet-500/20 px-2 py-0.5 rounded-full">TODAY</span>}
+          {isToday && <span className="text-xs font-bold text-violet-400 bg-violet-500/20 px-2 py-0.5 rounded-full">{t('path.today')}</span>}
           <span className="font-semibold text-white">{day.day}</span>
           <span className="text-sm text-gray-500">{day.duration_minutes} min</span>
         </div>
         <div className="flex items-center gap-1.5 text-gray-400">
-          <span className="text-sm">{day.activities.length} tasks</span>
+          <span className="text-sm">{day.activities.length} {t('path.tasks')}</span>
           {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
         </div>
       </button>
@@ -104,7 +107,7 @@ function DayCard({ day, isToday }: { day: { day: string; duration_minutes: numbe
                 <div className="text-xs text-gray-400 mt-0.5">{act.description}</div>
                 {act.resource && <div className="text-xs text-violet-400/70 mt-1">📚 {act.resource}</div>}
               </div>
-              <span className="text-xs text-violet-400 shrink-0 mt-0.5">must</span>
+              <span className="text-xs text-violet-400 shrink-0 mt-0.5">{t('path.must')}</span>
             </div>
           ))}
           {optional.map((act, i) => (
@@ -114,7 +117,7 @@ function DayCard({ day, isToday }: { day: { day: string; duration_minutes: numbe
                 <div className="text-sm font-medium text-white/80">{act.title}</div>
                 <div className="text-xs text-gray-500 mt-0.5">{act.description}</div>
               </div>
-              <span className="text-xs text-gray-500 shrink-0 mt-0.5">optional</span>
+              <span className="text-xs text-gray-500 shrink-0 mt-0.5">{t('path.optional')}</span>
             </div>
           ))}
         </div>
@@ -140,6 +143,7 @@ function PhaseTab({ phase, isCurrent, onClick }: { phase: PlanPhase; isCurrent: 
 
 export default function MyPath() {
   const qc = useQueryClient()
+  const t = useT()
   const [viewPhase, setViewPhase] = useState<number | null>(null)
   const [adjustNotes, setAdjustNotes] = useState('')
   const [showAdjust, setShowAdjust] = useState(false)
@@ -189,7 +193,7 @@ export default function MyPath() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-gray-400">Loading your path...</div>
+        <div className="text-gray-400">{t('path.loading')}</div>
       </div>
     )
   }
@@ -198,10 +202,10 @@ export default function MyPath() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
         <Route size={48} className="mx-auto text-gray-600 mb-4" />
-        <h2 className="text-xl font-semibold text-white mb-2">No plan yet</h2>
-        <p className="text-gray-400 mb-6">Complete onboarding to get your personalized learning path.</p>
+        <h2 className="text-xl font-semibold text-white mb-2">{t('path.noPlan')}</h2>
+        <p className="text-gray-400 mb-6">{t('path.noPlanDesc')}</p>
         <a href="/onboarding" className="inline-block px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-xl transition-colors">
-          Start Onboarding
+          {t('path.startOnboarding')}
         </a>
       </div>
     )
@@ -214,10 +218,10 @@ export default function MyPath() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
         <Route size={48} className="mx-auto text-gray-600 mb-4" />
-        <h2 className="text-xl font-semibold text-white mb-2">Plan outdated</h2>
-        <p className="text-gray-400 mb-6">Your plan was generated with an older version. Redo onboarding to get the new multi-phase plan.</p>
+        <h2 className="text-xl font-semibold text-white mb-2">{t('path.planOutdated')}</h2>
+        <p className="text-gray-400 mb-6">{t('path.planOutdatedDesc')}</p>
         <a href="/onboarding" className="inline-block px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-xl transition-colors">
-          Regenerate Plan
+          {t('path.regeneratePlan')}
         </a>
       </div>
     )
@@ -244,7 +248,7 @@ export default function MyPath() {
       <div className="mb-6">
         <div className="flex items-center gap-2 text-violet-400 text-sm font-medium mb-2">
           <Route size={15} />
-          My Learning Path
+          {t('path.title')}
         </div>
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -253,7 +257,7 @@ export default function MyPath() {
           </div>
           <div className="text-right shrink-0">
             <div className="text-2xl font-bold text-white">{phase.duration_weeks}w</div>
-            <div className="text-xs text-gray-500">duration</div>
+            <div className="text-xs text-gray-500">{t('path.duration')}</div>
           </div>
         </div>
       </div>
@@ -274,9 +278,9 @@ export default function MyPath() {
       {meta && (
         <div className="flex flex-wrap gap-2 mb-6">
           {[
-            meta.company_target && { label: 'Target', value: meta.company_target },
-            meta.framework_focus && { label: 'Focus', value: meta.framework_focus },
-            { label: 'Language', value: meta.language },
+            meta.company_target && { label: t('path.target'), value: meta.company_target },
+            meta.framework_focus && { label: t('path.focus'), value: meta.framework_focus },
+            { label: t('path.language'), value: meta.language },
           ].filter(Boolean).map((m) => m && (
             <div key={m.label} className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm">
               <span className="text-gray-500">{m.label}: </span>
@@ -291,7 +295,7 @@ export default function MyPath() {
         <div className="lg:col-span-2 space-y-6">
           {/* Topics */}
           <div>
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Topics This Phase</h2>
+            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">{t('path.topicsThisPhase')}</h2>
             <div className="space-y-2">
               {phase.topics.map((topic) => (
                 <TopicCard key={topic.name} topic={topic} />
@@ -301,7 +305,7 @@ export default function MyPath() {
 
           {/* Weekly schedule */}
           <div>
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Weekly Schedule</h2>
+            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">{t('path.weeklySchedule')}</h2>
             <div className="space-y-2">
               {orderedDays.map((day) => (
                 <DayCard key={day.day} day={day} isToday={isCurrentPhase && day.day === today} />
@@ -316,7 +320,7 @@ export default function MyPath() {
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
             <div className="flex items-center gap-2 text-amber-400 text-xs font-semibold uppercase tracking-wide mb-2">
               <Trophy size={13} />
-              Phase Milestone
+              {t('path.phaseMilestone')}
             </div>
             <div className="font-semibold text-white text-sm mb-1">{phase.milestone_project.title}</div>
             <p className="text-xs text-gray-400 mb-3">{phase.milestone_project.description}</p>
@@ -329,7 +333,7 @@ export default function MyPath() {
 
           {/* Phase complete when */}
           <div className="bg-quest-card border border-white/10 rounded-xl p-4">
-            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Phase Complete When</div>
+            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">{t('path.phaseCompleteWhen')}</div>
             <ul className="space-y-2">
               {phase.phase_complete_when.map((c, i) => (
                 <li key={i} className="flex items-start gap-2 text-xs text-gray-300">
@@ -345,7 +349,7 @@ export default function MyPath() {
                 className="mt-4 w-full py-2 text-sm font-medium bg-emerald-600/20 border border-emerald-500/30
                            text-emerald-400 hover:bg-emerald-600/30 rounded-lg transition-colors disabled:opacity-40"
               >
-                Mark Phase {currentPhaseNum} Complete →
+                {t('path.phaseCompleteWhen')} {currentPhaseNum} →
               </button>
             )}
           </div>
@@ -355,11 +359,11 @@ export default function MyPath() {
             <div className="bg-quest-card border border-white/10 rounded-xl p-4">
               <div className="flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
                 <Briefcase size={12} />
-                Interview Prep — {meta?.company_target?.split('/')[0].trim()}
+                {t('path.interviewPrep')} — {meta?.company_target?.split('/')[0].trim()}
               </div>
               <div className="space-y-3">
                 <div>
-                  <div className="text-xs text-gray-500 mb-1.5">Typical Questions</div>
+                  <div className="text-xs text-gray-500 mb-1.5">{t('path.typicalQuestions')}</div>
                   <ul className="space-y-1">
                     {interviewSection.typical_questions.slice(0, 3).map((q, i) => (
                       <li key={i} className="text-xs text-gray-300 flex items-start gap-1.5">
@@ -370,7 +374,7 @@ export default function MyPath() {
                   </ul>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-500 mb-1.5">Coding Challenges</div>
+                  <div className="text-xs text-gray-500 mb-1.5">{t('path.codingChallenges')}</div>
                   <ul className="space-y-1">
                     {interviewSection.coding_challenges.slice(0, 2).map((c, i) => (
                       <li key={i} className="text-xs text-gray-300 flex items-start gap-1.5">
@@ -392,14 +396,14 @@ export default function MyPath() {
                 className="flex items-center justify-between w-full"
               >
                 <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                  Portfolio Requirements
+                  {t('path.portfolioReqs')}
                 </div>
                 {showPortfolio ? <ChevronUp size={13} className="text-gray-500" /> : <ChevronDown size={13} className="text-gray-500" />}
               </button>
               {showPortfolio && (
                 <div className="mt-3 space-y-3">
                   <div>
-                    <div className="text-xs text-gray-500 mb-1.5">Must Have</div>
+                    <div className="text-xs text-gray-500 mb-1.5">{t('path.mustHave')}</div>
                     <ul className="space-y-1">
                       {plan.portfolio_requirements.must_have_features.map((f, i) => (
                         <li key={i} className="text-xs text-gray-300 flex items-start gap-1.5">
@@ -410,7 +414,7 @@ export default function MyPath() {
                     </ul>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-500 mb-1.5">Nice to Have</div>
+                    <div className="text-xs text-gray-500 mb-1.5">{t('path.niceToHave')}</div>
                     <ul className="space-y-1">
                       {plan.portfolio_requirements.nice_to_have.map((f, i) => (
                         <li key={i} className="text-xs text-gray-400 flex items-start gap-1.5">
@@ -432,14 +436,14 @@ export default function MyPath() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <FolderOpen className="w-5 h-5 text-quest-purple" />
-            <h3 className="font-bold text-white text-lg">My Portfolio</h3>
+            <h3 className="font-bold text-white text-lg">{t('path.myPortfolio')}</h3>
           </div>
           <button
             onClick={() => setShowProjectForm(v => !v)}
             className="btn-secondary flex items-center gap-1 text-sm py-1.5 px-3"
           >
             <Plus className="w-4 h-4" />
-            Add Project
+            {t('path.addProject')}
           </button>
         </div>
 
@@ -485,10 +489,10 @@ export default function MyPath() {
                 onClick={() => addProject({ ...newProject })}
                 className="btn-primary text-sm py-1.5 px-4"
               >
-                {addingProject ? 'Adding...' : 'Add'}
+                {addingProject ? t('path.adding') : t('path.add')}
               </button>
               <button onClick={() => setShowProjectForm(false)} className="btn-secondary text-sm py-1.5 px-4">
-                Cancel
+                {t('path.cancel')}
               </button>
             </div>
           </motion.div>
@@ -496,7 +500,7 @@ export default function MyPath() {
 
         {projects.length === 0 ? (
           <p className="text-quest-muted text-sm text-center py-4">
-            No projects yet. Add your first project to track your portfolio!
+            {t('path.noProjects')}
           </p>
         ) : (
           <div className="space-y-3">
@@ -536,13 +540,13 @@ export default function MyPath() {
       {/* Adjust plan */}
       <div className="mt-8 border border-white/10 rounded-xl p-5">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Adjust My Plan</h2>
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">{t('path.adjustPlan')}</h2>
           <button
             onClick={() => setShowAdjust(!showAdjust)}
             className="text-sm text-violet-400 hover:text-violet-300 flex items-center gap-1"
           >
             <RefreshCw size={13} />
-            Regenerate
+            {t('path.regenerate')}
           </button>
         </div>
         {showAdjust && (
@@ -561,10 +565,10 @@ export default function MyPath() {
                 disabled={!adjustNotes.trim() || adjustMutation.isPending}
                 className="px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white text-sm font-medium rounded-lg transition-colors"
               >
-                {adjustMutation.isPending ? 'Regenerating...' : 'Regenerate Plan'}
+                {adjustMutation.isPending ? t('path.regenerating') : t('path.regeneratePlan')}
               </button>
               <button onClick={() => setShowAdjust(false)} className="px-4 py-2 text-gray-400 hover:text-white text-sm transition-colors">
-                Cancel
+                {t('path.cancel')}
               </button>
             </div>
           </div>

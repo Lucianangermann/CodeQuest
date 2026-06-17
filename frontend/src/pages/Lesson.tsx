@@ -28,6 +28,7 @@ const PROSE = [
 
 function CopyableCodeBlock({ language, code }: { language: string; code: string; blockKey?: string }) {
   const [copied, setCopied] = useState(false)
+  const t = useT()
   function copy() {
     navigator.clipboard.writeText(code).then(() => {
       setCopied(true)
@@ -39,7 +40,7 @@ function CopyableCodeBlock({ language, code }: { language: string; code: string;
       <div className="flex items-center justify-between px-4 py-2 bg-[#1e1e2e] border-b border-quest-border">
         <span className="text-xs text-quest-muted font-mono">{language}</span>
         <button onClick={copy} className="text-xs text-quest-muted hover:text-quest-text transition-colors">
-          {copied ? '✓ Copied' : '⎘ Copy'}
+          {copied ? t('lesson.copied') : t('lesson.copy')}
         </button>
       </div>
       <SyntaxHighlighter language={language} style={vscDarkPlus} customStyle={{ margin: 0, background: '#0d0d1a', fontSize: '13px', padding: '16px' }}>
@@ -537,7 +538,7 @@ export default function LessonPage() {
               onClick={() => setLevelUp(null)}
               className="btn-primary mt-2 px-8"
             >
-              Continue
+              {t('lesson.continueBtn')}
             </button>
           </motion.div>
         </motion.div>
@@ -567,7 +568,7 @@ export default function LessonPage() {
               {t('lesson.topicComplete')}
             </h2>
             <p className="text-quest-text text-lg">{t('lesson.topicCompleteDesc')}</p>
-            <p className="text-quest-muted text-sm">Keep going — the next topic awaits.</p>
+            <p className="text-quest-muted text-sm">{t('lesson.nextTopicAwaits')}</p>
             <div className="flex gap-3 mt-2">
               <button onClick={() => { setTopicComplete(false); navigate('/roadmap') }} className="btn-primary px-6">
                 {t('lesson.nextTopic')}
@@ -579,7 +580,7 @@ export default function LessonPage() {
                 onClick={downloadCertificate}
                 className="btn-secondary px-6 flex items-center gap-2"
               >
-                📥 Zertifikat
+                {t('lesson.certificate')}
               </button>
             </div>
           </motion.div>
@@ -677,7 +678,7 @@ export default function LessonPage() {
                     className="mt-3 flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-quest-purple/40 text-quest-purple-light hover:bg-quest-purple/10 transition-all disabled:opacity-50"
                   >
                     {reviewLoading
-                      ? <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing your code...</>
+                      ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('lesson.analyzingCode')}</>
                       : <><Sparkles className="w-4 h-4" /> {t('lesson.getAiReview')}</>
                     }
                   </button>
@@ -748,8 +749,8 @@ export default function LessonPage() {
                         className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-red-400/30 text-red-300 hover:bg-red-400/10 transition-all disabled:opacity-50"
                       >
                         {isExplainingError
-                          ? <><Loader2 className="w-4 h-4 animate-spin" /> Analysiere Fehler...</>
-                          : <><HelpCircle className="w-4 h-4" /> 🔍 Fehler erklären (Deutsch)</>}
+                          ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('lesson.analyzingError')}</>
+                          : <><HelpCircle className="w-4 h-4" /> {t('lesson.explainError')}</>}
                       </button>
                     ) : (
                       <motion.div
@@ -757,13 +758,13 @@ export default function LessonPage() {
                         animate={{ opacity: 1, y: 0 }}
                         className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-sm text-quest-text leading-relaxed"
                       >
-                        <p className="font-semibold text-blue-400 mb-2">🔍 Fehler-Erklärung</p>
+                        <p className="font-semibold text-blue-400 mb-2">{t('lesson.errorExplanation')}</p>
                         <p>{errorExplanation}</p>
                         <button
                           onClick={() => setErrorExplanation('')}
                           className="mt-2 text-xs text-quest-muted hover:text-quest-text transition-colors"
                         >
-                          Schließen
+                          {t('lesson.closeBtn')}
                         </button>
                       </motion.div>
                     )}
@@ -777,7 +778,7 @@ export default function LessonPage() {
                       onClick={() => setShowSolution(s => !s)}
                       className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-quest-green/30 text-quest-green hover:bg-quest-green/10 transition-all"
                     >
-                      📖 {showSolution ? 'Musterlösung verbergen' : 'Musterlösung ansehen'}
+                      📖 {showSolution ? t('lesson.hideSolution') : t('lesson.showSolution')}
                     </button>
                     {showSolution && (
                       <motion.div
@@ -786,7 +787,7 @@ export default function LessonPage() {
                         className="mt-3 rounded-xl overflow-hidden border border-quest-green/30"
                       >
                         <div className="px-4 py-2 bg-quest-green/10 border-b border-quest-green/20">
-                          <p className="text-xs font-semibold text-quest-green uppercase tracking-wider">Musterlösung</p>
+                          <p className="text-xs font-semibold text-quest-green uppercase tracking-wider">{t('lesson.solutionTitle')}</p>
                         </div>
                         <Editor
                           value={(lesson.content_json as CodeContent).solution!}
@@ -796,7 +797,7 @@ export default function LessonPage() {
                           height="180px"
                         />
                         <div className="px-4 py-3 bg-black/20 border-t border-quest-border/30">
-                          <p className="text-xs text-quest-muted">Vergleiche deine Lösung mit der Musterlösung. Gibt es elegantere Wege?</p>
+                          <p className="text-xs text-quest-muted">{t('lesson.compareSolution')}</p>
                         </div>
                       </motion.div>
                     )}
@@ -806,7 +807,7 @@ export default function LessonPage() {
                 {/* Test case results panel */}
                 {result?.test_results && result.test_results.length > 0 && (
                   <div className="mt-4 space-y-2">
-                    <h3 className="text-sm font-semibold text-quest-muted">Test Results</h3>
+                    <h3 className="text-sm font-semibold text-quest-muted">{t('lesson.testResults')}</h3>
                     {result.test_results.map((tc, i) => (
                       <div
                         key={i}
@@ -876,11 +877,11 @@ export default function LessonPage() {
 
             <div className="flex gap-3 mt-4">
               {!result.correct && (
-                <button onClick={() => setResult(null)} className="btn-secondary text-sm">Try Again</button>
+                <button onClick={() => setResult(null)} className="btn-secondary text-sm">{t('lesson.tryAgain')}</button>
               )}
               {result.correct && (
                 <button onClick={() => navigate('/roadmap')} className="btn-primary flex items-center gap-2 text-sm">
-                  Continue <ChevronRight className="w-4 h-4" />
+                  {t('lesson.continueBtn')} <ChevronRight className="w-4 h-4" />
                 </button>
               )}
             </div>
@@ -889,11 +890,11 @@ export default function LessonPage() {
 
         {/* Personal Notes */}
         <div className="mt-6 pt-6 border-t border-quest-border">
-          <p className="text-xs text-quest-muted font-semibold uppercase tracking-wide mb-2">My Notes</p>
+          <p className="text-xs text-quest-muted font-semibold uppercase tracking-wide mb-2">{t('lesson.myNotes')}</p>
           <textarea
             value={note}
             onChange={e => { setNote(e.target.value); setNoteSaved(false) }}
-            placeholder="Write notes about this lesson..."
+            placeholder={t('lesson.notesPlaceholder')}
             rows={3}
             className="w-full bg-quest-bg border border-quest-border rounded-xl px-3 py-2 text-sm text-white placeholder-quest-muted focus:outline-none focus:border-quest-purple resize-none"
           />
@@ -901,7 +902,7 @@ export default function LessonPage() {
             onClick={saveNote}
             className="mt-2 text-xs text-quest-muted hover:text-quest-text transition-colors"
           >
-            {noteSaved ? '✓ Saved' : 'Save notes'}
+            {noteSaved ? t('lesson.noteSaved') : t('lesson.saveNote')}
           </button>
         </div>
       </div>

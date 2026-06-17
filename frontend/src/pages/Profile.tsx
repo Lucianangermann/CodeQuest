@@ -213,8 +213,8 @@ export default function Profile() {
       <div className="grid grid-cols-3 gap-4">
         {[
           { icon: <Zap className="w-5 h-5" />, label: t('profile.stats') + ' XP', value: typedProfile.xp.toLocaleString(), color: 'text-quest-purple' },
-          { icon: <BookOpen className="w-5 h-5" />, label: 'Lessons', value: typedProfile.total_lessons_completed, color: 'text-quest-green' },
-          { icon: <Flame className="w-5 h-5" />, label: 'Streak', value: `${typedProfile.streak}d`, color: 'text-orange-400' },
+          { icon: <BookOpen className="w-5 h-5" />, label: t('profile.lessons'), value: typedProfile.total_lessons_completed, color: 'text-quest-green' },
+          { icon: <Flame className="w-5 h-5" />, label: t('dash.streak'), value: `${typedProfile.streak}d`, color: 'text-orange-400' },
         ].map(({ icon, label, value, color }) => (
           <div key={label} className="card text-center">
             <div className={`${color} mx-auto mb-1`}>{icon}</div>
@@ -228,7 +228,7 @@ export default function Profile() {
       <div className="card space-y-6">
         <div className="flex items-center gap-2">
           <Settings className="w-5 h-5 text-quest-muted" />
-          <h2 className="font-semibold text-white">Settings</h2>
+          <h2 className="font-semibold text-white">{t('profile.settings')}</h2>
         </div>
 
         {/* App Language */}
@@ -282,7 +282,7 @@ export default function Profile() {
         {/* Daily goal */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-quest-text">Daily Goal (minutes)</label>
+            <label className="text-sm font-medium text-quest-text">{t('profile.dailyGoalLabel')}</label>
             {!editingGoal ? (
               <button onClick={() => setEditingGoal(true)} className="text-quest-muted hover:text-quest-text transition-colors">
                 <Edit3 className="w-4 h-4" />
@@ -322,7 +322,7 @@ export default function Profile() {
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-medium text-quest-text">{t('profile.streakShields')}</label>
-            <span className="text-xs text-quest-muted">New shield every Monday</span>
+            <span className="text-xs text-quest-muted">{t('profile.newShieldMonday')}</span>
           </div>
           <div className="flex items-center gap-4 flex-wrap">
             <p className="text-2xl font-bold text-white">
@@ -333,7 +333,7 @@ export default function Profile() {
               disabled={claimShieldMutation.isPending || (typedProfile.streak_shields ?? 0) >= 3}
               className="btn-secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {claimShieldMutation.isPending ? 'Claiming...' : t('profile.claimShield')}
+              {claimShieldMutation.isPending ? t('profile.claiming') : t('profile.claimShield')}
             </button>
           </div>
           <p className="text-xs text-quest-muted mt-2">
@@ -353,7 +353,7 @@ export default function Profile() {
             </div>
             {notifEnabled ? (
               <div className="flex items-center justify-between">
-                <span className="text-xs text-quest-green">✓ Reminders enabled</span>
+                <span className="text-xs text-quest-green">{t('profile.remindersEnabled')}</span>
                 <button onClick={disableNotifications} className="text-xs text-quest-muted hover:text-red-400 transition-colors">
                   {t('profile.disableReminders')}
                 </button>
@@ -364,7 +364,7 @@ export default function Profile() {
               </button>
             )}
             {Notification.permission === 'denied' && (
-              <p className="text-xs text-red-400 mt-1">Notifications blocked in browser settings. Allow them to enable reminders.</p>
+              <p className="text-xs text-red-400 mt-1">{t('profile.notifBlocked')}</p>
             )}
           </div>
         )}
@@ -373,19 +373,19 @@ export default function Profile() {
       {/* Lernstatistiken */}
       {stats && (
         <div className="card space-y-4">
-          <h3 className="font-bold text-white text-lg">📊 Lernstatistiken</h3>
+          <h3 className="font-bold text-white text-lg">{t('profile.statsTitle')}</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div className="bg-quest-surface rounded-xl p-3 text-center border border-quest-border/50">
               <p className="text-2xl font-bold text-white">{stats.study_days}</p>
-              <p className="text-xs text-quest-muted mt-0.5">Lerntage</p>
+              <p className="text-xs text-quest-muted mt-0.5">{t('profile.studyDays')}</p>
             </div>
             <div className="bg-quest-surface rounded-xl p-3 text-center border border-quest-border/50">
               <p className="text-2xl font-bold text-quest-green">{stats.first_attempt_rate}%</p>
-              <p className="text-xs text-quest-muted mt-0.5">Ersttreffer-Rate</p>
+              <p className="text-xs text-quest-muted mt-0.5">{t('profile.firstAttemptRate')}</p>
             </div>
             <div className="bg-quest-surface rounded-xl p-3 text-center border border-quest-border/50">
               <p className="text-2xl font-bold text-quest-purple">{stats.avg_xp_per_study_day}</p>
-              <p className="text-xs text-quest-muted mt-0.5">Ø XP / Tag</p>
+              <p className="text-xs text-quest-muted mt-0.5">{t('profile.avgXpPerDay')}</p>
             </div>
           </div>
 
@@ -393,9 +393,9 @@ export default function Profile() {
             <div className="flex items-center gap-3 p-3 rounded-xl bg-quest-yellow/5 border border-quest-yellow/20">
               <span className="text-2xl">{stats.best_topic.icon || '🏆'}</span>
               <div>
-                <p className="text-xs text-quest-muted">Bestes Thema</p>
+                <p className="text-xs text-quest-muted">{t('profile.bestTopic')}</p>
                 <p className="text-sm font-semibold text-white">{stats.best_topic.title}</p>
-                <p className="text-xs text-quest-muted">{stats.best_topic.count} Lektionen abgeschlossen</p>
+                <p className="text-xs text-quest-muted">{stats.best_topic.count} {t('profile.lessonsCompleted')}</p>
               </div>
             </div>
           )}
@@ -403,13 +403,13 @@ export default function Profile() {
           <div className="grid grid-cols-2 gap-3 text-sm">
             {stats.best_weekday && (
               <div className="bg-quest-surface rounded-xl p-3 border border-quest-border/50">
-                <p className="text-xs text-quest-muted mb-1">Aktivster Tag</p>
+                <p className="text-xs text-quest-muted mb-1">{t('profile.mostActiveDay')}</p>
                 <p className="font-semibold text-white">📅 {stats.best_weekday}</p>
               </div>
             )}
             {stats.member_since && (
               <div className="bg-quest-surface rounded-xl p-3 border border-quest-border/50">
-                <p className="text-xs text-quest-muted mb-1">Mitglied seit</p>
+                <p className="text-xs text-quest-muted mb-1">{t('profile.memberSince')}</p>
                 <p className="font-semibold text-white">🗓️ {stats.member_since}</p>
               </div>
             )}
@@ -417,7 +417,7 @@ export default function Profile() {
 
           {Object.keys(stats.lessons_by_type).length > 0 && (
             <div>
-              <p className="text-xs text-quest-muted uppercase tracking-wide mb-2">Lektionen nach Typ</p>
+              <p className="text-xs text-quest-muted uppercase tracking-wide mb-2">{t('profile.lessonsByType')}</p>
               <div className="flex gap-2 flex-wrap">
                 {Object.entries(stats.lessons_by_type).map(([type, count]) => (
                   <span key={type} className="text-xs px-2.5 py-1 rounded-full bg-quest-surface border border-quest-border/50 text-quest-text">
@@ -432,9 +432,9 @@ export default function Profile() {
 
       {/* Badge Encyclopedia */}
       <div className="card">
-        <h3 className="font-bold text-white text-lg mb-4">Achievements</h3>
+        <h3 className="font-bold text-white text-lg mb-4">{t('profile.achievementsTitle')}</h3>
         {allBadges.length === 0 ? (
-          <p className="text-quest-muted text-sm">Loading badges...</p>
+          <p className="text-quest-muted text-sm">{t('profile.loadingBadges')}</p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {allBadges.map((badge) => (
@@ -452,7 +452,7 @@ export default function Profile() {
                 </span>
                 <span className="text-xs text-quest-muted leading-tight">{badge.description}</span>
                 {badge.earned ? (
-                  <span className="text-xs text-quest-yellow font-medium">✓ Earned</span>
+                  <span className="text-xs text-quest-yellow font-medium">{t('profile.earned')}</span>
                 ) : badge.progress !== null && badge.goal !== null ? (
                   <div className="w-full">
                     <div className="flex justify-between text-xs text-quest-muted mb-1">
@@ -467,7 +467,7 @@ export default function Profile() {
                     </div>
                   </div>
                 ) : (
-                  <span className="text-xs text-quest-muted">🔒 Locked</span>
+                  <span className="text-xs text-quest-muted">{t('profile.badgeLocked')}</span>
                 )}
               </div>
             ))}
