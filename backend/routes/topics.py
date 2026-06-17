@@ -9,7 +9,7 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[TopicWithProgress])
-async def get_topics(language: str = "python", user_id: Optional[str] = Depends(get_optional_user)):
+async def get_topics(language: str = "python", ui_lang: str = "en", user_id: Optional[str] = Depends(get_optional_user)):
     async with acquire() as conn:
         topics = await conn.fetch("SELECT * FROM topics ORDER BY order_index")
 
@@ -50,10 +50,14 @@ async def get_topics(language: str = "python", user_id: Optional[str] = Depends(
             prev_done = completed_by_topic.get(prev_tid, 0)
             is_locked = not (prev_total > 0 and prev_done >= prev_total)
 
+        tr = {}
+        if ui_lang == "de":
+            raw_tr = t.get("translations")
+            tr = (raw_tr if isinstance(raw_tr, dict) else json.loads(raw_tr)) if raw_tr else {}
         result.append(TopicWithProgress(
             id=tid,
-            title=t["title"],
-            description=t.get("description"),
+            title=tr.get("title") or t["title"],
+            description=tr.get("description") or t.get("description"),
             order_index=t["order_index"],
             icon=t.get("icon"),
             total_lessons=total,

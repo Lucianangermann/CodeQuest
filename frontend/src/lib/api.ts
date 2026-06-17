@@ -39,7 +39,8 @@ api.interceptors.response.use(
 
 // Topics
 export async function fetchTopics(language = 'python'): Promise<Topic[]> {
-  const { data } = await api.get<Topic[]>('/topics/', { params: { language } })
+  const { uiLanguage } = useUserStore.getState()
+  const { data } = await api.get<Topic[]>('/topics/', { params: { language, ui_lang: uiLanguage } })
   return data
 }
 

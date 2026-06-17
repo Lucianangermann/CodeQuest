@@ -57,7 +57,7 @@ export default function Roadmap() {
   const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null)
   const initSearch = searchParams.get('search') ?? ''
   const [search, setSearch] = useState(initSearch)
-  const { user, setUser } = useUserStore()
+  const { user, setUser, uiLanguage } = useUserStore()
   const queryClient = useQueryClient()
   const t = useT()
   const lang = user?.language_preference || 'python'
@@ -82,7 +82,7 @@ export default function Roadmap() {
   })
 
   const { data: topics = [], isLoading: loadingTopics, error: topicsError } = useQuery({
-    queryKey: ['topics', lang],
+    queryKey: ['topics', lang, uiLanguage],
     queryFn: () => fetchTopics(lang),
     staleTime: 1000 * 60 * 5,
     select: (data) => {
