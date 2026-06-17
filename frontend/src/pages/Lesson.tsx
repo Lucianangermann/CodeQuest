@@ -11,7 +11,7 @@ import { fetchLesson, submitLesson, explainMistake, getCodeReview } from '../lib
 import { useLessonStore } from '../store/useLessonStore'
 import { useUserStore } from '../store/useUserStore'
 import { useT } from '../i18n/useT'
-import type { Lesson, QuizContent, CodeContent, TheoryContent } from '../types'
+import type { Lesson, QuizContent, CodeContent, TheoryContent, ExplainContent } from '../types'
 import Editor from '../components/Editor'
 import HintSystem from '../components/HintSystem'
 import toast from 'react-hot-toast'
@@ -143,6 +143,57 @@ function QuizView({ content, onSubmit, isSubmitting }: {
       >
         {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
         {t('lesson.checkAnswer')}
+      </button>
+    </div>
+  )
+}
+
+// ── Explain ───────────────────────────────────────────────────────────────────
+
+function ExplainView({ content, onSubmit, isSubmitting }: {
+  content: ExplainContent; onSubmit: (answer: string) => void; isSubmitting: boolean
+}) {
+  const [text, setText] = useState('')
+  const t = useT()
+
+  if (!content.generated_code) {
+    return (
+      <div className="flex items-center gap-2 text-quest-muted py-8 justify-center">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        <span className="text-sm">{t('explain.generating')}</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="p-4 bg-quest-purple/10 border border-quest-purple/20 rounded-xl text-sm text-quest-text leading-relaxed">
+        {t('explain.instruction')}
+      </div>
+
+      <CopyableCodeBlock
+        language="python"
+        code={content.generated_code}
+      />
+
+      <div className="space-y-2">
+        <textarea
+          value={text}
+          onChange={e => setText(e.target.value)}
+          placeholder={t('explain.placeholder')}
+          rows={5}
+          className="w-full bg-quest-card border border-quest-border rounded-xl px-4 py-3 text-sm text-quest-text placeholder:text-quest-muted resize-none focus:outline-none focus:border-quest-purple/60 transition-colors"
+        />
+        <p className="text-xs text-quest-muted text-right">{text.length} chars</p>
+      </div>
+
+      <button
+        onClick={() => text.trim().length >= 15 && onSubmit(text.trim())}
+        disabled={text.trim().length < 15 || isSubmitting}
+        className="btn-primary flex items-center gap-2"
+      >
+        {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+        {isSubmitting ? t('explain.submitting') : t('explain.submit')}
       </button>
     </div>
   )
@@ -446,6 +497,7 @@ export default function LessonPage() {
     code:     { label: '💻 Code',     cls: 'bg-quest-purple/20 text-quest-purple-light' },
     debug:    { label: '🐛 Debug',    cls: 'bg-red-500/20 text-red-400' },
     advanced: { label: '⚡ Advanced', cls: 'bg-orange-500/20 text-orange-400' },
+    explain:  { label: '🔍 Explain',  cls: 'bg-teal-500/20 text-teal-400' },
   } as Record<string, { label: string; cls: string }>)[lesson.type]
 
   function downloadCertificate() {
@@ -612,7 +664,7 @@ export default function LessonPage() {
       {/* Content */}
       <div className="card">
         <AnimatePresence mode="wait">
-          {(!result || !result.correct) && (
+          {(!result || !result.correct || lesson.type === 'explain') && (
             <motion.div key="lesson" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {lesson.type === 'theory' && (
                 <>
@@ -636,6 +688,13 @@ export default function LessonPage() {
                   onSubmit={handleSubmit}
                   isSubmitting={isSubmitting}
                   conceptIntro={lesson.concept_intro}
+                />
+              )}
+              {lesson.type === 'explain' && (
+                <ExplainView
+                  content={lesson.content_json as ExplainContent}
+                  onSubmit={handleSubmit}
+                  isSubmitting={isSubmitting}
                 />
               )}
             </motion.div>

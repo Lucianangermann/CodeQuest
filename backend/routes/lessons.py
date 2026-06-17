@@ -6,7 +6,7 @@ from datetime import date as _date
 from models.schemas import SubmitAnswerRequest, SubmitAnswerResponse
 from db.connection import acquire
 from services.code_runner import execute_code
-from services.claude import generate_task_intro, translate_to_german
+from services.claude import generate_task_intro, translate_to_german, translate_lesson_content_to_german, generate_explain_code, evaluate_explanation
 from deps import get_current_user, get_optional_user
 from utils.streak import update_user_streak
 
@@ -144,13 +144,13 @@ async def get_daily_challenge(user_id: Optional[str] = Depends(get_optional_user
 
 
 @router.get("/quick-practice")
-async def get_quick_practice(count: int = 5, user_id: str = Depends(get_current_user)):
+async def get_quick_practice(count: int = 5, ui_lang: str = "en", user_id: str = Depends(get_current_user)):
     """Returns random quiz lessons from topics the user has already started."""
     async with acquire() as conn:
         lessons = await conn.fetch(
             """
             SELECT l.id, l.title, l.type, l.content_json, l.xp_reward, l.topic_id,
-                   l.language, l.order_index, t.title AS topic_title
+                   l.language, l.order_index, t.title AS topic_title, l.translations
             FROM lessons l
             JOIN topics t ON t.id = l.topic_id
             WHERE l.type = 'quiz'
@@ -165,7 +165,21 @@ async def get_quick_practice(count: int = 5, user_id: str = Depends(get_current_
             """,
             user_id, min(count, 10),
         )
-    return [dict(l) for l in lessons]
+
+    result = []
+    for lesson in lessons:
+        d = dict(lesson)
+        if ui_lang == "de":
+            raw_tr = d.pop("translations", None)
+            tr: dict = (raw_tr if isinstance(raw_tr, dict) else json.loads(raw_tr)) if raw_tr else {}
+            if tr.get("content"):
+                content = dict(d.get("content_json") or {})
+                content.update(tr["content"])
+                d["content_json"] = content
+        else:
+            d.pop("translations", None)
+        result.append(d)
+    return result
 
 
 @router.get("/{lesson_id}")
@@ -224,6 +238,25 @@ async def get_lesson(lesson_id: int, ui_lang: str = "en", user_id: Optional[str]
                             existing_tr["content"] = de_content
                             needs_tr_update = True
 
+        elif lesson["type"] in ("theory", "quiz") and ui_lang == "de":
+            # Translate full content on-demand and persist
+            if not existing_tr.get("content"):
+                raw_content = lesson["content_json"] or {}
+                translated = await translate_lesson_content_to_german(raw_content, lesson["type"])
+                if translated:
+                    existing_tr["content"] = translated
+                    needs_tr_update = True
+
+        elif lesson["type"] == "explain":
+            # Generate code snippet on first request and cache globally
+            if not existing_tr.get("generated_code"):
+                topic_constraints = (lesson["content_json"] or {}).get("topic_constraints", [])
+                lang = lesson["language"] or "python"
+                generated = await generate_explain_code(topic_constraints, lang)
+                if generated:
+                    existing_tr["generated_code"] = generated
+                    needs_tr_update = True
+
         if needs_tr_update:
             # Pass dict directly — asyncpg's jsonb codec encodes it; json.dumps() would double-encode
             await conn.execute(
@@ -240,9 +273,12 @@ async def get_lesson(lesson_id: int, ui_lang: str = "en", user_id: Optional[str]
             content = dict(d.get("content_json") or {})
             content.update(tr["content"])
             d["content_json"] = content
-        d.pop("translations", None)
-    else:
-        d.pop("translations", None)
+    # For explain lessons, embed the generated code into content_json
+    if lesson["type"] == "explain":
+        cj = dict(d.get("content_json") or {})
+        cj["generated_code"] = existing_tr.get("generated_code", "")
+        d["content_json"] = cj
+    d.pop("translations", None)
     return d
 
 
@@ -341,6 +377,15 @@ async def submit_lesson(
                         "Perfect! Your code produced the correct output." if correct
                         else "Not quite right."
                     )
+
+        elif lesson["type"] == "explain":
+            raw_tr = lesson["translations"]
+            tr: dict = (raw_tr if isinstance(raw_tr, dict) else json.loads(raw_tr)) if raw_tr else {}
+            generated_code = tr.get("generated_code", "")
+            if not generated_code:
+                correct, feedback = True, "Code not found — lesson marked as complete."
+            else:
+                correct, feedback = await evaluate_explanation(generated_code, body.answer, lesson["language"] or "python")
 
         elif lesson["type"] == "theory":
             correct, feedback = True, "Great! Theory lesson completed."

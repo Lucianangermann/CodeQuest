@@ -154,7 +154,12 @@ export interface Topic {
   is_completed: boolean
 }
 
-export type LessonType = 'theory' | 'quiz' | 'code' | 'debug' | 'advanced'
+export type LessonType = 'theory' | 'quiz' | 'code' | 'debug' | 'advanced' | 'explain'
+
+export interface ExplainContent {
+  topic_constraints: string[]
+  generated_code: string
+}
 
 export interface TheorySection {
   type: 'text' | 'code'
@@ -188,7 +193,7 @@ export interface Lesson {
   topic_id: number
   title: string
   type: LessonType
-  content_json: TheoryContent | QuizContent | CodeContent
+  content_json: TheoryContent | QuizContent | CodeContent | ExplainContent
   xp_reward: number
   order_index: number
   is_completed: boolean

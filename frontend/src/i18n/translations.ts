@@ -210,6 +210,15 @@ export const translations: Record<Lang, Record<string, string>> = {
     'lesson.noteSaved': '✓ Saved',
     'lesson.saveNote': 'Save notes',
 
+    // Explain lesson
+    'explain.title': 'Read & Explain',
+    'explain.instruction': 'Read the code below carefully. Then explain in your own words what it does — step by step. You don\'t need perfect technical terms; focus on showing you understand the logic.',
+    'explain.placeholder': 'Describe what this code does, step by step...',
+    'explain.submit': 'Submit Explanation',
+    'explain.submitting': 'Evaluating...',
+    'explain.tryAgain': 'Try Again',
+    'explain.generating': 'Generating code...',
+
     // Profile additions
     'profile.settings': 'Settings',
     'profile.dailyGoalLabel': 'Daily Goal (minutes)',
@@ -497,6 +506,15 @@ export const translations: Record<Lang, Record<string, string>> = {
     'lesson.notesPlaceholder': 'Notizen zur Lektion...',
     'lesson.noteSaved': '✓ Gespeichert',
     'lesson.saveNote': 'Notizen speichern',
+
+    // Explain lesson
+    'explain.title': 'Lesen & Erklären',
+    'explain.instruction': 'Lies den folgenden Code aufmerksam. Erkläre dann in eigenen Worten, was er tut — Schritt für Schritt. Keine perfekten Fachbegriffe nötig; zeige einfach, dass du die Logik verstehst.',
+    'explain.placeholder': 'Beschreibe was dieser Code tut, Schritt für Schritt...',
+    'explain.submit': 'Erklärung abschicken',
+    'explain.submitting': 'Wird bewertet...',
+    'explain.tryAgain': 'Nochmal versuchen',
+    'explain.generating': 'Code wird generiert...',
 
     // Profile additions
     'profile.settings': 'Einstellungen',

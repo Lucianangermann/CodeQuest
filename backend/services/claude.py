@@ -29,6 +29,45 @@ def _parse_json(text: str) -> dict:
 
 # ── AI Tutor ──────────────────────────────────────────────────────────────────
 
+async def translate_lesson_content_to_german(content: dict, lesson_type: str) -> dict:
+    """Translate theory or quiz lesson content to German, preserving JSON structure."""
+    client = _get_claude()
+    if not client:
+        return {}
+    content_str = json.dumps(content, ensure_ascii=False)
+    if lesson_type == "theory":
+        prompt = (
+            "Translate the following JSON lesson content to German. Rules:\n"
+            "- Translate ALL natural language text: 'summary', section 'heading' fields, and text in 'content' fields\n"
+            "- For sections with '\"type\": \"code\"': leave the 'content' value COMPLETELY UNCHANGED\n"
+            "- For sections with '\"type\": \"text\"' or with a 'heading' key: translate the text BUT leave code examples inside ``` fences unchanged\n"
+            "- Leave technical terms, variable/function names, Python/JS keywords in English\n"
+            "- Preserve the exact JSON structure, all keys, and all non-text values\n"
+            "- Return ONLY valid JSON, no explanations\n\n"
+            + content_str
+        )
+    elif lesson_type == "quiz":
+        prompt = (
+            "Translate the following JSON quiz content to German. Rules:\n"
+            "- Translate: 'question', each item in 'options', and 'explanation'\n"
+            "- Keep the 'correct' field value UNCHANGED (same integer)\n"
+            "- Leave code snippets and technical terms in English\n"
+            "- Preserve the exact JSON structure and all keys\n"
+            "- Return ONLY valid JSON, no explanations\n\n"
+            + content_str
+        )
+    else:
+        return {}
+    msg = await client.messages.create(
+        model=MODEL, max_tokens=4096,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    try:
+        return _parse_json(msg.content[0].text)
+    except (json.JSONDecodeError, KeyError, IndexError):
+        return {}
+
+
 async def translate_to_german(text: str) -> str:
     client = _get_claude()
     if not client:
@@ -802,6 +841,69 @@ async def interview_summary(messages: list, company_size: str, focus: str) -> di
         messages=[{"role": m["role"], "content": m["content"]} for m in all_messages],
     )
     return _parse_json(msg.content[0].text)
+
+
+# ── Explain Lesson ────────────────────────────────────────────────────────────
+
+async def generate_explain_code(topic_constraints: list[str], language: str) -> str:
+    """Generate a code snippet using only concepts from the listed topics."""
+    client = _get_claude()
+    if not client:
+        return ""
+    topics_str = ", ".join(topic_constraints)
+    lang_name = {"python": "Python", "javascript": "JavaScript", "typescript": "TypeScript"}.get(language, "Python")
+    prompt = (
+        f"Generate a {lang_name} code snippet for a coding education exercise.\n"
+        f"The student has learned ONLY these concepts so far: {topics_str}.\n\n"
+        "Rules:\n"
+        "- Use ONLY concepts from the listed topics — nothing else\n"
+        "- 8–20 lines of code — NO comments at all (no //, no #, no /* */)\n"
+        "- Real-world scenario: shopping cart, grade tracker, game score, temperature converter, etc.\n"
+        "- The code must combine MULTIPLE concepts from the list (not just one)\n"
+        "- Do NOT include any comments — the student must figure out what the code does themselves\n"
+        "- Medium difficulty — interesting but understandable for a beginner at this stage\n"
+        "- Must produce clear, non-trivial output when run\n\n"
+        "Return ONLY the code — no markdown fences, no explanation."
+    )
+    msg = await client.messages.create(
+        model=MODEL, max_tokens=600,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return msg.content[0].text.strip()
+
+
+async def evaluate_explanation(code: str, user_explanation: str, language: str) -> tuple[bool, str]:
+    """Evaluate a student's plain-text explanation of a code snippet."""
+    client = _get_claude()
+    if not client:
+        return True, "AI evaluation not available — marked as complete."
+    if not user_explanation or len(user_explanation.strip()) < 15:
+        return False, "Your explanation is too short. Try to describe what each part of the code does, step by step."
+    prompt = (
+        f"A student was shown this {language} code and asked to explain what it does:\n\n"
+        f"```\n{code}\n```\n\n"
+        f"The student wrote:\n\"{user_explanation}\"\n\n"
+        "Evaluate whether this shows genuine understanding. Technical terms are NOT required — "
+        "understanding the PURPOSE and FLOW matters most.\n\n"
+        "PASS if the student:\n"
+        "- Correctly describes the overall goal of the code\n"
+        "- Mentions the main steps or logic (conditions, loops, function calls, etc.)\n"
+        "- Shows they understand what output or result is produced\n\n"
+        "FAIL if the student:\n"
+        "- Is too vague ('it calculates something', 'it prints stuff')\n"
+        "- Gets the purpose fundamentally wrong\n"
+        "- Describes only one tiny detail while missing the whole picture\n\n"
+        'Return ONLY valid JSON: {"passed": true, "feedback": "2-3 sentences: acknowledge what was right, mention what was missing if failed, end with encouragement"}'
+    )
+    try:
+        msg = await client.messages.create(
+            model=MODEL, max_tokens=300,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        result = _parse_json(msg.content[0].text)
+        return bool(result.get("passed")), str(result.get("feedback", ""))
+    except Exception:
+        return True, "Great explanation — you clearly understand the code!"
 
 
 # ── Code Review ───────────────────────────────────────────────────────────────

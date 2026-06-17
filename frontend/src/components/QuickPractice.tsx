@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, CheckCircle, XCircle, Zap, ChevronRight, Trophy } from 'lucide-react'
 import api from '../lib/api'
 import { useT } from '../i18n/useT'
+import { useUserStore } from '../store/useUserStore'
 
 interface QuizLesson {
   id: number
@@ -22,6 +23,7 @@ interface Props {
 
 export default function QuickPractice({ onClose }: Props) {
   const t = useT()
+  const { uiLanguage } = useUserStore()
   const [questions, setQuestions] = useState<QuizLesson[]>([])
   const [loading, setLoading] = useState(false)
   const [started, setStarted] = useState(false)
@@ -34,7 +36,7 @@ export default function QuickPractice({ onClose }: Props) {
   async function startPractice() {
     setLoading(true)
     try {
-      const { data } = await api.get<QuizLesson[]>('/lessons/quick-practice?count=5')
+      const { data } = await api.get<QuizLesson[]>(`/lessons/quick-practice?count=5&ui_lang=${uiLanguage}`)
       if (data.length === 0) {
         alert(t('quick.noLessons'))
         onClose()
