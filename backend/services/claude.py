@@ -902,31 +902,118 @@ async def interview_summary(messages: list, company_size: str, focus: str) -> di
 
 # ── Explain Lesson ────────────────────────────────────────────────────────────
 
+def _forbidden_constructs(constraints: list[str], language: str) -> list[str]:
+    """Derive explicitly forbidden language constructs from what has NOT been learned yet."""
+    cl = " ".join(constraints).lower()
+    is_js = language in ("javascript", "typescript")
+    forbidden = []
+    if not any(w in cl for w in ("conditional", "if", "else", "switch", "ternary")):
+        forbidden += (["if/else statements", "ternary operator (?:)", "switch statements"]
+                      if is_js else ["if/elif/else statements", "ternary expressions"])
+    if not any(w in cl for w in ("loop", "for", "while", "foreach", "map", "filter", "reduce")):
+        forbidden += (["for loops", "while loops", "forEach", "map()", "filter()", "reduce()"]
+                      if is_js else ["for loops", "while loops", "list comprehensions"])
+    if not any(w in cl for w in ("function", "arrow", "def ", "lambda")):
+        forbidden += (["function declarations", "arrow functions (=>)", "callbacks"]
+                      if is_js else ["function definitions (def)", "lambda"])
+    if not any(w in cl for w in ("array", "list", "tuple")):
+        forbidden += ["arrays ([])", "array methods"] if is_js else ["lists []", "tuples"]
+    if not any(w in cl for w in ("object", "dict", "class", "map", "set")):
+        forbidden += ["objects {}", "object methods"] if is_js else ["dicts {}", "classes"]
+    if not any(w in cl for w in ("class", "oop", "inherit", "prototype")):
+        forbidden += ["classes", "new keyword", "prototype"]
+    if not any(w in cl for w in ("error", "try", "catch", "except", "throw", "raise")):
+        forbidden += ["try/catch", "throw"] if is_js else ["try/except", "raise"]
+    if not any(w in cl for w in ("async", "await", "promise", "callback")):
+        forbidden += ["async/await", "Promises", "setTimeout"]
+    if not any(w in cl for w in ("import", "require", "module", "export")):
+        forbidden += ["import/require", "module exports"]
+    return forbidden
+
+
+# Regex patterns keyed by the concept name — used to detect violations in generated code
+_VIOLATION_PATTERNS: dict[str, list[str]] = {
+    "conditionals": [r'\bif\b', r'\belse\b', r'\bswitch\b', r'(?<!["\'])(\?[^?])'],
+    "loops": [r'\bfor\b', r'\bwhile\b', r'\bforEach\b', r'\.map\s*\(', r'\.filter\s*\(', r'\.reduce\s*\('],
+    "functions": [r'\bfunction\b', r'=>'],
+    "arrays": [r'\[.*\]'],
+    "classes": [r'\bclass\b', r'\bnew\b'],
+    "try_catch": [r'\btry\b', r'\bcatch\b', r'\bthrow\b', r'\bexcept\b', r'\braise\b'],
+    "async": [r'\basync\b', r'\bawait\b'],
+    "import": [r'\bimport\b', r'\brequire\b'],
+}
+
+
+def _has_violations(code: str, constraints: list[str]) -> bool:
+    cl = " ".join(constraints).lower()
+    checks = []
+    if not any(w in cl for w in ("conditional", "if", "else", "switch", "ternary")):
+        checks += _VIOLATION_PATTERNS["conditionals"]
+    if not any(w in cl for w in ("loop", "for", "while", "foreach", "map", "filter", "reduce")):
+        checks += _VIOLATION_PATTERNS["loops"]
+    if not any(w in cl for w in ("function", "arrow", "def ", "lambda")):
+        checks += _VIOLATION_PATTERNS["functions"]
+    if not any(w in cl for w in ("class", "oop", "inherit")):
+        checks += _VIOLATION_PATTERNS["classes"]
+    if not any(w in cl for w in ("error", "try", "catch")):
+        checks += _VIOLATION_PATTERNS["try_catch"]
+    if not any(w in cl for w in ("async", "await", "promise")):
+        checks += _VIOLATION_PATTERNS["async"]
+    if not any(w in cl for w in ("import", "require", "module")):
+        checks += _VIOLATION_PATTERNS["import"]
+    for pattern in checks:
+        if re.search(pattern, code):
+            return True
+    return False
+
+
+def _clean_code(text: str) -> str:
+    text = text.strip()
+    text = re.sub(r'^```[a-z]*\n?', '', text)
+    text = re.sub(r'\n?```$', '', text)
+    return text.strip()
+
+
 async def generate_explain_code(topic_constraints: list[str], language: str) -> str:
-    """Generate a code snippet using only concepts from the listed topics."""
+    """Generate a code snippet using ONLY the listed concepts — no others."""
     client = _get_claude()
     if not client:
         return ""
     topics_str = ", ".join(topic_constraints)
     lang_name = {"python": "Python", "javascript": "JavaScript", "typescript": "TypeScript"}.get(language, "Python")
-    prompt = (
-        f"Generate a {lang_name} code snippet for a coding education exercise.\n"
-        f"The student has learned ONLY these concepts so far: {topics_str}.\n\n"
-        "Rules:\n"
-        "- Use ONLY concepts from the listed topics — nothing else\n"
-        "- 8–20 lines of code — NO comments at all (no //, no #, no /* */)\n"
-        "- Real-world scenario: shopping cart, grade tracker, game score, temperature converter, etc.\n"
-        "- The code must combine MULTIPLE concepts from the list (not just one)\n"
-        "- Do NOT include any comments — the student must figure out what the code does themselves\n"
-        "- Medium difficulty — interesting but understandable for a beginner at this stage\n"
-        "- Must produce clear, non-trivial output when run\n\n"
-        "Return ONLY the code — no markdown fences, no explanation."
-    )
-    msg = await client.messages.create(
-        model=MODEL, max_tokens=600,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return msg.content[0].text.strip()
+    forbidden = _forbidden_constructs(topic_constraints, language)
+    forbidden_str = ", ".join(forbidden) if forbidden else "none"
+
+    def make_prompt(extra: str = "") -> str:
+        return (
+            f"CRITICAL CONSTRAINT: Generate a {lang_name} code snippet for a beginner student.\n"
+            f"The student has ONLY learned: {topics_str}.\n\n"
+            f"YOU MUST NOT USE ANY OF THESE — they are completely off-limits:\n"
+            f"{forbidden_str}\n\n"
+            f"This means: if the word 'if', 'else', 'for', 'while', 'function', '=>', '?', "
+            f"'class', 'new', 'try', 'catch', 'import', 'require' appears in your code, it is WRONG.\n"
+            f"{extra}"
+            "Requirements:\n"
+            "- 6–12 lines of pure assignment, arithmetic, and console.log/print only\n"
+            "- Use MULTIPLE data types: strings, numbers, booleans\n"
+            "- Real-world scenario (price, score, measurement)\n"
+            "- NO comments (no //, no #)\n"
+            "- NO markdown fences\n"
+            "- Return ONLY the raw code, nothing else."
+        )
+
+    for attempt in range(3):
+        extra = f"PREVIOUS ATTEMPT WAS REJECTED because it used forbidden constructs. Try again.\n\n" if attempt > 0 else ""
+        msg = await client.messages.create(
+            model=MODEL, max_tokens=500,
+            messages=[{"role": "user", "content": make_prompt(extra)}],
+        )
+        result = _clean_code(msg.content[0].text)
+        if not _has_violations(result, topic_constraints):
+            return result
+
+    # Return last attempt even if it has violations — better than nothing
+    return result
 
 
 async def evaluate_explanation(code: str, user_explanation: str, language: str) -> tuple[bool, str]:
