@@ -6,7 +6,7 @@ from datetime import date as _date
 from models.schemas import SubmitAnswerRequest, SubmitAnswerResponse
 from db.connection import acquire
 from services.code_runner import execute_code
-from services.claude import generate_task_intro, translate_to_german, translate_lesson_content_to_german, translate_code_comments, generate_explain_code, evaluate_explanation
+from services.claude import generate_task_intro, translate_to_german, translate_lesson_content_to_german, translate_code_comments, translate_hints_to_german, generate_explain_code, evaluate_explanation
 from deps import get_current_user, get_optional_user
 from utils.streak import update_user_streak
 
@@ -245,6 +245,14 @@ async def get_lesson(lesson_id: int, ui_lang: str = "en", user_id: Optional[str]
                         de_starter = await translate_code_comments(raw_starter, lang)
                         if de_starter:
                             de_content["starter_code"] = de_starter
+                            existing_tr["content"] = de_content
+                            needs_tr_update = True
+                if not de_content.get("hints"):
+                    raw_hints = (lesson["content_json"] or {}).get("hints", [])
+                    if raw_hints:
+                        de_hints = await translate_hints_to_german(raw_hints)
+                        if de_hints:
+                            de_content["hints"] = de_hints
                             existing_tr["content"] = de_content
                             needs_tr_update = True
 

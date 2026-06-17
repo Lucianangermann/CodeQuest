@@ -69,6 +69,34 @@ async def translate_lesson_content_to_german(content: dict, lesson_type: str) ->
         return {}
 
 
+async def translate_hints_to_german(hints: list[str]) -> list[str]:
+    """Translate an array of hint strings to German in a single API call."""
+    client = _get_claude()
+    if not client or not hints:
+        return hints
+    numbered = "\n".join(f"{i+1}. {h}" for i, h in enumerate(hints))
+    prompt = (
+        "Translate the following numbered hints to German. Rules:\n"
+        "- Keep code snippets, variable names, and technical terms in English\n"
+        "- Translate only the surrounding explanation text\n"
+        "- Return ONLY the numbered list in the same format, nothing else\n\n"
+        + numbered
+    )
+    msg = await client.messages.create(
+        model=MODEL, max_tokens=400,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    lines = msg.content[0].text.strip().splitlines()
+    result = []
+    for line in lines:
+        line = line.strip()
+        if line and line[0].isdigit() and ". " in line:
+            result.append(line.split(". ", 1)[1])
+        elif line:
+            result.append(line)
+    return result if len(result) == len(hints) else hints
+
+
 async def translate_code_comments(code: str, programming_language: str) -> str:
     """Translate only the inline comments in a code snippet to German, leaving all code unchanged."""
     client = _get_claude()
