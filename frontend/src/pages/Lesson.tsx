@@ -104,6 +104,11 @@ function TheoryView({ content }: { content: TheoryContent }) {
           <strong className="text-quest-purple-light">{t('lesson.summary')}:</strong> {content.summary}
         </div>
       )}
+      {content.why_matters && (
+        <div className="mt-2 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-sm text-emerald-300">
+          {content.why_matters}
+        </div>
+      )}
     </div>
   )
 }

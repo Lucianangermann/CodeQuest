@@ -170,6 +170,7 @@ export interface TheorySection {
 export interface TheoryContent {
   sections: TheorySection[]
   summary?: string
+  why_matters?: string
 }
 
 export interface QuizContent {
@@ -177,6 +178,7 @@ export interface QuizContent {
   options: string[]
   correct_index: number
   explanation: string
+  option_explanations?: string[]
 }
 
 export interface CodeContent {

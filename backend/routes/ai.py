@@ -1,3 +1,5 @@
+import hashlib
+import json
 from fastapi import APIRouter, Depends, HTTPException
 from models.schemas import HintRequest, HintResponse, ExplainRequest, ExplainResponse, ChatRequest, ChatResponse, CodeReviewRequest, CodeReviewResponse
 from db.connection import acquire
@@ -45,7 +47,8 @@ async def ai_chat(body: ChatRequest, user_id: str = Depends(get_current_user)):
 async def review_code_endpoint(body: CodeReviewRequest, user_id: str = Depends(get_current_user)):
     async with acquire() as conn:
         lesson = await conn.fetchrow(
-            "SELECT content_json FROM lessons WHERE id = $1 AND type = 'code'", body.lesson_id
+            "SELECT content_json FROM lessons WHERE id = $1 AND type IN ('code','debug','advanced')",
+            body.lesson_id,
         )
         if not lesson:
             raise HTTPException(status_code=404, detail="Lesson not found or not a code lesson")
@@ -54,5 +57,28 @@ async def review_code_endpoint(body: CodeReviewRequest, user_id: str = Depends(g
     task = content.get("instructions", "Complete the coding task")
     expected = content.get("expected_output", "")
 
+    # Check review cache (same lesson + same code → reuse result)
+    code_hash = hashlib.md5(body.code.strip().encode()).hexdigest()
+    async with acquire() as conn:
+        cached = await conn.fetchval(
+            "SELECT review_json FROM code_reviews WHERE lesson_id = $1 AND code_hash = $2",
+            body.lesson_id, code_hash,
+        )
+    if cached:
+        data = cached if isinstance(cached, dict) else json.loads(cached)
+        return CodeReviewResponse(**data)
+
     result = await review_code(task, expected, body.code, body.language)
+
+    # Store in cache (ignore errors — cache is best-effort)
+    try:
+        async with acquire() as conn:
+            await conn.execute(
+                """INSERT INTO code_reviews (lesson_id, code_hash, review_json)
+                   VALUES ($1, $2, $3) ON CONFLICT DO NOTHING""",
+                body.lesson_id, code_hash, result,
+            )
+    except Exception:
+        pass
+
     return CodeReviewResponse(**result)

@@ -1089,3 +1089,141 @@ async def review_code(task: str, expected_output: str, user_code: str, language:
             "alternative": None,
             "grade": "Good",
         }
+
+
+# ── Background content generation ────────────────────────────────────────────
+
+async def generate_missing_hints(
+    instructions: str, existing_hints: list, language: str
+) -> list:
+    """Generate hints 2 and/or 3 for a lesson that has fewer than 3 pre-stored hints."""
+    client = _get_claude()
+    if not client:
+        return []
+
+    hints_needed = list(range(len(existing_hints) + 1, 4))
+    if not hints_needed:
+        return []
+
+    level_desc = {
+        1: "a very gentle nudge (just point in the right direction, no code)",
+        2: "a moderately specific hint (explain the approach without showing code)",
+        3: "a very specific hint (show the key concept or exact syntax needed)",
+    }
+    existing_text = ""
+    if existing_hints:
+        existing_text = "Existing hints (do NOT repeat):\n" + "\n".join(
+            f"{i+1}. {h}" for i, h in enumerate(existing_hints)
+        ) + "\n\n"
+    hints_descs = "\n".join(f"Hint {i}: {level_desc[i]}" for i in hints_needed)
+
+    try:
+        msg = await client.messages.create(
+            model=MODEL, max_tokens=300,
+            messages=[{"role": "user", "content":
+                f"Task: {instructions}\nLanguage: {language}\n\n"
+                f"{existing_text}"
+                f"Generate these additional hints:\n{hints_descs}\n\n"
+                f"Return ONLY a JSON array of {len(hints_needed)} strings, e.g. [\"hint...\", ...]"
+            }],
+        )
+        result = json.loads(msg.content[0].text.strip())
+        if isinstance(result, list):
+            return [str(h) for h in result[: len(hints_needed)]]
+    except Exception:
+        pass
+    return []
+
+
+async def generate_test_cases_for_lesson(
+    instructions: str, expected_output: str, solution: str, language: str
+) -> list:
+    """Generate 3 stdin-based test cases for a code lesson (for lessons using input())."""
+    client = _get_claude()
+    if not client:
+        return []
+
+    try:
+        msg = await client.messages.create(
+            model=MODEL, max_tokens=600,
+            messages=[{"role": "user", "content":
+                f"Task: {instructions}\nLanguage: {language}\n"
+                f"Solution:\n{solution}\n\n"
+                "Generate 3 diverse test cases (different inputs) for this coding task.\n"
+                "Cover: normal case, edge case (0/empty/negative), another variation.\n"
+                'Return ONLY a JSON array: '
+                '[{"description": "...", "input": "5\\n", "expected_output": "25\\n"}, ...]\n'
+                "Use \\n at end of each input and output line."
+            }],
+        )
+        text = msg.content[0].text.strip()
+        if text.startswith("```"):
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+        result = json.loads(text.strip())
+        if isinstance(result, list) and all(
+            "input" in tc and "expected_output" in tc for tc in result
+        ):
+            return result[:5]
+    except Exception:
+        pass
+    return []
+
+
+async def generate_quiz_option_explanations(
+    question: str, options: list, correct_index: int
+) -> list:
+    """Generate a one-sentence explanation for each quiz answer option."""
+    client = _get_claude()
+    if not client:
+        return []
+
+    options_text = "\n".join(f"{i}. {opt}" for i, opt in enumerate(options))
+    try:
+        msg = await client.messages.create(
+            model=MODEL, max_tokens=500,
+            messages=[{"role": "user", "content":
+                f"Quiz question: {question}\n\nOptions:\n{options_text}\n"
+                f"Correct: option {correct_index} ({options[correct_index]})\n\n"
+                f"For each option (0 to {len(options)-1}), write ONE short sentence explaining "
+                "why it is correct or specifically why it is wrong (be concrete).\n"
+                f'Return ONLY a JSON array of {len(options)} strings: '
+                '["✅ ...", "❌ ...", ...]'
+            }],
+        )
+        text = msg.content[0].text.strip()
+        if text.startswith("```"):
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+        result = json.loads(text.strip())
+        if isinstance(result, list) and len(result) == len(options):
+            return [str(e) for e in result]
+    except Exception:
+        pass
+    return []
+
+
+async def generate_why_matters(
+    topic_title: str, theory_content: dict, language: str
+) -> str:
+    """Generate a 2-3 sentence 'where this is used in real projects' section."""
+    client = _get_claude()
+    if not client:
+        return ""
+
+    summary = str(theory_content.get("summary", ""))[:300]
+    try:
+        msg = await client.messages.create(
+            model=MODEL, max_tokens=150,
+            messages=[{"role": "user", "content":
+                f"Topic: {topic_title}\nLanguage: {language}\nSummary: {summary}\n\n"
+                "Write 2 sentences explaining where this concept is used in REAL "
+                f"{language} projects. Be concrete: mention specific frameworks, APIs, "
+                "or code patterns. Start with '🌍 Real world:'"
+            }],
+        )
+        return msg.content[0].text.strip()
+    except Exception:
+        return ""

@@ -144,6 +144,180 @@ async def _prewarm_theory_quiz_de():
         pass
 
 
+async def _prewarm_hints():
+    """Background: generate hints 2+3 for any code/debug lesson that has fewer than 3 pre-stored."""
+    await asyncio.sleep(60)
+    from db.connection import acquire
+    from services.claude import generate_missing_hints
+
+    sem = asyncio.Semaphore(2)
+
+    async def _fill(lesson):
+        import json as _json
+        raw = lesson["content_json"] or {}
+        hints = raw.get("hints", [])
+        if len(hints) >= 3:
+            return
+        instructions = raw.get("instructions", "")
+        if not instructions:
+            return
+        language = lesson["language"] or "python"
+        async with sem:
+            try:
+                new_hints = await generate_missing_hints(instructions, hints, language)
+                if not new_hints:
+                    return
+                updated = dict(raw)
+                updated["hints"] = hints + new_hints
+                async with acquire() as conn:
+                    await conn.execute(
+                        "UPDATE lessons SET content_json = $1 WHERE id = $2",
+                        updated, lesson["id"],
+                    )
+            except Exception:
+                pass
+
+    try:
+        async with acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT id, content_json, language FROM lessons WHERE type IN ('code','debug','advanced')"
+            )
+        await asyncio.gather(*[_fill(r) for r in rows])
+    except Exception:
+        pass
+
+
+async def _generate_test_cases_bg():
+    """Background: generate stdin test cases for code lessons that only have expected_output."""
+    await asyncio.sleep(90)
+    from db.connection import acquire
+    from services.claude import generate_test_cases_for_lesson
+
+    sem = asyncio.Semaphore(2)
+
+    async def _add(lesson):
+        raw = lesson["content_json"] or {}
+        if raw.get("test_cases"):
+            return
+        instructions = raw.get("instructions", "")
+        solution = raw.get("solution", "")
+        if not instructions or not solution:
+            return
+        # Only for lessons whose instructions indicate stdin usage
+        if not any(kw in instructions.lower() for kw in ["input", "read", "enter", "stdin"]):
+            return
+        language = lesson["language"] or "python"
+        async with sem:
+            try:
+                cases = await generate_test_cases_for_lesson(
+                    instructions, raw.get("expected_output", ""), solution, language
+                )
+                if not cases:
+                    return
+                updated = dict(raw)
+                updated["test_cases"] = cases
+                async with acquire() as conn:
+                    await conn.execute(
+                        "UPDATE lessons SET content_json = $1 WHERE id = $2",
+                        updated, lesson["id"],
+                    )
+            except Exception:
+                pass
+
+    try:
+        async with acquire() as conn:
+            rows = await conn.fetch(
+                """SELECT id, content_json, language FROM lessons
+                   WHERE type = 'code' AND NOT (content_json ? 'test_cases')"""
+            )
+        await asyncio.gather(*[_add(r) for r in rows])
+    except Exception:
+        pass
+
+
+async def _generate_quiz_explanations_bg():
+    """Background: generate per-option explanations for quiz lessons that lack them."""
+    await asyncio.sleep(120)
+    from db.connection import acquire
+    from services.claude import generate_quiz_option_explanations
+
+    sem = asyncio.Semaphore(2)
+
+    async def _add(lesson):
+        raw = lesson["content_json"] or {}
+        if raw.get("option_explanations"):
+            return
+        question = raw.get("question", "")
+        options = raw.get("options", [])
+        correct_index = raw.get("correct_index", 0)
+        if not question or len(options) < 2:
+            return
+        async with sem:
+            try:
+                explanations = await generate_quiz_option_explanations(question, options, correct_index)
+                if not explanations or len(explanations) != len(options):
+                    return
+                updated = dict(raw)
+                updated["option_explanations"] = explanations
+                async with acquire() as conn:
+                    await conn.execute(
+                        "UPDATE lessons SET content_json = $1 WHERE id = $2",
+                        updated, lesson["id"],
+                    )
+            except Exception:
+                pass
+
+    try:
+        async with acquire() as conn:
+            rows = await conn.fetch(
+                """SELECT id, content_json FROM lessons
+                   WHERE type = 'quiz' AND NOT (content_json ? 'option_explanations')"""
+            )
+        await asyncio.gather(*[_add(r) for r in rows])
+    except Exception:
+        pass
+
+
+async def _generate_why_matters_bg():
+    """Background: add 'why this matters' real-world context to theory lessons."""
+    await asyncio.sleep(150)
+    from db.connection import acquire
+    from services.claude import generate_why_matters
+
+    sem = asyncio.Semaphore(2)
+
+    async def _add(lesson):
+        raw = lesson["content_json"] or {}
+        if raw.get("why_matters"):
+            return
+        language = lesson["language"] or "python"
+        async with sem:
+            try:
+                why = await generate_why_matters(lesson["topic_title"], raw, language)
+                if not why:
+                    return
+                updated = dict(raw)
+                updated["why_matters"] = why
+                async with acquire() as conn:
+                    await conn.execute(
+                        "UPDATE lessons SET content_json = $1 WHERE id = $2",
+                        updated, lesson["id"],
+                    )
+            except Exception:
+                pass
+
+    try:
+        async with acquire() as conn:
+            rows = await conn.fetch(
+                """SELECT l.id, l.content_json, l.language, t.title AS topic_title
+                   FROM lessons l JOIN topics t ON t.id = l.topic_id
+                   WHERE l.type = 'theory' AND NOT (l.content_json ? 'why_matters')"""
+            )
+        await asyncio.gather(*[_add(r) for r in rows])
+    except Exception:
+        pass
+
+
 async def _daily_reminder_scheduler():
     """At 20:00 server time, push reminders to users who haven't practiced today."""
     from datetime import datetime, timedelta
@@ -186,10 +360,18 @@ async def lifespan(app: FastAPI):
     task = asyncio.create_task(_daily_reminder_scheduler())
     pregen_task = asyncio.create_task(_pregenerate_task_intros())
     theory_task = asyncio.create_task(_prewarm_theory_quiz_de())
+    hints_task = asyncio.create_task(_prewarm_hints())
+    testcases_task = asyncio.create_task(_generate_test_cases_bg())
+    quiz_exp_task = asyncio.create_task(_generate_quiz_explanations_bg())
+    why_task = asyncio.create_task(_generate_why_matters_bg())
     yield
     task.cancel()
     pregen_task.cancel()
     theory_task.cancel()
+    hints_task.cancel()
+    testcases_task.cancel()
+    quiz_exp_task.cancel()
+    why_task.cancel()
     await close_pool()
 
 

@@ -357,12 +357,19 @@ async def submit_lesson(
                 raise HTTPException(status_code=400, detail="Answer must be an integer index")
             ci = content.get("correct_index", 0)
             correct = selected == ci
+            opts = content.get("options", [])
+            option_explanations = content.get("option_explanations", [])
+            correct_text = opts[ci] if ci < len(opts) else "the correct option"
             if correct:
-                feedback = "Correct! " + content.get("explanation", "Well done!")
+                if option_explanations and selected < len(option_explanations):
+                    feedback = option_explanations[selected]
+                else:
+                    feedback = "Correct! " + content.get("explanation", "Well done!")
             else:
-                opts = content.get("options", [])
-                correct_text = opts[ci] if ci < len(opts) else "the correct option"
-                feedback = f"Not quite. The correct answer is: {correct_text}. {content.get('explanation', '')}"
+                if option_explanations and selected < len(option_explanations):
+                    feedback = option_explanations[selected] + f" The correct answer is: {correct_text}."
+                else:
+                    feedback = f"Not quite. The correct answer is: {correct_text}. {content.get('explanation', '')}"
 
         elif lesson["type"] == "code":
             # Check for input-based test cases (new multi-test format)
