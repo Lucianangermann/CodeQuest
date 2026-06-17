@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Route, ChevronDown, ChevronUp, RefreshCw, BookOpen, Code2, FlaskConical, RotateCcw, Mic, Bug, CheckCircle, Circle, Trophy, Briefcase, FolderOpen, Github, ExternalLink, Plus, Trash2 } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -45,25 +46,28 @@ const DAYS_ORDER = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Sat
 function TopicCard({ topic }: { topic: PlanTopic }) {
   const [open, setOpen] = useState(false)
   const t = useT()
+  const navigate = useNavigate()
   return (
     <div className="border border-white/10 rounded-xl">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-3 text-left"
-      >
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="font-medium text-white text-sm truncate">{topic.name}</span>
+      <div className="w-full flex items-center justify-between p-3">
+        <button
+          onClick={() => navigate(`/roadmap?search=${encodeURIComponent(topic.name)}`)}
+          className="flex items-center gap-2 min-w-0 flex-1 text-left group"
+        >
+          <span className="font-medium text-white text-sm truncate group-hover:text-violet-300 transition-colors">{topic.name}</span>
           <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${DEPTH_COLOR[topic.depth]}`}>
             {topic.depth}
           </span>
-        </div>
+        </button>
         <div className="flex items-center gap-1.5 shrink-0 ml-2">
           <span className={`text-xs font-medium ${RELEVANCE_COLOR[topic.interview_relevance]}`}>
             {topic.interview_relevance === 'high' ? `🔥 ${t('path.high')}` : topic.interview_relevance === 'medium' ? `⚡ ${t('path.med')}` : `− ${t('path.low')}`} {t('path.interview')}
           </span>
-          {open ? <ChevronUp size={14} className="text-gray-500" /> : <ChevronDown size={14} className="text-gray-500" />}
+          <button onClick={() => setOpen(!open)} className="p-0.5 hover:bg-white/5 rounded">
+            {open ? <ChevronUp size={14} className="text-gray-500" /> : <ChevronDown size={14} className="text-gray-500" />}
+          </button>
         </div>
-      </button>
+      </div>
       {open && (
         <div className="px-3 pb-3 space-y-2">
           <div className="flex flex-wrap gap-1.5">

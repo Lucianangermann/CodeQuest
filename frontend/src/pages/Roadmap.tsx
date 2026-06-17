@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Lock, CheckCircle, ChevronRight, AlertCircle, Search, X, Trophy } from 'lucide-react'
@@ -52,9 +52,11 @@ function TopicNode({ topic, isSelected, onSelect }: {
 
 export default function Roadmap() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { setCurrentLesson } = useLessonStore()
   const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null)
-  const [search, setSearch] = useState('')
+  const initSearch = searchParams.get('search') ?? ''
+  const [search, setSearch] = useState(initSearch)
   const { user, setUser } = useUserStore()
   const queryClient = useQueryClient()
   const t = useT()
@@ -84,9 +86,12 @@ export default function Roadmap() {
     queryFn: () => fetchTopics(lang),
     staleTime: 1000 * 60 * 5,
     select: (data) => {
-      // Auto-select first non-locked topic on initial load
       if (selectedTopicId === null && data.length > 0) {
-        const first = data.find((t) => !t.is_locked && !t.is_completed) || data[0]
+        const first = initSearch
+          ? (data.find((t) => t.title.toLowerCase().includes(initSearch.toLowerCase()) && !t.is_locked)
+            ?? data.find((t) => !t.is_locked && !t.is_completed)
+            ?? data[0])
+          : (data.find((t) => !t.is_locked && !t.is_completed) ?? data[0])
         setSelectedTopicId(first.id)
       }
       return data
