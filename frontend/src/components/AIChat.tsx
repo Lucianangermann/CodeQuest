@@ -4,10 +4,13 @@ import { MessageSquare, X, Send, Loader2, Bot } from 'lucide-react'
 import { sendChatMessage } from '../lib/api'
 import { useLessonStore } from '../store/useLessonStore'
 import { useUserStore } from '../store/useUserStore'
+import { useT } from '../i18n/useT'
 
 export default function AIChat() {
+  const t = useT()
   const { chatMessages, isChatOpen, toggleChat, addChatMessage, currentTopicName } = useLessonStore()
   const { user } = useUserStore()
+
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -36,7 +39,7 @@ export default function AIChat() {
       )
       addChatMessage({ role: 'assistant', content: reply })
     } catch {
-      addChatMessage({ role: 'assistant', content: "Sorry, I'm having trouble responding right now. Please try again!" })
+      addChatMessage({ role: 'assistant', content: t('chat.error') })
     } finally {
       setIsLoading(false)
     }
@@ -87,9 +90,9 @@ export default function AIChat() {
                 <Bot className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="font-semibold text-sm text-white">AI Tutor</p>
+                <p className="font-semibold text-sm text-white">{t('chat.tutor')}</p>
                 <p className="text-xs text-quest-muted">
-                  {currentTopicName ? `Helping with ${currentTopicName}` : 'Ask me anything!'}
+                  {currentTopicName ? `${t('chat.helpingWith')} ${currentTopicName}` : t('chat.askAnything')}
                 </p>
               </div>
             </div>
@@ -100,7 +103,7 @@ export default function AIChat() {
                 <div className="text-center py-8">
                   <Bot className="w-10 h-10 text-quest-purple mx-auto mb-2" />
                   <p className="text-quest-muted text-sm">
-                    Hi! I'm your AI coding tutor. Ask me anything about programming! 🚀
+                    {t('chat.greeting')}
                   </p>
                 </div>
               )}
@@ -142,7 +145,7 @@ export default function AIChat() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-                  placeholder="Ask a question..."
+                  placeholder={t('chat.placeholder')}
                   className="flex-1 bg-quest-bg border border-quest-border rounded-xl px-3 py-2 text-sm text-quest-text placeholder-quest-muted focus:outline-none focus:border-quest-purple transition-colors"
                 />
                 <button

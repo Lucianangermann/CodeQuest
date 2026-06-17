@@ -4,20 +4,9 @@ import { motion } from 'framer-motion'
 import { Mic, Send, Trophy, AlertCircle, ChevronRight, RotateCcw, History } from 'lucide-react'
 import { startInterview, sendInterviewMessage, completeInterview, fetchInterviewHistory, fetchInterviewSession } from '../lib/api'
 import type { QAPair, InterviewSummary, InterviewSession } from '../types'
+import { useT } from '../i18n/useT'
 
 const TOTAL_QUESTIONS = 10
-
-const COMPANY_OPTIONS = [
-  { value: 'Startup / Small Company',    label: 'Startup / Small', icon: '🚀', desc: 'Portfolio, side projects, can-do attitude' },
-  { value: 'Medium Company',             label: 'Medium Company',  icon: '🏢', desc: 'Code quality, process, teamwork' },
-  { value: 'Large Corporation',          label: 'Large Corp',      icon: '🏦', desc: 'DS&A, system design, behavioral' },
-]
-
-const FOCUS_OPTIONS = [
-  { value: 'Frontend', label: 'Frontend', icon: '🎨', desc: 'React, TypeScript, CSS, performance' },
-  { value: 'Backend',  label: 'Backend',  icon: '⚙️', desc: 'APIs, databases, auth, SQL' },
-  { value: 'Fullstack',label: 'Fullstack',icon: '🔄', desc: 'Everything — end-to-end feature development' },
-]
 
 type Stage = 'setup' | 'active' | 'complete' | 'history'
 
@@ -26,8 +15,21 @@ interface Message { role: 'user' | 'assistant'; content: string }
 // ── Setup screen ──────────────────────────────────────────────────────────────
 
 function Setup({ onStart, loading }: { onStart: (company: string, focus: string) => void; loading: boolean }) {
+  const t = useT()
   const [company, setCompany] = useState('')
   const [focus, setFocus] = useState('')
+
+  const COMPANY_OPTIONS = [
+    { value: 'Startup / Small Company', label: t('ob.coStartup'),  icon: '🚀', desc: t('ob.coStartupDesc') },
+    { value: 'Medium Company',          label: t('ob.coMedium'),   icon: '🏢', desc: t('ob.coMediumDesc') },
+    { value: 'Large Corporation',       label: t('ob.coLarge'),    icon: '🏦', desc: t('ob.coLargeDesc') },
+  ]
+
+  const FOCUS_OPTIONS = [
+    { value: 'Frontend',  label: t('ob.focusFrontend'),  icon: '🎨', desc: t('ob.focusFrontendDesc') },
+    { value: 'Backend',   label: t('ob.focusBackend'),   icon: '⚙️', desc: t('ob.focusBackendDesc') },
+    { value: 'Fullstack', label: t('ob.focusFullstack'), icon: '🔄', desc: t('ob.focusFullstackDesc') },
+  ]
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
@@ -35,17 +37,16 @@ function Setup({ onStart, loading }: { onStart: (company: string, focus: string)
         <div className="inline-flex items-center justify-center w-16 h-16 bg-violet-500/20 rounded-2xl mb-4">
           <Mic size={28} className="text-violet-400" />
         </div>
-        <h1 className="text-3xl font-bold text-white mb-2">Interview Simulator</h1>
+        <h1 className="text-3xl font-bold text-white mb-2">{t('iv.title')}</h1>
         <p className="text-gray-400">
-          A senior dev will interview you. 10 questions, real feedback after each answer.
-          No AI help allowed — this is to practice.
+          {t('iv.desc')}
         </p>
       </div>
 
       <div className="space-y-6">
         <div>
           <label className="text-sm font-semibold text-gray-400 uppercase tracking-wide block mb-3">
-            Target Company Type
+            {t('iv.targetCompany')}
           </label>
           <div className="space-y-2">
             {COMPANY_OPTIONS.map((c) => (
@@ -68,7 +69,7 @@ function Setup({ onStart, loading }: { onStart: (company: string, focus: string)
 
         <div>
           <label className="text-sm font-semibold text-gray-400 uppercase tracking-wide block mb-3">
-            Focus Area
+            {t('iv.focusArea')}
           </label>
           <div className="grid grid-cols-3 gap-2">
             {FOCUS_OPTIONS.map((f) => (
@@ -95,7 +96,7 @@ function Setup({ onStart, loading }: { onStart: (company: string, focus: string)
           className="w-full py-4 bg-violet-600 hover:bg-violet-500 disabled:opacity-40
                      text-white font-semibold text-lg rounded-xl transition-colors"
         >
-          {loading ? 'Starting interview...' : 'Start Interview →'}
+          {loading ? t('iv.starting') : t('iv.start')}
         </button>
       </div>
     </div>
@@ -114,6 +115,7 @@ function InterviewChat({
   firstQuestion: string
   onComplete: (summary: InterviewSummary) => void
 }) {
+  const t = useT()
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: firstQuestion },
   ])
@@ -181,7 +183,7 @@ function InterviewChat({
       setMessages((prev) => [...prev, { role: 'assistant', content: result.question }])
       setQNumber(nextQ)
     } catch {
-      setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry, connection error. Please try again.' }])
+      setMessages((prev) => [...prev, { role: 'assistant', content: t('iv.connError') }])
     } finally {
       setLoading(false)
     }
@@ -200,7 +202,7 @@ function InterviewChat({
             <span className="text-violet-400">{focus}</span>
           </div>
           <div className="text-sm font-semibold text-white">
-            Question {Math.min(qNumber, TOTAL_QUESTIONS)}/{TOTAL_QUESTIONS}
+            {t('iv.question')} {Math.min(qNumber, TOTAL_QUESTIONS)}/{TOTAL_QUESTIONS}
           </div>
         </div>
         <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -233,7 +235,7 @@ function InterviewChat({
         {/* Evaluation of previous answer */}
         {lastEvaluation && (
           <div className="mx-auto max-w-[85%] bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
-            <div className="text-xs font-semibold text-emerald-400 mb-1">Interviewer Feedback</div>
+            <div className="text-xs font-semibold text-emerald-400 mb-1">{t('iv.feedback')}</div>
             <p className="text-sm text-gray-300">{lastEvaluation}</p>
           </div>
         )}
@@ -255,7 +257,7 @@ function InterviewChat({
 
         {finishing && (
           <div className="text-center py-4 text-gray-400 text-sm">
-            Analyzing your interview... generating feedback...
+            {t('iv.analyzing')}
           </div>
         )}
 
@@ -269,7 +271,7 @@ function InterviewChat({
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSubmit() }}
-            placeholder="Type your answer... (Cmd+Enter to submit)"
+            placeholder={t('iv.answerPlaceholder')}
             rows={3}
             className="flex-1 bg-quest-card border border-white/10 rounded-xl px-4 py-3 text-white text-sm
                        placeholder-gray-500 resize-none focus:outline-none focus:border-violet-500/50"
@@ -288,7 +290,7 @@ function InterviewChat({
 
       {qNumber === TOTAL_QUESTIONS && !loading && !finishing && (
         <p className="text-center text-xs text-amber-400 mt-2">
-          This is your final question. After submitting, you'll get your full assessment.
+          {t('iv.finalQuestion')}
         </p>
       )}
     </div>
@@ -303,13 +305,14 @@ function Summary({ summary, company, focus, onRestart }: {
   focus: string
   onRestart: () => void
 }) {
+  const t = useT()
   const scoreColor = summary.score >= 8 ? 'text-emerald-400' : summary.score >= 6 ? 'text-amber-400' : 'text-red-400'
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
       <div className="text-center mb-8">
         <Trophy size={48} className={`mx-auto mb-4 ${scoreColor}`} />
-        <h1 className="text-3xl font-bold text-white mb-1">Interview Complete</h1>
+        <h1 className="text-3xl font-bold text-white mb-1">{t('iv.complete')}</h1>
         <p className="text-gray-400">{company} · {focus}</p>
       </div>
 
@@ -323,7 +326,7 @@ function Summary({ summary, company, focus, onRestart }: {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {/* Strongest */}
         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
-          <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wide mb-3">✅ Strongest Areas</div>
+          <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wide mb-3">{t('iv.strongest')}</div>
           <ul className="space-y-1.5">
             {summary.strongest_areas.map((a, i) => (
               <li key={i} className="text-sm text-gray-300 flex items-start gap-2">
@@ -336,7 +339,7 @@ function Summary({ summary, company, focus, onRestart }: {
 
         {/* Weakest */}
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-          <div className="text-xs font-semibold text-red-400 uppercase tracking-wide mb-3">⚠️ Needs Work</div>
+          <div className="text-xs font-semibold text-red-400 uppercase tracking-wide mb-3">{t('iv.needsWork')}</div>
           <ul className="space-y-1.5">
             {summary.weakest_areas.map((a, i) => (
               <li key={i} className="text-sm text-gray-300 flex items-start gap-2">
@@ -351,13 +354,13 @@ function Summary({ summary, company, focus, onRestart }: {
       {/* Study topics */}
       <div className="bg-violet-500/10 border border-violet-500/20 rounded-xl p-4 mb-6">
         <div className="text-xs font-semibold text-violet-400 uppercase tracking-wide mb-3">
-          📚 Study Before Your Next Interview
+          {t('iv.study')}
         </div>
         <ul className="space-y-1.5">
-          {summary.study_topics.map((t, i) => (
+          {summary.study_topics.map((topic, i) => (
             <li key={i} className="text-sm text-gray-300 flex items-start gap-2">
               <span className="text-violet-400 shrink-0 mt-0.5">→</span>
-              {t}
+              {topic}
             </li>
           ))}
         </ul>
@@ -370,14 +373,14 @@ function Summary({ summary, company, focus, onRestart }: {
                      text-white font-semibold rounded-xl transition-colors"
         >
           <RotateCcw size={16} />
-          New Interview
+          {t('iv.newInterview')}
         </button>
         <a
           href="/my-path"
           className="flex-1 flex items-center justify-center py-3 border border-white/10
                      text-gray-300 hover:text-white hover:border-white/30 rounded-xl transition-colors text-sm font-medium"
         >
-          Go to My Path
+          {t('iv.goToPath')}
         </a>
       </div>
     </div>
@@ -387,6 +390,7 @@ function Summary({ summary, company, focus, onRestart }: {
 // ── History screen ────────────────────────────────────────────────────────────
 
 function HistoryList({ onBack }: { onBack: () => void }) {
+  const t = useT()
   const [detailSessionId, setDetailSessionId] = useState<number | null>(null)
 
   const { data, isLoading } = useQuery({
@@ -400,19 +404,19 @@ function HistoryList({ onBack }: { onBack: () => void }) {
     enabled: detailSessionId !== null,
   })
 
-  if (isLoading) return <div className="text-center py-20 text-gray-400">Loading history...</div>
+  if (isLoading) return <div className="text-center py-20 text-gray-400">{t('iv.loadingHistory')}</div>
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <div className="flex items-center gap-3 mb-6">
         <button onClick={onBack} className="text-gray-400 hover:text-white transition-colors text-sm">
-          ← Back
+          {t('iv.back')}
         </button>
-        <h1 className="text-xl font-bold text-white">Interview History</h1>
+        <h1 className="text-xl font-bold text-white">{t('iv.historyTitle')}</h1>
       </div>
 
       {!data?.sessions.length ? (
-        <div className="text-center py-16 text-gray-500">No completed interviews yet.</div>
+        <div className="text-center py-16 text-gray-500">{t('iv.noHistory')}</div>
       ) : (
         <div className="space-y-3">
           {data.sessions.map((s: InterviewSession) => (
@@ -421,7 +425,7 @@ function HistoryList({ onBack }: { onBack: () => void }) {
                 <div>
                   <div className="font-medium text-white text-sm">{s.company_size} · {s.focus}</div>
                   <div className="text-xs text-gray-500 mt-0.5">
-                    {s.completed_at ? new Date(s.completed_at).toLocaleDateString() : 'In progress'}
+                    {s.completed_at ? new Date(s.completed_at).toLocaleDateString() : t('iv.inProgress')}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -464,7 +468,7 @@ function HistoryList({ onBack }: { onBack: () => void }) {
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-white text-lg">Interview Q&A Review</h3>
+              <h3 className="font-bold text-white text-lg">{t('iv.reviewTitle')}</h3>
               <button
                 onClick={() => setDetailSessionId(null)}
                 className="text-gray-400 hover:text-white transition-colors"
@@ -474,7 +478,7 @@ function HistoryList({ onBack }: { onBack: () => void }) {
             </div>
 
             {loadingDetail ? (
-              <div className="text-center py-8 text-gray-400">Loading Q&A...</div>
+              <div className="text-center py-8 text-gray-400">{t('iv.loadingQA')}</div>
             ) : sessionDetail ? (
               <div className="space-y-3">
                 {sessionDetail.qa_pairs.map((msg, i) =>
@@ -488,7 +492,7 @@ function HistoryList({ onBack }: { onBack: () => void }) {
                       }`}
                     >
                       <p className="text-xs text-gray-500 font-semibold mb-1 uppercase">
-                        {msg.role === 'user' ? 'You' : 'Interviewer'}
+                        {msg.role === 'user' ? t('iv.you') : t('iv.interviewer')}
                       </p>
                       <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                     </div>
@@ -506,6 +510,7 @@ function HistoryList({ onBack }: { onBack: () => void }) {
 // ── Root component ────────────────────────────────────────────────────────────
 
 export default function InterviewSimulator() {
+  const t = useT()
   const [stage, setStage] = useState<Stage>('setup')
   const [sessionId, setSessionId] = useState<number | null>(null)
   const [company, setCompany] = useState('')
@@ -526,7 +531,7 @@ export default function InterviewSimulator() {
       setFirstQuestion(result.question)
       setStage('active')
     } catch {
-      setError('Failed to start interview. Please try again.')
+      setError(t('iv.startError'))
     } finally {
       setStarting(false)
     }
@@ -578,7 +583,7 @@ export default function InterviewSimulator() {
           className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors"
         >
           <History size={14} />
-          History
+          {t('iv.history')}
         </button>
       </div>
       <Setup onStart={handleStart} loading={starting} />

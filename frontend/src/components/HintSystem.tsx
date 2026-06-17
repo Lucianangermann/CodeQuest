@@ -4,6 +4,7 @@ import { Lightbulb, ChevronRight, Loader2 } from 'lucide-react'
 import { getHint } from '../lib/api'
 import { useLessonStore } from '../store/useLessonStore'
 import toast from 'react-hot-toast'
+import { useT } from '../i18n/useT'
 
 interface Props {
   lessonId: number
@@ -12,9 +13,9 @@ interface Props {
   staticHints?: string[]
 }
 
-const HINT_LABELS = ['Gentle Nudge', 'Need More Help?', 'Show Me the Way']
-
 export default function HintSystem({ lessonId, userCode, maxHints = 3, staticHints = [] }: Props) {
+  const t = useT()
+  const HINT_LABELS = [t('hint.l1'), t('hint.l2'), t('hint.l3')]
   const [revealedStatic, setRevealedStatic] = useState(0)
   const [isExpanded, setIsExpanded] = useState(false)
   const { hintsUsed, currentHint, isLoadingHint, incrementHints, setHint, setLoadingHint } =
@@ -39,7 +40,7 @@ export default function HintSystem({ lessonId, userCode, maxHints = 3, staticHin
       setHint(hint)
       incrementHints()
     } catch {
-      toast.error('Could not get hint. Try again.')
+      toast.error(t('hint.loadError'))
     } finally {
       setLoadingHint(false)
     }
@@ -50,8 +51,8 @@ export default function HintSystem({ lessonId, userCode, maxHints = 3, staticHin
 
   const buttonLabel = canRevealMoreStatic
     ? revealedStatic === 0
-      ? 'Show Hint'
-      : 'Next Hint'
+      ? t('hint.showFirst')
+      : t('hint.showNext')
     : HINT_LABELS[Math.min(hintsUsed, HINT_LABELS.length - 1)]
 
   const noMoreHints = !canRevealMoreStatic && !canGetAiHint
@@ -65,7 +66,7 @@ export default function HintSystem({ lessonId, userCode, maxHints = 3, staticHin
         <div className="flex items-center gap-2 text-quest-yellow">
           <Lightbulb className="w-4 h-4" />
           <span className="font-medium text-sm">
-            Hints ({totalHintsUsed}/{totalHintsAvailable} used)
+            {t('hint.title')} ({totalHintsUsed}/{totalHintsAvailable} {t('hint.used')})
           </span>
         </div>
         <ChevronRight
@@ -91,7 +92,7 @@ export default function HintSystem({ lessonId, userCode, maxHints = 3, staticHin
                   className="mt-3 bg-quest-card rounded-xl p-3 border border-blue-400/20 text-sm text-quest-text leading-relaxed"
                 >
                   <span className="block text-xs text-quest-muted mb-1">
-                    Hint {i + 1}/{staticHints.length}
+                    {t('hint.label')} {i + 1}/{staticHints.length}
                   </span>
                   <p>{hint}</p>
                 </motion.div>
@@ -134,7 +135,7 @@ export default function HintSystem({ lessonId, userCode, maxHints = 3, staticHin
 
               {noMoreHints && (
                 <p className="text-xs text-quest-muted text-center py-1">
-                  No more hints available. You can do it! 💪
+                  {t('hint.noMore')}
                 </p>
               )}
             </div>

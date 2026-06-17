@@ -4,8 +4,10 @@ import { X, Star, RefreshCw } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { fetchCurrentCheckin, submitCheckin, fetchTrainingPlan, fetchDashboard } from '../lib/api'
 import { useUserStore } from '../store/useUserStore'
+import { useT } from '../i18n/useT'
 
 export default function WeeklyReviewPopup() {
+  const t = useT()
   const user = useUserStore((s) => s.user)
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -66,7 +68,7 @@ export default function WeeklyReviewPopup() {
         <div className="flex items-center justify-between p-5 border-b border-white/10">
           <div className="flex items-center gap-2">
             <Star size={18} className="text-amber-400" />
-            <h2 className="font-semibold text-white">Weekly Review</h2>
+            <h2 className="font-semibold text-white">{t('weekly.title')}</h2>
           </div>
           <button onClick={() => setVisible(false)} className="text-gray-400 hover:text-white">
             <X size={20} />
@@ -75,7 +77,7 @@ export default function WeeklyReviewPopup() {
 
         <div className="p-5 space-y-5">
           <p className="text-gray-300">
-            Great job making it to Sunday! How did this week go?
+            {t('weekly.subtitle')}
           </p>
 
           {lessonsThisWeek > 0 && (
@@ -83,18 +85,18 @@ export default function WeeklyReviewPopup() {
               <div className="text-4xl font-bold text-white mb-1">
                 {lessonsThisWeek}
               </div>
-              <div className="text-gray-400 text-sm">lessons completed this week</div>
+              <div className="text-gray-400 text-sm">{t('weekly.lessonsCompleted')}</div>
             </div>
           )}
 
           <div>
             <label className="text-sm text-gray-400 block mb-2">
-              Anything to note? (optional)
+              {t('weekly.noteLabel')}
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="What went well? What was hard?"
+              placeholder={t('weekly.notePlaceholder')}
               rows={3}
               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm
                          placeholder-gray-500 resize-none focus:outline-none focus:border-violet-500/50"
@@ -109,7 +111,7 @@ export default function WeeklyReviewPopup() {
                          text-violet-400 hover:bg-violet-500/10 rounded-xl text-sm font-medium transition-colors"
             >
               <RefreshCw size={14} />
-              Adjust My Plan
+              {t('weekly.adjust')}
             </button>
             <button
               onClick={() => submitMutation.mutate()}
@@ -117,7 +119,7 @@ export default function WeeklyReviewPopup() {
               className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm
                          font-medium rounded-xl transition-colors disabled:opacity-50"
             >
-              {submitMutation.isPending ? 'Saving...' : 'Keep Going! →'}
+              {submitMutation.isPending ? t('weekly.saving') : t('weekly.keepGoing')}
             </button>
           </div>
         </div>

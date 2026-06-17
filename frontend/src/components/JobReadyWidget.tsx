@@ -5,6 +5,7 @@ import { fetchChecklist, updateChecklistItem } from '../lib/api'
 import { useUserStore } from '../store/useUserStore'
 import TestYourselfModal from './TestYourselfModal'
 import type { ChecklistItem } from '../types'
+import { useT } from '../i18n/useT'
 
 const CATEGORY_LABELS: Record<string, string> = {
   fundamentals: '🧠 Fundamentals',
@@ -15,6 +16,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 }
 
 export default function JobReadyWidget() {
+  const t = useT()
   const user = useUserStore((s) => s.user)
   const qc = useQueryClient()
 
@@ -75,8 +77,8 @@ export default function JobReadyWidget() {
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-white/10">
               <div>
-                <div className="text-sm font-semibold text-white">Job Ready Checklist</div>
-                <div className="text-xs text-gray-400 mt-0.5">{completed}/{items.length} complete</div>
+                <div className="text-sm font-semibold text-white">{t('job.title')}</div>
+                <div className="text-xs text-gray-400 mt-0.5">{completed}/{items.length} {t('job.complete')}</div>
               </div>
               <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-white">
                 <X size={16} />
@@ -91,7 +93,7 @@ export default function JobReadyWidget() {
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              <div className="text-xs text-gray-500 mt-1">{pct}% job ready</div>
+              <div className="text-xs text-gray-500 mt-1">{pct}{t('job.ready')}</div>
             </div>
 
             {/* Items */}
@@ -149,7 +151,7 @@ export default function JobReadyWidget() {
                      px-4 py-2.5 rounded-xl shadow-lg font-medium text-sm transition-colors"
         >
           <CheckSquare size={16} />
-          Job Ready
+          {t('job.btn')}
           {items.length > 0 && (
             <span className="bg-white/20 text-xs px-1.5 py-0.5 rounded-full">{pct}%</span>
           )}

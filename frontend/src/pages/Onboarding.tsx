@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { useUserStore } from '../store/useUserStore'
 import { completeOnboarding } from '../lib/api'
+import { useT } from '../i18n/useT'
 import type {
   OnboardingGoal, OnboardingTimeline, OnboardingLevel,
   OnboardingLanguage, OnboardingCompany, OnboardingFocus,
@@ -10,42 +11,10 @@ import type {
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
-const GOALS = [
-  { value: 'job'     as OnboardingGoal, label: 'Get a Dev Job',   icon: '💼', desc: 'Land my first developer role' },
-  { value: 'hobby'   as OnboardingGoal, label: 'Hobby / Fun',     icon: '🎮', desc: 'Build cool things for fun' },
-  { value: 'school'  as OnboardingGoal, label: 'School / Course', icon: '🎓', desc: 'Supplement my studies' },
-  { value: 'upskill' as OnboardingGoal, label: 'Upskill at Work', icon: '📈', desc: 'Level up in my current role' },
-]
-
-const TIMELINES = [
-  { value: '1month'  as OnboardingTimeline, label: '1 Month',   desc: 'Intensive, daily commitment' },
-  { value: '3months' as OnboardingTimeline, label: '3 Months',  desc: 'Steady and consistent pace' },
-  { value: '6months' as OnboardingTimeline, label: '6 Months',  desc: 'Relaxed, a few hours/week' },
-  { value: 'no_rush' as OnboardingTimeline, label: 'No Rush',   desc: 'At my own pace' },
-]
-
-const COMPANIES = [
-  { value: 'startup' as OnboardingCompany, label: 'Startup / Small',   icon: '🚀', desc: '< 50 employees — fast-paced, wear many hats' },
-  { value: 'medium'  as OnboardingCompany, label: 'Medium Company',    icon: '🏢', desc: '50–500 employees — process, quality focus' },
-  { value: 'large'   as OnboardingCompany, label: 'Large Corporation', icon: '🏦', desc: '500+ employees — structured interviews, DS&A' },
-]
-
-const LEVELS = [
-  { value: 'absolute_beginner' as OnboardingLevel, label: 'Total Beginner',  desc: 'Never written code before' },
-  { value: 'some_basics'       as OnboardingLevel, label: 'Some Basics',     desc: 'I know variables and loops' },
-  { value: 'intermediate'      as OnboardingLevel, label: 'Intermediate',    desc: 'I can build small projects' },
-]
-
 const LANGUAGES = [
   { value: 'javascript' as OnboardingLanguage, label: 'JavaScript', icon: '🟨' },
   { value: 'typescript' as OnboardingLanguage, label: 'TypeScript', icon: '🔷' },
   { value: 'python'     as OnboardingLanguage, label: 'Python',     icon: '🐍' },
-]
-
-const FOCUSES = [
-  { value: 'frontend'  as OnboardingFocus, label: 'Frontend',  icon: '🎨', desc: 'React, UI, CSS, user interfaces' },
-  { value: 'backend'   as OnboardingFocus, label: 'Backend',   icon: '⚙️', desc: 'APIs, Databases, Server logic' },
-  { value: 'fullstack' as OnboardingFocus, label: 'Fullstack', icon: '🔄', desc: 'Both — ship entire features alone' },
 ]
 
 // ── Label maps (what Claude receives) ────────────────────────────────────────
@@ -91,6 +60,39 @@ export default function Onboarding() {
   const navigate = useNavigate()
   const setUser = useUserStore((s) => s.setUser)
   const user = useUserStore((s) => s.user)
+  const t = useT()
+
+  const GOALS = [
+    { value: 'job'     as OnboardingGoal, label: t('ob.goalJob'),     icon: '💼', desc: t('ob.goalJobDesc') },
+    { value: 'hobby'   as OnboardingGoal, label: t('ob.goalHobby'),   icon: '🎮', desc: t('ob.goalHobbyDesc') },
+    { value: 'school'  as OnboardingGoal, label: t('ob.goalSchool'),  icon: '🎓', desc: t('ob.goalSchoolDesc') },
+    { value: 'upskill' as OnboardingGoal, label: t('ob.goalUpskill'), icon: '📈', desc: t('ob.goalUpskillDesc') },
+  ]
+
+  const TIMELINES = [
+    { value: '1month'  as OnboardingTimeline, label: t('ob.tl1month'),   desc: t('ob.tl1monthDesc') },
+    { value: '3months' as OnboardingTimeline, label: t('ob.tl3months'),  desc: t('ob.tl3monthsDesc') },
+    { value: '6months' as OnboardingTimeline, label: t('ob.tl6months'),  desc: t('ob.tl6monthsDesc') },
+    { value: 'no_rush' as OnboardingTimeline, label: t('ob.tlNoRush'),   desc: t('ob.tlNoRushDesc') },
+  ]
+
+  const COMPANIES = [
+    { value: 'startup' as OnboardingCompany, label: t('ob.coStartup'), icon: '🚀', desc: t('ob.coStartupDesc') },
+    { value: 'medium'  as OnboardingCompany, label: t('ob.coMedium'),  icon: '🏢', desc: t('ob.coMediumDesc') },
+    { value: 'large'   as OnboardingCompany, label: t('ob.coLarge'),   icon: '🏦', desc: t('ob.coLargeDesc') },
+  ]
+
+  const LEVELS = [
+    { value: 'absolute_beginner' as OnboardingLevel, label: t('ob.lvlBeginner'),    desc: t('ob.lvlBeginnerDesc') },
+    { value: 'some_basics'       as OnboardingLevel, label: t('ob.lvlBasics'),      desc: t('ob.lvlBasicsDesc') },
+    { value: 'intermediate'      as OnboardingLevel, label: t('ob.lvlIntermediate'), desc: t('ob.lvlIntermediateDesc') },
+  ]
+
+  const FOCUSES = [
+    { value: 'frontend'  as OnboardingFocus, label: t('ob.focusFrontend'),  icon: '🎨', desc: t('ob.focusFrontendDesc') },
+    { value: 'backend'   as OnboardingFocus, label: t('ob.focusBackend'),   icon: '⚙️', desc: t('ob.focusBackendDesc') },
+    { value: 'fullstack' as OnboardingFocus, label: t('ob.focusFullstack'), icon: '🔄', desc: t('ob.focusFullstackDesc') },
+  ]
 
   const [step, setStep]         = useState(0)
   const [goal, setGoal]         = useState<OnboardingGoal | null>(null)
@@ -104,11 +106,11 @@ export default function Onboarding() {
 
   const [buildStep, setBuildStep] = useState(0)
   const BUILD_STEPS = [
-    '📊 Analysing your profile...',
-    '🗺️ Mapping your learning path...',
-    '📅 Building your weekly schedule...',
-    '🎯 Tailoring interview prep...',
-    '✅ Plan ready!',
+    t('ob.build0'),
+    t('ob.build1'),
+    t('ob.build2'),
+    t('ob.build3'),
+    t('ob.build4'),
   ]
 
   const mutation = useMutation({
@@ -140,8 +142,8 @@ export default function Onboarding() {
 
   const steps = [
     {
-      title: "What's your goal?",
-      subtitle: "We'll tailor your learning path to what matters most.",
+      title: t('ob.step0title'),
+      subtitle: t('ob.step0sub'),
       content: (
         <div className="space-y-3">
           {GOALS.map((g) => (
@@ -159,8 +161,8 @@ export default function Onboarding() {
       ),
     },
     {
-      title: "What's your timeline?",
-      subtitle: "Be realistic — consistency beats intensity.",
+      title: t('ob.step1title'),
+      subtitle: t('ob.step1sub'),
       content: (
         <div className="grid grid-cols-2 gap-3">
           {TIMELINES.map((t) => (
@@ -173,8 +175,8 @@ export default function Onboarding() {
       ),
     },
     {
-      title: "What kind of company are you targeting?",
-      subtitle: "This shapes the interview questions and depth of your plan.",
+      title: t('ob.step2title'),
+      subtitle: t('ob.step2sub'),
       content: (
         <div className="space-y-3">
           {COMPANIES.map((c) => (
@@ -192,8 +194,8 @@ export default function Onboarding() {
       ),
     },
     {
-      title: "What's your current level?",
-      subtitle: "No pressure — we all start somewhere.",
+      title: t('ob.step3title'),
+      subtitle: t('ob.step3sub'),
       content: (
         <div className="space-y-3">
           {LEVELS.map((l) => (
@@ -206,8 +208,8 @@ export default function Onboarding() {
       ),
     },
     {
-      title: "Pick your primary language",
-      subtitle: "You'll learn others along the way.",
+      title: t('ob.step4title'),
+      subtitle: t('ob.step4sub'),
       content: (
         <div className="grid grid-cols-3 gap-3">
           {LANGUAGES.map((lang) => (
@@ -222,8 +224,8 @@ export default function Onboarding() {
       ),
     },
     {
-      title: "Which area interests you most?",
-      subtitle: "Your plan will emphasize this, but cover the full stack.",
+      title: t('ob.step5title'),
+      subtitle: t('ob.step5sub'),
       content: (
         <div className="space-y-3">
           {FOCUSES.map((f) => (
@@ -260,7 +262,7 @@ export default function Onboarding() {
         <div className="bg-quest-card border border-white/10 rounded-2xl p-8">
           <div className="mb-6">
             <div className="text-xs font-semibold text-violet-400 uppercase tracking-wide mb-1">
-              Step {step + 1} of {TOTAL_STEPS}
+              {t('ob.step')} {step + 1} {t('ob.of')} {TOTAL_STEPS}
             </div>
             <h1 className="text-2xl font-bold text-white mb-1">{steps[step].title}</h1>
             <p className="text-gray-400">{steps[step].subtitle}</p>
@@ -296,7 +298,7 @@ export default function Onboarding() {
                   className="mt-6 w-full py-3.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-40
                              text-white font-semibold rounded-xl transition-colors text-base"
                 >
-                  Generate My Learning Path →
+                  {t('ob.generate')}
                 </button>
               )}
             </>
@@ -304,7 +306,7 @@ export default function Onboarding() {
 
           {mutation.isError && (
             <p className="mt-3 text-red-400 text-sm text-center">
-              Something went wrong generating the plan. Please try again.
+              {t('ob.error')}
             </p>
           )}
 
@@ -313,7 +315,7 @@ export default function Onboarding() {
               onClick={() => setStep(step - 1)}
               className="mt-4 w-full py-2 text-gray-500 hover:text-white text-sm transition-colors"
             >
-              ← Back
+              {t('ob.back')}
             </button>
           )}
         </div>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { X, HelpCircle, ChevronDown } from 'lucide-react'
 import { fetchTestQuestion } from '../lib/api'
+import { useT } from '../i18n/useT'
 
 interface Props {
   itemKey: string
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function TestYourselfModal({ itemKey, itemLabel, onClose }: Props) {
+  const t = useT()
   const [answer, setAnswer] = useState('')
   const [showExpected, setShowExpected] = useState(false)
 
@@ -24,7 +26,7 @@ export default function TestYourselfModal({ itemKey, itemLabel, onClose }: Props
         <div className="flex items-center justify-between p-5 border-b border-white/10">
           <div className="flex items-center gap-2">
             <HelpCircle size={18} className="text-violet-400" />
-            <h2 className="font-semibold text-white">Test Yourself</h2>
+            <h2 className="font-semibold text-white">{t('test.title')}</h2>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
             <X size={20} />
@@ -35,7 +37,7 @@ export default function TestYourselfModal({ itemKey, itemLabel, onClose }: Props
           <div className="text-xs text-gray-500 uppercase tracking-wide">{itemLabel}</div>
 
           {isLoading ? (
-            <div className="text-gray-400 text-sm">Loading question...</div>
+            <div className="text-gray-400 text-sm">{t('test.loading')}</div>
           ) : data ? (
             <>
               <p className="text-white font-medium">{data.question}</p>
@@ -43,7 +45,7 @@ export default function TestYourselfModal({ itemKey, itemLabel, onClose }: Props
               <textarea
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
-                placeholder="Type your answer here..."
+                placeholder={t('test.placeholder')}
                 rows={4}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm
                            placeholder-gray-500 resize-none focus:outline-none focus:border-violet-500/50"
@@ -57,7 +59,7 @@ export default function TestYourselfModal({ itemKey, itemLabel, onClose }: Props
                   size={14}
                   className={`transition-transform ${showExpected ? 'rotate-180' : ''}`}
                 />
-                {showExpected ? 'Hide' : 'Show'} expected answer
+                {showExpected ? t('test.hideAnswer') : t('test.showAnswer')}
               </button>
 
               {showExpected && (
@@ -74,7 +76,7 @@ export default function TestYourselfModal({ itemKey, itemLabel, onClose }: Props
             onClick={onClose}
             className="w-full py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-medium rounded-xl transition-colors"
           >
-            Done
+            {t('test.done')}
           </button>
         </div>
       </div>

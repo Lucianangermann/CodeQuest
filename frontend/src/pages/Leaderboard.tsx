@@ -4,6 +4,7 @@ import { Trophy, Medal, Crown, AlertCircle } from 'lucide-react'
 import { fetchLeaderboard } from '../lib/api'
 import type { LeaderboardEntry } from '../types'
 import { ListSkeleton } from '../components/LoadingSkeleton'
+import { useT } from '../i18n/useT'
 
 function RankIcon({ rank }: { rank: number }) {
   if (rank === 1) return <Crown className="w-5 h-5 text-yellow-400" />
@@ -27,6 +28,7 @@ function Avatar({ entry }: { entry: LeaderboardEntry }) {
 }
 
 export default function Leaderboard() {
+  const t = useT()
   const { data: entries = [], isLoading, error } = useQuery({
     queryKey: ['leaderboard'],
     queryFn: fetchLeaderboard,
@@ -43,15 +45,15 @@ export default function Leaderboard() {
       <div className="flex items-center gap-3 mb-8">
         <Trophy className="w-7 h-7 text-quest-yellow" />
         <div>
-          <h1 className="text-3xl font-bold text-white">Leaderboard</h1>
-          <p className="text-quest-muted text-sm">Weekly XP rankings</p>
+          <h1 className="text-3xl font-bold text-white">{t('lb.title')}</h1>
+          <p className="text-quest-muted text-sm">{t('lb.subtitle')}</p>
         </div>
       </div>
 
       {error && (
         <div className="flex items-center gap-2 text-red-400 mb-6">
           <AlertCircle className="w-4 h-4" />
-          <span className="text-sm">Could not load leaderboard.</span>
+          <span className="text-sm">{t('lb.loadError')}</span>
         </div>
       )}
 
@@ -92,7 +94,7 @@ export default function Leaderboard() {
         ) : entries.length === 0 ? (
           <div className="card text-center py-12">
             <Trophy className="w-12 h-12 text-quest-border mx-auto mb-3" />
-            <p className="text-quest-muted">No activity this week yet. Be the first!</p>
+            <p className="text-quest-muted">{t('lb.noActivity')}</p>
           </div>
         ) : (
           entries.map((entry, i) => (
@@ -114,7 +116,7 @@ export default function Leaderboard() {
               <div className="flex-1 min-w-0">
                 <span className={`font-semibold truncate block ${entry.is_current_user ? 'text-quest-purple-light' : 'text-white'}`}>
                   {entry.username}
-                  {entry.is_current_user && <span className="text-xs text-quest-muted ml-2">(you)</span>}
+                  {entry.is_current_user && <span className="text-xs text-quest-muted ml-2">({t('lb.you')})</span>}
                 </span>
               </div>
               <div className="text-right flex-shrink-0">

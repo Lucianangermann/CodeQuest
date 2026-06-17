@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { useT } from '../i18n/useT'
 
 interface Props {
   streak: number
@@ -6,6 +7,7 @@ interface Props {
 }
 
 export default function StreakDisplay({ streak, large = false }: Props) {
+  const t = useT()
   return (
     <div className={`flex items-center gap-2 ${large ? '' : ''}`}>
       <motion.span
@@ -21,7 +23,7 @@ export default function StreakDisplay({ streak, large = false }: Props) {
         </span>
         {large && (
           <p className="text-quest-muted text-sm">
-            {streak === 1 ? 'day streak' : 'day streak'}
+            {t('streak.days')}
           </p>
         )}
       </div>

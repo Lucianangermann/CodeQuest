@@ -5,6 +5,7 @@ import { Play, Loader2, RotateCcw, Terminal } from 'lucide-react'
 import Editor from '../components/Editor'
 import { useUserStore } from '../store/useUserStore'
 import { runCode } from '../lib/api'
+import { useT } from '../i18n/useT'
 
 const LANGUAGE_STARTERS: Record<string, string> = {
   python: '# Write your Python code here\nprint("Hello, World!")\n',
@@ -13,6 +14,7 @@ const LANGUAGE_STARTERS: Record<string, string> = {
 }
 
 export default function Playground() {
+  const t = useT()
   const { user } = useUserStore()
   const language = user?.language_preference || 'python'
   const [code, setCode] = useState(LANGUAGE_STARTERS[language] || LANGUAGE_STARTERS.python)
@@ -26,7 +28,7 @@ export default function Playground() {
       setError(data.error || null)
     },
     onError: () => {
-      setError('Failed to run code. Make sure the backend is running.')
+      setError(t('play.runError'))
     },
   })
 
@@ -47,10 +49,10 @@ export default function Playground() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Terminal className="w-6 h-6 text-quest-purple" />
-            Code Playground
+            {t('play.title')}
           </h1>
           <p className="text-quest-muted text-sm mt-1">
-            Write and run {language} code freely — no lesson required
+            {t('play.subtitle').replace('{lang}', language)}
           </p>
         </div>
         <div className="flex gap-2">
@@ -59,7 +61,7 @@ export default function Playground() {
             className="btn-secondary flex items-center gap-1.5 text-sm py-2 px-3"
           >
             <RotateCcw className="w-4 h-4" />
-            Reset
+            {t('play.reset')}
           </button>
           <button
             onClick={() => run()}
@@ -67,7 +69,7 @@ export default function Playground() {
             className="btn-primary flex items-center gap-2 text-sm"
           >
             {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-            Run Code
+            {t('play.run')}
           </button>
         </div>
       </div>
@@ -94,10 +96,10 @@ export default function Playground() {
             <p className={`text-xs font-semibold uppercase tracking-wide mb-2 ${
               error ? 'text-red-400' : 'text-quest-green'
             }`}>
-              {error ? 'Error' : 'Output'}
+              {error ? t('play.error') : t('play.output')}
             </p>
             <pre className="whitespace-pre-wrap text-quest-text leading-relaxed">
-              {error || output || '(no output)'}
+              {error || output || t('play.noOutput')}
             </pre>
           </motion.div>
         )}
