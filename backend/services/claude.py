@@ -1,6 +1,7 @@
 import anthropic
 import json
 import os
+import re
 from typing import Optional
 
 _client: Optional[anthropic.AsyncAnthropic] = None
@@ -66,6 +67,34 @@ async def translate_lesson_content_to_german(content: dict, lesson_type: str) ->
         return _parse_json(msg.content[0].text)
     except (json.JSONDecodeError, KeyError, IndexError):
         return {}
+
+
+async def translate_code_comments(code: str, programming_language: str) -> str:
+    """Translate only the inline comments in a code snippet to German, leaving all code unchanged."""
+    client = _get_claude()
+    if not client:
+        return code
+    comment_char = "#" if programming_language == "python" else "//"
+    prompt = (
+        f"Translate ONLY the existing inline comments (text after `{comment_char}`) in this {programming_language} code to German.\n"
+        "Rules:\n"
+        f"- ONLY translate text that already appears after an existing `{comment_char}` marker\n"
+        "- Do NOT add any new comments\n"
+        "- Leave every line of code COMPLETELY UNCHANGED — variables, strings, keywords, logic, structure\n"
+        "- Keep the comment delimiter and any surrounding whitespace unchanged\n"
+        "- Technical terms without a natural German equivalent can stay in English\n"
+        "- Return ONLY the translated code — no explanation, no markdown fences\n\n"
+        f"{code}"
+    )
+    msg = await client.messages.create(
+        model=MODEL, max_tokens=600,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    result = msg.content[0].text.strip()
+    if result.startswith("```"):
+        result = re.sub(r'^```[a-z]*\n?', '', result)
+        result = re.sub(r'\n?```$', '', result)
+    return result.strip()
 
 
 async def translate_to_german(text: str) -> str:

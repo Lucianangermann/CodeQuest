@@ -6,7 +6,7 @@ from datetime import date as _date
 from models.schemas import SubmitAnswerRequest, SubmitAnswerResponse
 from db.connection import acquire
 from services.code_runner import execute_code
-from services.claude import generate_task_intro, translate_to_german, translate_lesson_content_to_german, generate_explain_code, evaluate_explanation
+from services.claude import generate_task_intro, translate_to_german, translate_lesson_content_to_german, translate_code_comments, generate_explain_code, evaluate_explanation
 from deps import get_current_user, get_optional_user
 from utils.streak import update_user_streak
 
@@ -226,7 +226,7 @@ async def get_lesson(lesson_id: int, ui_lang: str = "en", user_id: Optional[str]
                         existing_tr[intro_key] = concept_intro
                         needs_tr_update = True
 
-            # For German: also translate instructions if not yet stored
+            # For German: also translate instructions + starter_code comments if not yet stored
             if ui_lang == "de":
                 de_content = existing_tr.get("content") or {}
                 if not de_content.get("instructions"):
@@ -235,6 +235,16 @@ async def get_lesson(lesson_id: int, ui_lang: str = "en", user_id: Optional[str]
                         de_instructions = await translate_to_german(raw_instructions)
                         if de_instructions:
                             de_content["instructions"] = de_instructions
+                            existing_tr["content"] = de_content
+                            needs_tr_update = True
+                if not de_content.get("starter_code"):
+                    raw_starter = (lesson["content_json"] or {}).get("starter_code", "")
+                    lang = lesson["language"] or "python"
+                    comment_char = "#" if lang == "python" else "//"
+                    if raw_starter and comment_char in raw_starter:
+                        de_starter = await translate_code_comments(raw_starter, lang)
+                        if de_starter:
+                            de_content["starter_code"] = de_starter
                             existing_tr["content"] = de_content
                             needs_tr_update = True
 
