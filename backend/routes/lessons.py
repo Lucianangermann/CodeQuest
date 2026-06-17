@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
+import asyncio
 import json
 from pydantic import BaseModel
 from datetime import date as _date
@@ -207,54 +208,72 @@ async def get_lesson(lesson_id: int, ui_lang: str = "en", user_id: Optional[str]
         if lesson["type"] in ("code", "debug", "advanced"):
             intro_key = f"task_intro_{ui_lang}"
             cache_key = (lesson_id, ui_lang)
+            content = lesson["content_json"] or {}
+            instructions = content.get("instructions", "")
+            starter_code = content.get("starter_code", "")
+            lang = lesson["language"] or "python"
+            comment_char = "#" if lang == "python" else "//"
+            de_content = existing_tr.get("content") or {}
 
-            if cache_key in _task_intro_cache:
-                concept_intro = _task_intro_cache[cache_key]
-            elif intro_key in existing_tr:
-                concept_intro = existing_tr[intro_key]
-                _task_intro_cache[cache_key] = concept_intro
-            else:
-                content = lesson["content_json"] or {}
-                instructions = content.get("instructions", "")
-                starter_code = content.get("starter_code", "")
-                if instructions:
-                    concept_intro = await generate_task_intro(
-                        instructions, starter_code, lesson["language"] or "python", ui_lang
-                    )
+            # Determine what still needs to be generated/translated
+            need_intro = cache_key not in _task_intro_cache and intro_key not in existing_tr
+            need_de_instr = ui_lang == "de" and not de_content.get("instructions") and bool(instructions)
+            need_de_starter = (ui_lang == "de" and not de_content.get("starter_code")
+                               and bool(starter_code) and comment_char in starter_code)
+            need_de_hints = ui_lang == "de" and not de_content.get("hints") and bool(content.get("hints"))
+
+            # Build coroutines for all needed calls, then gather them in parallel
+            coros = []
+            coro_keys = []
+            if need_intro and instructions:
+                coros.append(generate_task_intro(instructions, starter_code, lang, ui_lang))
+                coro_keys.append("intro")
+            if need_de_instr:
+                coros.append(translate_to_german(instructions))
+                coro_keys.append("de_instr")
+            if need_de_starter:
+                coros.append(translate_code_comments(starter_code, lang))
+                coro_keys.append("de_starter")
+            if need_de_hints:
+                coros.append(translate_hints_to_german(content["hints"]))
+                coro_keys.append("de_hints")
+
+            if coros:
+                results = await asyncio.gather(*coros, return_exceptions=True)
+                result_map = dict(zip(coro_keys, results))
+
+                if "intro" in result_map and not isinstance(result_map["intro"], Exception):
+                    concept_intro = result_map["intro"]
                     if concept_intro:
                         _task_intro_cache[cache_key] = concept_intro
                         existing_tr[intro_key] = concept_intro
                         needs_tr_update = True
+                if "de_instr" in result_map and not isinstance(result_map["de_instr"], Exception):
+                    v = result_map["de_instr"]
+                    if v:
+                        de_content["instructions"] = v
+                        existing_tr["content"] = de_content
+                        needs_tr_update = True
+                if "de_starter" in result_map and not isinstance(result_map["de_starter"], Exception):
+                    v = result_map["de_starter"]
+                    if v:
+                        de_content["starter_code"] = v
+                        existing_tr["content"] = de_content
+                        needs_tr_update = True
+                if "de_hints" in result_map and not isinstance(result_map["de_hints"], Exception):
+                    v = result_map["de_hints"]
+                    if v:
+                        de_content["hints"] = v
+                        existing_tr["content"] = de_content
+                        needs_tr_update = True
 
-            # For German: also translate instructions + starter_code comments if not yet stored
-            if ui_lang == "de":
-                de_content = existing_tr.get("content") or {}
-                if not de_content.get("instructions"):
-                    raw_instructions = (lesson["content_json"] or {}).get("instructions", "")
-                    if raw_instructions:
-                        de_instructions = await translate_to_german(raw_instructions)
-                        if de_instructions:
-                            de_content["instructions"] = de_instructions
-                            existing_tr["content"] = de_content
-                            needs_tr_update = True
-                if not de_content.get("starter_code"):
-                    raw_starter = (lesson["content_json"] or {}).get("starter_code", "")
-                    lang = lesson["language"] or "python"
-                    comment_char = "#" if lang == "python" else "//"
-                    if raw_starter and comment_char in raw_starter:
-                        de_starter = await translate_code_comments(raw_starter, lang)
-                        if de_starter:
-                            de_content["starter_code"] = de_starter
-                            existing_tr["content"] = de_content
-                            needs_tr_update = True
-                if not de_content.get("hints"):
-                    raw_hints = (lesson["content_json"] or {}).get("hints", [])
-                    if raw_hints:
-                        de_hints = await translate_hints_to_german(raw_hints)
-                        if de_hints:
-                            de_content["hints"] = de_hints
-                            existing_tr["content"] = de_content
-                            needs_tr_update = True
+            # Always populate concept_intro from existing cache/DB if not set above
+            if concept_intro is None:
+                if cache_key in _task_intro_cache:
+                    concept_intro = _task_intro_cache[cache_key]
+                elif intro_key in existing_tr:
+                    concept_intro = existing_tr[intro_key]
+                    _task_intro_cache[cache_key] = concept_intro
 
         elif lesson["type"] in ("theory", "quiz") and ui_lang == "de":
             # Translate full content on-demand and persist
