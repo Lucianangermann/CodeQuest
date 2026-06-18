@@ -11,43 +11,46 @@ router = APIRouter()
 @router.get("/", response_model=List[TopicWithProgress])
 async def get_topics(language: str = "python", ui_lang: str = "en", track: str = "junior_dev", user_id: Optional[str] = Depends(get_optional_user)):
     async with acquire() as conn:
-        topics = await conn.fetch("SELECT * FROM topics WHERE track = $1 ORDER BY order_index", track)
-
-        counts = {
-            r["topic_id"]: r["total"]
-            for r in await conn.fetch(
-                "SELECT topic_id, COUNT(*) AS total FROM lessons WHERE (language IS NULL OR language = $1) GROUP BY topic_id",
-                language,
-            )
-        }
-
-        completed_by_topic: dict[int, int] = {}
-        if user_id:
-            rows = await conn.fetch(
-                """
-                SELECT l.topic_id, COUNT(*) AS completed
+        rows = await conn.fetch(
+            """
+            WITH lesson_counts AS (
+                SELECT topic_id, COUNT(*) AS total
+                FROM lessons
+                WHERE language IS NULL OR language = $2
+                GROUP BY topic_id
+            ),
+            completed_counts AS (
+                SELECT l.topic_id, COUNT(*) AS done
                 FROM user_progress up
                 JOIN lessons l ON l.id = up.lesson_id
                 WHERE up.user_id = $1 AND (l.language IS NULL OR l.language = $2)
                 GROUP BY l.topic_id
-                """,
-                user_id,
-                language,
             )
-            completed_by_topic = {r["topic_id"]: r["completed"] for r in rows}
+            SELECT t.*,
+                COALESCE(lc.total, 0) AS total_lessons,
+                COALESCE(cc.done,  0) AS completed_lessons
+            FROM topics t
+            LEFT JOIN lesson_counts  lc ON lc.topic_id = t.id
+            LEFT JOIN completed_counts cc ON cc.topic_id = t.id
+            WHERE t.track = $3
+            ORDER BY t.order_index
+            """,
+            user_id, language, track,
+        )
 
+    topics = rows
     result = []
     for i, t in enumerate(topics):
         tid = t["id"]
-        total = counts.get(tid, 0)
-        completed = completed_by_topic.get(tid, 0)
+        total = t["total_lessons"]
+        completed = t["completed_lessons"]
         is_completed = total > 0 and completed >= total
 
         is_locked = False
         if i > 0:
-            prev_tid = topics[i - 1]["id"]
-            prev_total = counts.get(prev_tid, 0)
-            prev_done = completed_by_topic.get(prev_tid, 0)
+            prev = topics[i - 1]
+            prev_total = prev["total_lessons"]
+            prev_done  = prev["completed_lessons"]
             is_locked = not (prev_total > 0 and prev_done >= prev_total)
 
         tr = {}

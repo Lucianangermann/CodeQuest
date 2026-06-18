@@ -32,7 +32,7 @@ export default function Leaderboard() {
   const { data: entries = [], isLoading, error } = useQuery({
     queryKey: ['leaderboard'],
     queryFn: fetchLeaderboard,
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
   })
 
   return (

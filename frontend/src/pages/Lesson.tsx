@@ -498,7 +498,7 @@ export default function LessonPage() {
   const { data: fetchedLesson, isLoading } = useQuery({
     queryKey: ['lesson', lessonId, uiLanguage],
     queryFn: () => fetchLesson(Number(lessonId)),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 15 * 60 * 1000,
   })
 
   const lesson: Lesson | undefined = fetchedLesson ?? currentLesson ?? undefined
@@ -597,6 +597,21 @@ export default function LessonPage() {
     }
   }
 
+  function prefetchNextLesson() {
+    const lessonList = queryClient.getQueryData<any[]>(['topic-lessons', lesson?.topic_id])
+    if (!lessonList || !lesson) return
+
+    const currentIdx = lessonList.findIndex(l => l.id === lesson.id)
+    const nextLesson = lessonList[currentIdx + 1]
+    if (!nextLesson) return
+
+    queryClient.prefetchQuery({
+      queryKey: ['lesson', nextLesson.id, uiLanguage],
+      queryFn: () => fetchLesson(nextLesson.id),
+      staleTime: 15 * 60 * 1000,
+    })
+  }
+
   async function handleSubmit(answer: string) {
     if (!lesson) return
     setIsSubmitting(true)
@@ -631,6 +646,7 @@ export default function LessonPage() {
         queryClient.invalidateQueries({ queryKey: ['topics'] })
         queryClient.invalidateQueries({ queryKey: ['topic-lessons', lesson.topic_id] })
         queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+        prefetchNextLesson()
         if (res.topic_completed) {
           setTimeout(() => setTopicComplete(true), 800)
         }
