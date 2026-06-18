@@ -1,6 +1,7 @@
 import hashlib
 import json
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from models.schemas import HintRequest, HintResponse, ExplainRequest, ExplainResponse, ChatRequest, ChatResponse, CodeReviewRequest, CodeReviewResponse
 from db.connection import acquire
 from services.claude import get_hint, explain_mistake, chat_response, review_code
@@ -82,3 +83,55 @@ async def review_code_endpoint(body: CodeReviewRequest, user_id: str = Depends(g
         pass
 
     return CodeReviewResponse(**result)
+
+
+class AltExplanationRequest(BaseModel):
+    lesson_id: int
+    section_index: int
+    section_heading: str
+    section_content: str
+    prog_language: str = "python"
+
+
+@router.post("/alt-explanation")
+async def get_alt_explanation(
+    body: AltExplanationRequest,
+    user_id: str = Depends(get_current_user),
+):
+    """Return a cached alternative explanation for a theory section, generating if needed."""
+    from services.claude import generate_alt_explanation
+
+    cache_key = str(body.section_index)
+
+    async with acquire() as conn:
+        lesson = await conn.fetchrow(
+            "SELECT translations FROM lessons WHERE id = $1", body.lesson_id
+        )
+
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    raw_tr = lesson["translations"]
+    tr = (raw_tr if isinstance(raw_tr, dict) else json.loads(raw_tr)) if raw_tr else {}
+
+    alt_cache = tr.get("alt_explanations") or {}
+    if cache_key in alt_cache:
+        return {"explanation": alt_cache[cache_key], "cached": True}
+
+    # Generate new
+    explanation = await generate_alt_explanation(
+        body.section_heading, body.section_content, body.prog_language
+    )
+    if not explanation:
+        raise HTTPException(status_code=500, detail="Could not generate explanation")
+
+    alt_cache[cache_key] = explanation
+    tr["alt_explanations"] = alt_cache
+
+    async with acquire() as conn:
+        await conn.execute(
+            "UPDATE lessons SET translations = $1 WHERE id = $2",
+            tr, body.lesson_id,
+        )
+
+    return {"explanation": explanation, "cached": False}

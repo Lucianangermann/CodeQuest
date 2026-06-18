@@ -10,12 +10,18 @@ import { useT } from '../i18n/useT'
 import type { Topic, Lesson, ProfileData } from '../types'
 import { ListSkeleton, TopicNodeSkeleton } from '../components/LoadingSkeleton'
 import ProgressBar from '../components/ProgressBar'
+import IHKCheckliste from '../components/IHKCheckliste'
 
 const LANGUAGES = [
   { value: 'python',     label: 'Python',     emoji: '🐍' },
   { value: 'javascript', label: 'JavaScript', emoji: '⚡' },
   { value: 'typescript', label: 'TypeScript', emoji: '🔷' },
 ]
+
+const TRACK_TABS = [
+  { value: 'junior_dev' as const,  label_key: 'road.tabJuniorDev',  emoji: '🚀' },
+  { value: 'umschulung' as const,  label_key: 'road.tabUmschulung',  emoji: '🎓' },
+] as const
 
 function TopicNode({ topic, isSelected, onSelect }: {
   topic: Topic; isSelected: boolean; onSelect: () => void
@@ -39,6 +45,9 @@ function TopicNode({ topic, isSelected, onSelect }: {
       }`}
     >
       <span className="text-3xl">{topic.icon || '📚'}</span>
+      {topic.lernfeld_number && (
+        <span className="text-[10px] font-bold text-quest-muted">LF {topic.lernfeld_number}</span>
+      )}
       <span className="text-xs font-semibold text-center leading-tight">{topic.title}</span>
       {topic.is_completed && (
         <CheckCircle className="absolute -top-2 -right-2 w-5 h-5 text-quest-green bg-quest-bg rounded-full" />
@@ -57,7 +66,7 @@ export default function Roadmap() {
   const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null)
   const initSearch = searchParams.get('search') ?? ''
   const [search, setSearch] = useState(initSearch)
-  const { user, setUser, uiLanguage } = useUserStore()
+  const { user, setUser, uiLanguage, activeTrack, setActiveTrack } = useUserStore()
   const queryClient = useQueryClient()
   const t = useT()
   const lang = user?.language_preference || 'python'
@@ -82,8 +91,8 @@ export default function Roadmap() {
   })
 
   const { data: topics = [], isLoading: loadingTopics, error: topicsError } = useQuery({
-    queryKey: ['topics', lang, uiLanguage],
-    queryFn: () => fetchTopics(lang),
+    queryKey: ['topics', lang, uiLanguage, activeTrack],
+    queryFn: () => fetchTopics(lang, activeTrack),
     staleTime: 1000 * 60 * 5,
     select: (data) => {
       if (selectedTopicId === null && data.length > 0) {
@@ -156,6 +165,27 @@ export default function Roadmap() {
         </div>
       </div>
 
+      {/* Track switcher */}
+      <div className="flex items-center gap-1 p-1 rounded-xl bg-quest-card border border-quest-border mb-6 w-fit">
+        {TRACK_TABS.map(tab => (
+          <button
+            key={tab.value}
+            onClick={() => {
+              setActiveTrack(tab.value)
+              setSelectedTopicId(null)
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeTrack === tab.value
+                ? 'bg-quest-purple text-white shadow'
+                : 'text-quest-muted hover:text-quest-text hover:bg-white/5'
+            }`}
+          >
+            <span>{tab.emoji}</span>
+            <span>{t(tab.label_key)}</span>
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Topic nodes */}
         <div className="lg:w-auto">
@@ -193,8 +223,8 @@ export default function Roadmap() {
                   onSelect={() => setSelectedTopicId(topic.id)}
                 />
               ))}
-              {/* Capstone node */}
-              {capstone && (
+              {/* Capstone node — only on junior_dev track */}
+              {activeTrack === 'junior_dev' && capstone && (
                 <motion.button
                   whileHover={capstone.is_unlocked ? { scale: 1.03 } : {}}
                   whileTap={capstone.is_unlocked ? { scale: 0.98 } : {}}
@@ -217,7 +247,7 @@ export default function Roadmap() {
           )}
         </div>
 
-        {/* Lessons panel */}
+        {/* Lessons panel + IHK Checkliste */}
         <div className="flex-1">
           {selectedTopic && (
             <motion.div
@@ -313,6 +343,7 @@ export default function Roadmap() {
               </div>
             </motion.div>
           )}
+          {activeTrack === 'umschulung' && <IHKCheckliste />}
         </div>
       </div>
     </motion.div>

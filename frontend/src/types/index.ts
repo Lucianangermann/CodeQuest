@@ -10,6 +10,7 @@ export interface User {
   language_preference: string
   daily_goal: number
   onboarding_completed: boolean
+  active_tracks?: string[]  // e.g. ['junior_dev', 'umschulung']
 }
 
 export type OnboardingGoal = 'job' | 'hobby' | 'school' | 'upskill'
@@ -152,6 +153,15 @@ export interface Topic {
   completed_lessons: number
   is_locked: boolean
   is_completed: boolean
+  track: string        // 'junior_dev' | 'umschulung'
+  lernfeld_number?: number | null
+}
+
+export interface IHKChecklistItem {
+  key: string
+  label: string
+  category: string
+  completed: boolean
 }
 
 export type LessonType = 'theory' | 'quiz' | 'code' | 'debug' | 'advanced' | 'explain'
@@ -203,6 +213,9 @@ export interface Lesson {
   language?: string
   mastery_level?: number
   concept_intro?: string | null
+  glossary?: Record<string, { explanation: string; example?: string | null; example_language?: string | null }>
+  learning_objectives?: string[]
+  story_context?: string | null
 }
 
 export interface Badge {

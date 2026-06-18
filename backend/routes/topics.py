@@ -9,9 +9,9 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[TopicWithProgress])
-async def get_topics(language: str = "python", ui_lang: str = "en", user_id: Optional[str] = Depends(get_optional_user)):
+async def get_topics(language: str = "python", ui_lang: str = "en", track: str = "junior_dev", user_id: Optional[str] = Depends(get_optional_user)):
     async with acquire() as conn:
-        topics = await conn.fetch("SELECT * FROM topics ORDER BY order_index")
+        topics = await conn.fetch("SELECT * FROM topics WHERE track = $1 ORDER BY order_index", track)
 
         counts = {
             r["topic_id"]: r["total"]
@@ -64,6 +64,8 @@ async def get_topics(language: str = "python", ui_lang: str = "en", user_id: Opt
             completed_lessons=completed,
             is_locked=is_locked,
             is_completed=is_completed,
+            track=t.get("track", "junior_dev"),
+            lernfeld_number=t.get("lernfeld_number"),
         ))
 
     # Hide topics that have no lessons for the requested language

@@ -449,6 +449,18 @@ export const translations: Record<Lang, Record<string, string>> = {
     'ob.build2': '📅 Building your weekly schedule...',
     'ob.build3': '🎯 Tailoring interview prep...',
     'ob.build4': '✅ Plan ready!',
+
+    // Track selection
+    'road.tabJuniorDev': 'Junior Developer',
+    'road.tabUmschulung': 'Umschulung Fachinformatiker',
+    'ob.trackTitle': 'What is your learning goal?',
+    'ob.trackSub': 'This determines which learning path to show you.',
+    'ob.trackJuniorDev': 'Junior Developer',
+    'ob.trackJuniorDevDesc': 'Direct entry into software development — no formal IT degree',
+    'ob.trackUmschulung': 'Umschulung Fachinformatiker',
+    'ob.trackUmschulungDesc': 'Prepare for IHK exam (Fachinformatiker Anwendungsentwicklung)',
+    'ob.trackBoth': 'Both in parallel',
+    'ob.trackBothDesc': 'Junior Dev track + IHK exam preparation side by side',
   },
 
   de: {
@@ -899,5 +911,17 @@ export const translations: Record<Lang, Record<string, string>> = {
     'ob.build2': '📅 Wochenplan wird aufgebaut...',
     'ob.build3': '🎯 Interview-Vorbereitung wird angepasst...',
     'ob.build4': '✅ Plan fertig!',
+
+    // Track selection
+    'road.tabJuniorDev': 'Junior Developer',
+    'road.tabUmschulung': 'Umschulung Fachinformatiker',
+    'ob.trackTitle': 'Was ist dein Lernziel?',
+    'ob.trackSub': 'Das bestimmt, welchen Lernpfad wir dir zeigen.',
+    'ob.trackJuniorDev': 'Junior Developer',
+    'ob.trackJuniorDevDesc': 'Direkteinstieg in die Softwareentwicklung — ohne formalen IT-Abschluss',
+    'ob.trackUmschulung': 'Umschulung Fachinformatiker',
+    'ob.trackUmschulungDesc': 'IHK-Abschlussprüfung vorbereiten (Fachinformatiker Anwendungsentwicklung)',
+    'ob.trackBoth': 'Beides parallel',
+    'ob.trackBothDesc': 'Junior Dev Pfad + IHK-Prüfungsvorbereitung gleichzeitig',
   },
 }

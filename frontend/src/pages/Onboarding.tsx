@@ -94,15 +94,16 @@ export default function Onboarding() {
     { value: 'fullstack' as OnboardingFocus, label: t('ob.focusFullstack'), icon: '🔄', desc: t('ob.focusFullstackDesc') },
   ]
 
-  const [step, setStep]         = useState(0)
-  const [goal, setGoal]         = useState<OnboardingGoal | null>(null)
-  const [timeline, setTimeline] = useState<OnboardingTimeline | null>(null)
-  const [company, setCompany]   = useState<OnboardingCompany | null>(null)
-  const [level, setLevel]       = useState<OnboardingLevel | null>(null)
-  const [language, setLanguage] = useState<OnboardingLanguage | null>(null)
-  const [focus, setFocus]       = useState<OnboardingFocus | null>(null)
+  const [step, setStep]               = useState(0)
+  const [activeTracks, setActiveTracks] = useState<string[]>(['junior_dev'])
+  const [goal, setGoal]               = useState<OnboardingGoal | null>(null)
+  const [timeline, setTimeline]       = useState<OnboardingTimeline | null>(null)
+  const [company, setCompany]         = useState<OnboardingCompany | null>(null)
+  const [level, setLevel]             = useState<OnboardingLevel | null>(null)
+  const [language, setLanguage]       = useState<OnboardingLanguage | null>(null)
+  const [focus, setFocus]             = useState<OnboardingFocus | null>(null)
 
-  const TOTAL_STEPS = 6
+  const TOTAL_STEPS = 7
 
   const [buildStep, setBuildStep] = useState(0)
   const BUILD_STEPS = [
@@ -116,17 +117,18 @@ export default function Onboarding() {
   const mutation = useMutation({
     mutationFn: () =>
       completeOnboarding({
-        goal:           GOAL_LABEL[goal!],
-        timeline:       TIMELINE_LABEL[timeline!],
-        level:          LEVEL_LABEL[level!],
-        language:       language!,
-        company_target: COMPANY_LABEL[company!],
+        goal:            GOAL_LABEL[goal!],
+        timeline:        TIMELINE_LABEL[timeline!],
+        level:           LEVEL_LABEL[level!],
+        language:        language!,
+        company_target:  COMPANY_LABEL[company!],
         framework_focus: FOCUS_LABEL[focus!],
+        active_tracks:   activeTracks,
       }),
     onSuccess: () => {
       setBuildStep(BUILD_STEPS.length - 1)
       setTimeout(() => {
-        if (user) setUser({ ...user, onboarding_completed: true, language_preference: language! })
+        if (user) setUser({ ...user, onboarding_completed: true, language_preference: language!, active_tracks: activeTracks })
         navigate('/my-path')
       }, 600)
     },
@@ -142,12 +144,56 @@ export default function Onboarding() {
 
   const steps = [
     {
+      title: t('ob.trackTitle'),
+      subtitle: t('ob.trackSub'),
+      content: (
+        <div className="space-y-3">
+          <ChoiceCard
+            selected={activeTracks.includes('junior_dev') && !activeTracks.includes('umschulung')}
+            onClick={() => { setActiveTracks(['junior_dev']); setStep(1) }}
+          >
+            <div className="flex items-center gap-4">
+              <span className="text-3xl">🚀</span>
+              <div>
+                <div className="font-semibold text-white">{t('ob.trackJuniorDev')}</div>
+                <div className="text-sm text-gray-400">{t('ob.trackJuniorDevDesc')}</div>
+              </div>
+            </div>
+          </ChoiceCard>
+          <ChoiceCard
+            selected={activeTracks.includes('umschulung') && !activeTracks.includes('junior_dev')}
+            onClick={() => { setActiveTracks(['umschulung']); setStep(1) }}
+          >
+            <div className="flex items-center gap-4">
+              <span className="text-3xl">🎓</span>
+              <div>
+                <div className="font-semibold text-white">{t('ob.trackUmschulung')}</div>
+                <div className="text-sm text-gray-400">{t('ob.trackUmschulungDesc')}</div>
+              </div>
+            </div>
+          </ChoiceCard>
+          <ChoiceCard
+            selected={activeTracks.includes('junior_dev') && activeTracks.includes('umschulung')}
+            onClick={() => { setActiveTracks(['junior_dev', 'umschulung']); setStep(1) }}
+          >
+            <div className="flex items-center gap-4">
+              <span className="text-3xl">⚡</span>
+              <div>
+                <div className="font-semibold text-white">{t('ob.trackBoth')}</div>
+                <div className="text-sm text-gray-400">{t('ob.trackBothDesc')}</div>
+              </div>
+            </div>
+          </ChoiceCard>
+        </div>
+      ),
+    },
+    {
       title: t('ob.step0title'),
       subtitle: t('ob.step0sub'),
       content: (
         <div className="space-y-3">
           {GOALS.map((g) => (
-            <ChoiceCard key={g.value} selected={goal === g.value} onClick={() => { setGoal(g.value); setStep(1) }}>
+            <ChoiceCard key={g.value} selected={goal === g.value} onClick={() => { setGoal(g.value); setStep(2) }}>
               <div className="flex items-center gap-4">
                 <span className="text-3xl">{g.icon}</span>
                 <div>
@@ -166,7 +212,7 @@ export default function Onboarding() {
       content: (
         <div className="grid grid-cols-2 gap-3">
           {TIMELINES.map((t) => (
-            <ChoiceCard key={t.value} selected={timeline === t.value} onClick={() => { setTimeline(t.value); setStep(2) }}>
+            <ChoiceCard key={t.value} selected={timeline === t.value} onClick={() => { setTimeline(t.value); setStep(3) }}>
               <div className="font-semibold text-white">{t.label}</div>
               <div className="text-sm text-gray-400 mt-1">{t.desc}</div>
             </ChoiceCard>
@@ -180,7 +226,7 @@ export default function Onboarding() {
       content: (
         <div className="space-y-3">
           {COMPANIES.map((c) => (
-            <ChoiceCard key={c.value} selected={company === c.value} onClick={() => { setCompany(c.value); setStep(3) }}>
+            <ChoiceCard key={c.value} selected={company === c.value} onClick={() => { setCompany(c.value); setStep(4) }}>
               <div className="flex items-center gap-4">
                 <span className="text-3xl">{c.icon}</span>
                 <div>
@@ -199,7 +245,7 @@ export default function Onboarding() {
       content: (
         <div className="space-y-3">
           {LEVELS.map((l) => (
-            <ChoiceCard key={l.value} selected={level === l.value} onClick={() => { setLevel(l.value); setStep(4) }}>
+            <ChoiceCard key={l.value} selected={level === l.value} onClick={() => { setLevel(l.value); setStep(5) }}>
               <div className="font-semibold text-white">{l.label}</div>
               <div className="text-sm text-gray-400 mt-1">{l.desc}</div>
             </ChoiceCard>
@@ -213,7 +259,7 @@ export default function Onboarding() {
       content: (
         <div className="grid grid-cols-3 gap-3">
           {LANGUAGES.map((lang) => (
-            <ChoiceCard key={lang.value} selected={language === lang.value} onClick={() => { setLanguage(lang.value); setStep(5) }}>
+            <ChoiceCard key={lang.value} selected={language === lang.value} onClick={() => { setLanguage(lang.value); setStep(6) }}>
               <div className="flex flex-col items-center gap-2 py-2">
                 <span className="text-3xl">{lang.icon}</span>
                 <span className="font-medium text-white text-sm">{lang.label}</span>

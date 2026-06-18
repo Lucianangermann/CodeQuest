@@ -8,7 +8,7 @@ import os
 load_dotenv()
 
 from db.connection import init_pool, close_pool
-from routes import auth, topics, lessons, ai, user, leaderboard, onboarding, training_plan, checklist, weekly_checkin, interview, review, portfolio, notifications, capstone
+from routes import auth, topics, lessons, ai, user, leaderboard, onboarding, training_plan, checklist, weekly_checkin, interview, review, portfolio, notifications, capstone, ihk_checklist
 from services.push import send_push
 
 
@@ -318,6 +318,177 @@ async def _generate_why_matters_bg():
         pass
 
 
+async def _generate_learning_objectives_bg():
+    """Background: generate learning objectives for all lessons that don't have them yet."""
+    await asyncio.sleep(210)
+    from db.connection import acquire
+    from services.claude import generate_learning_objectives
+    import json as _json
+
+    sem = asyncio.Semaphore(2)
+
+    async def _process(lesson):
+        import json as _json2
+        raw_tr = lesson["translations"]
+        tr = (raw_tr if isinstance(raw_tr, dict) else _json2.loads(raw_tr)) if raw_tr else {}
+        if tr.get("learning_objectives") is not None:
+            return
+        raw = lesson["content_json"] or {}
+        # Build a short summary from content
+        if lesson["type"] == "theory":
+            sections = raw.get("sections", [])
+            summary = " ".join(s.get("content", "")[:200] for s in sections[:2])
+        elif lesson["type"] == "quiz":
+            summary = raw.get("question", "")
+        else:
+            summary = raw.get("instructions", "")[:300]
+        if not summary:
+            return
+        prog_lang = lesson["language"] or "general"
+        async with sem:
+            try:
+                for ui_lang in ("en", "de"):
+                    key = f"learning_objectives_{ui_lang}"
+                    if key not in tr:
+                        objs = await generate_learning_objectives(
+                            lesson["title"], lesson["type"], summary, prog_lang, ui_lang
+                        )
+                        if objs:
+                            tr[key] = objs
+                if tr.get("learning_objectives_en") or tr.get("learning_objectives_de"):
+                    async with acquire() as conn:
+                        await conn.execute(
+                            "UPDATE lessons SET translations = $1 WHERE id = $2",
+                            tr, lesson["id"],
+                        )
+            except Exception:
+                pass
+
+    try:
+        async with acquire() as conn:
+            rows = await conn.fetch(
+                """SELECT id, title, type, content_json, language, translations FROM lessons
+                   WHERE translations IS NULL
+                   OR (NOT (translations ? 'learning_objectives_en')
+                   AND NOT (translations ? 'learning_objectives_de'))"""
+            )
+        await asyncio.gather(*[_process(r) for r in rows])
+    except Exception:
+        pass
+
+
+async def _generate_story_contexts_bg():
+    """Background: generate real-world story context for code/debug lessons."""
+    await asyncio.sleep(240)
+    from db.connection import acquire
+    from services.claude import generate_story_context
+    import json as _json
+
+    sem = asyncio.Semaphore(2)
+
+    async def _process(lesson):
+        import json as _json2
+        raw_tr = lesson["translations"]
+        tr = (raw_tr if isinstance(raw_tr, dict) else _json2.loads(raw_tr)) if raw_tr else {}
+        if tr.get("story_context") is not None:
+            return
+        raw = lesson["content_json"] or {}
+        instructions = raw.get("instructions", "")
+        if not instructions:
+            return
+        prog_lang = lesson["language"] or "python"
+        async with sem:
+            try:
+                ctx = await generate_story_context(lesson["title"], instructions, prog_lang)
+                if ctx:
+                    tr["story_context"] = ctx
+                    async with acquire() as conn:
+                        await conn.execute(
+                            "UPDATE lessons SET translations = $1 WHERE id = $2",
+                            tr, lesson["id"],
+                        )
+            except Exception:
+                pass
+
+    try:
+        async with acquire() as conn:
+            rows = await conn.fetch(
+                """SELECT id, title, type, content_json, language, translations FROM lessons
+                   WHERE type IN ('code', 'debug', 'advanced')
+                   AND (translations IS NULL OR NOT (translations ? 'story_context'))"""
+            )
+        await asyncio.gather(*[_process(r) for r in rows])
+    except Exception:
+        pass
+
+
+async def _generate_glossary_bg():
+    """Background: extract technical terms from theory lessons and generate glossary entries."""
+    await asyncio.sleep(180)
+    from db.connection import acquire
+    from services.claude import extract_theory_terms, generate_glossary_entry
+    import json as _json
+
+    sem = asyncio.Semaphore(2)
+
+    async def _process_lesson(lesson):
+        import json as _json2
+        raw_tr = lesson["translations"]
+        tr = (raw_tr if isinstance(raw_tr, dict) else _json2.loads(raw_tr)) if raw_tr else {}
+        if tr.get("glossary_terms") is not None:
+            return
+        raw_content = lesson["content_json"] or {}
+        sections = raw_content.get("sections", [])
+        if not sections:
+            return
+        prog_lang = lesson["language"] or "general"
+        async with sem:
+            try:
+                terms = await extract_theory_terms(sections, prog_lang)
+                if not terms:
+                    tr["glossary_terms"] = []
+                else:
+                    tr["glossary_terms"] = terms
+                    async with acquire() as conn:
+                        existing = await conn.fetch(
+                            "SELECT term FROM glossary WHERE term = ANY($1)", terms
+                        )
+                    existing_terms = {r["term"] for r in existing}
+                    new_terms = [t for t in terms if t not in existing_terms]
+                    for term in new_terms:
+                        entry = await generate_glossary_entry(term, prog_lang)
+                        if entry.get("explanation_de") or entry.get("explanation_en"):
+                            async with acquire() as conn:
+                                await conn.execute(
+                                    """INSERT INTO glossary (term, explanation_de, explanation_en, example, example_language)
+                                       VALUES ($1, $2, $3, $4, $5)
+                                       ON CONFLICT (term) DO NOTHING""",
+                                    term,
+                                    entry.get("explanation_de", ""),
+                                    entry.get("explanation_en", ""),
+                                    entry.get("example"),
+                                    entry.get("example_language"),
+                                )
+                async with acquire() as conn:
+                    await conn.execute(
+                        "UPDATE lessons SET translations = $1 WHERE id = $2",
+                        tr, lesson["id"],
+                    )
+            except Exception:
+                pass
+
+    try:
+        async with acquire() as conn:
+            rows = await conn.fetch(
+                """SELECT id, content_json, language, translations FROM lessons
+                   WHERE type = 'theory'
+                   AND (translations IS NULL OR NOT (translations ? 'glossary_terms'))"""
+            )
+        await asyncio.gather(*[_process_lesson(r) for r in rows])
+    except Exception:
+        pass
+
+
 async def _daily_reminder_scheduler():
     """At 20:00 server time, push reminders to users who haven't practiced today."""
     from datetime import datetime, timedelta
@@ -364,6 +535,9 @@ async def lifespan(app: FastAPI):
     testcases_task = asyncio.create_task(_generate_test_cases_bg())
     quiz_exp_task = asyncio.create_task(_generate_quiz_explanations_bg())
     why_task = asyncio.create_task(_generate_why_matters_bg())
+    glossary_task = asyncio.create_task(_generate_glossary_bg())
+    objectives_task = asyncio.create_task(_generate_learning_objectives_bg())
+    story_task = asyncio.create_task(_generate_story_contexts_bg())
     yield
     task.cancel()
     pregen_task.cancel()
@@ -372,6 +546,9 @@ async def lifespan(app: FastAPI):
     testcases_task.cancel()
     quiz_exp_task.cancel()
     why_task.cancel()
+    glossary_task.cancel()
+    objectives_task.cancel()
+    story_task.cancel()
     await close_pool()
 
 
@@ -402,6 +579,7 @@ app.include_router(review.router,         prefix="/review",         tags=["revie
 app.include_router(portfolio.router,      prefix="/portfolio",      tags=["portfolio"])
 app.include_router(notifications.router,  prefix="/notifications",  tags=["notifications"])
 app.include_router(capstone.router,       prefix="/capstone",        tags=["capstone"])
+app.include_router(ihk_checklist.router,  prefix="/ihk-checklist",   tags=["ihk-checklist"])
 
 
 @app.get("/health")

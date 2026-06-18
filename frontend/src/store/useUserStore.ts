@@ -7,6 +7,7 @@ interface UserState {
   token: string | null
   isDark: boolean
   uiLanguage: 'en' | 'de'
+  activeTrack: 'junior_dev' | 'umschulung'
   setUser: (user: User | null) => void
   setToken: (token: string | null) => void
   updateXP: (xp: number, level: number) => void
@@ -14,6 +15,7 @@ interface UserState {
   toggleDark: () => void
   logout: () => void
   setUiLanguage: (lang: 'en' | 'de') => void
+  setActiveTrack: (track: 'junior_dev' | 'umschulung') => void
 }
 
 export const useUserStore = create<UserState>()(
@@ -23,10 +25,12 @@ export const useUserStore = create<UserState>()(
       token: null,
       isDark: true,
       uiLanguage: 'en',
+      activeTrack: 'junior_dev',
 
       setUser: (user) => set({ user }),
       setToken: (token) => set({ token }),
       logout: () => set({ user: null, token: null }),
+      setActiveTrack: (track) => set({ activeTrack: track }),
 
       updateXP: (xp, level) =>
         set((s) => ({ user: s.user ? { ...s.user, xp, level } : null })),
@@ -45,7 +49,7 @@ export const useUserStore = create<UserState>()(
     }),
     {
       name: 'codequest-user',
-      partialize: (s) => ({ user: s.user, token: s.token, isDark: s.isDark, uiLanguage: s.uiLanguage }),
+      partialize: (s) => ({ user: s.user, token: s.token, isDark: s.isDark, uiLanguage: s.uiLanguage, activeTrack: s.activeTrack }),
     },
   ),
 )

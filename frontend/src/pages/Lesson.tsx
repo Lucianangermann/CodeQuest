@@ -2,12 +2,12 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, CheckCircle, XCircle, Loader2, ChevronRight, HelpCircle, Sparkles } from 'lucide-react'
+import { ArrowLeft, CheckCircle, XCircle, Loader2, ChevronRight, HelpCircle, Sparkles, BookOpen, ChevronDown, Target, RefreshCw } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { fetchLesson, submitLesson, explainMistake, getCodeReview } from '../lib/api'
+import { fetchLesson, submitLesson, explainMistake, getCodeReview, fetchAltExplanation } from '../lib/api'
 import { useLessonStore } from '../store/useLessonStore'
 import { useUserStore } from '../store/useUserStore'
 import { useT } from '../i18n/useT'
@@ -73,28 +73,117 @@ function MarkdownContent({ children }: { children: string }) {
   )
 }
 
-function TheoryView({ content }: { content: TheoryContent }) {
+function GlossaryItem({ term, entry }: {
+  term: string
+  entry: { explanation: string; example?: string | null; example_language?: string | null }
+}) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="rounded-xl border border-quest-border overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/5 transition-colors"
+      >
+        <span className="font-mono text-sm font-semibold text-quest-purple">{term}</span>
+        <ChevronDown
+          className={`w-4 h-4 text-quest-muted transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {open && (
+        <div className="px-4 pb-4 border-t border-quest-border">
+          <p className="text-sm text-quest-text mt-3 leading-relaxed">{entry.explanation}</p>
+          {entry.example && (
+            <pre className="mt-3 p-3 rounded-lg bg-quest-bg text-xs text-quest-text font-mono overflow-x-auto whitespace-pre-wrap">
+              {entry.example}
+            </pre>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function TheoryView({ content, glossary, uiLanguage, lesson }: {
+  content: TheoryContent
+  glossary?: Record<string, { explanation: string; example?: string | null; example_language?: string | null }>
+  uiLanguage?: string
+  lesson?: Lesson
+}) {
   const t = useT()
+  const glossaryEntries = glossary ? Object.entries(glossary) : []
+  const [altExplanations, setAltExplanations] = useState<Record<number, string>>({})
+  const [loadingAlt, setLoadingAlt] = useState<Record<number, boolean>>({})
+
+  async function handleAltExplanation(index: number, heading: string, content: string) {
+    if (altExplanations[index]) {
+      // Toggle off if already shown
+      setAltExplanations(prev => { const n = {...prev}; delete n[index]; return n })
+      return
+    }
+    setLoadingAlt(prev => ({ ...prev, [index]: true }))
+    try {
+      const explanation = await fetchAltExplanation(
+        lesson!.id, index, heading, content, lesson?.language || 'python'
+      )
+      setAltExplanations(prev => ({ ...prev, [index]: explanation }))
+    } catch {
+      // silently fail
+    } finally {
+      setLoadingAlt(prev => ({ ...prev, [index]: false }))
+    }
+  }
+
   return (
     <div className="space-y-5">
-      {content.sections.map((section, i) => {
+      {content.sections.map((section, idx) => {
         const s = section as any
         // New format: { heading, content } — content is full markdown with code fences
         if (s.heading) {
           return (
-            <div key={i}>
+            <div key={idx}>
               <p className="text-xs font-bold text-quest-muted uppercase tracking-wider mb-2">{s.heading}</p>
               <MarkdownContent>{s.content}</MarkdownContent>
+              {/* Alt explanation button */}
+              {lesson && (
+                <>
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      onClick={() => handleAltExplanation(idx, s.heading || '', s.content || '')}
+                      disabled={loadingAlt[idx]}
+                      className="flex items-center gap-1.5 text-xs text-quest-muted hover:text-quest-purple transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${loadingAlt[idx] ? 'animate-spin' : ''}`} />
+                      {loadingAlt[idx]
+                        ? (uiLanguage === 'de' ? 'Generiere...' : 'Generating...')
+                        : altExplanations[idx]
+                          ? (uiLanguage === 'de' ? 'Original zeigen' : 'Show original')
+                          : (uiLanguage === 'de' ? 'Anders erklären' : 'Explain differently')
+                      }
+                    </button>
+                  </div>
+                  {altExplanations[idx] && (
+                    <div className="mt-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                      <p className="text-xs font-semibold text-blue-400 mb-2 uppercase tracking-wide">
+                        {uiLanguage === 'de' ? '💡 Alternative Erklärung' : '💡 Alternative Explanation'}
+                      </p>
+                      <div className="text-sm text-quest-text whitespace-pre-wrap leading-relaxed">
+                        {altExplanations[idx]}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )
         }
         // Old format: { type: 'text'|'code', content, language? }
         return (
-          <div key={i}>
+          <div key={idx}>
             {section.type === 'text' ? (
               <MarkdownContent>{section.content}</MarkdownContent>
             ) : (
-              <CopyableCodeBlock language={section.language || 'python'} code={section.content} blockKey={`${i}-code`} />
+              <CopyableCodeBlock language={section.language || 'python'} code={section.content} blockKey={`${idx}-code`} />
             )}
           </div>
         )
@@ -107,6 +196,22 @@ function TheoryView({ content }: { content: TheoryContent }) {
       {content.why_matters && (
         <div className="mt-2 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-sm text-emerald-300">
           {content.why_matters}
+        </div>
+      )}
+      {/* Fachbegriffe / Glossary */}
+      {glossaryEntries.length > 0 && (
+        <div className="mt-6">
+          <div className="flex items-center gap-2 mb-3">
+            <BookOpen className="w-4 h-4 text-quest-purple" />
+            <h3 className="text-sm font-semibold text-quest-muted uppercase tracking-wide">
+              {uiLanguage === 'de' ? 'Fachbegriffe' : 'Key Terms'}
+            </h3>
+          </div>
+          <div className="space-y-2">
+            {glossaryEntries.map(([term, entry]) => (
+              <GlossaryItem key={term} term={term} entry={entry} />
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -671,9 +776,28 @@ export default function LessonPage() {
         <AnimatePresence mode="wait">
           {(!result || !result.correct || lesson.type === 'explain') && (
             <motion.div key="lesson" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              {/* Learning objectives */}
+              {lesson.learning_objectives && lesson.learning_objectives.length > 0 && (
+                <div className="mb-5 p-4 rounded-xl bg-quest-purple/10 border border-quest-purple/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className="w-4 h-4 text-quest-purple" />
+                    <span className="text-xs font-bold text-quest-purple uppercase tracking-wide">
+                      {uiLanguage === 'de' ? 'Lernziele' : 'Learning Objectives'}
+                    </span>
+                  </div>
+                  <ul className="space-y-1">
+                    {lesson.learning_objectives.map((obj, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-quest-text">
+                        <span className="text-quest-purple mt-0.5 flex-shrink-0">→</span>
+                        <span>{obj}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {lesson.type === 'theory' && (
                 <>
-                  <TheoryView content={lesson.content_json as TheoryContent} />
+                  <TheoryView content={lesson.content_json as TheoryContent} glossary={lesson.glossary} uiLanguage={uiLanguage} lesson={lesson} />
                   <div className="mt-6 pt-6 border-t border-quest-border">
                     <button onClick={() => handleSubmit('read')} disabled={isSubmitting} className="btn-primary flex items-center gap-2">
                       {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
@@ -686,14 +810,24 @@ export default function LessonPage() {
                 <QuizView content={lesson.content_json as QuizContent} onSubmit={handleSubmit} isSubmitting={isSubmitting} />
               )}
               {(lesson.type === 'code' || lesson.type === 'debug' || lesson.type === 'advanced') && (
-                <CodeView
-                  content={lesson.content_json as CodeContent}
-                  lessonId={lesson.id}
-                  language={lesson.language || 'python'}
-                  onSubmit={handleSubmit}
-                  isSubmitting={isSubmitting}
-                  conceptIntro={lesson.concept_intro}
-                />
+                <>
+                  {/* Story context for code lessons */}
+                  {lesson.story_context && (
+                    <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                      <p className="text-sm text-amber-300/90 italic leading-relaxed">
+                        {lesson.story_context}
+                      </p>
+                    </div>
+                  )}
+                  <CodeView
+                    content={lesson.content_json as CodeContent}
+                    lessonId={lesson.id}
+                    language={lesson.language || 'python'}
+                    onSubmit={handleSubmit}
+                    isSubmitting={isSubmitting}
+                    conceptIntro={lesson.concept_intro}
+                  />
+                </>
               )}
               {lesson.type === 'explain' && (
                 <ExplainView

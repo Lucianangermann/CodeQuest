@@ -16,6 +16,7 @@ class OnboardingRequest(BaseModel):
     language: str
     company_target: Optional[str] = ""
     framework_focus: Optional[str] = ""
+    active_tracks: list[str] = ["junior_dev"]
 
 
 @router.post("/complete")
@@ -39,8 +40,8 @@ async def complete_onboarding(body: OnboardingRequest, user_id: str = Depends(ge
             body.company_target, body.framework_focus, plan,
         )
         await conn.execute(
-            "UPDATE users SET onboarding_completed = TRUE, language_preference = $2 WHERE id = $1",
-            user_id, body.language,
+            "UPDATE users SET onboarding_completed = TRUE, language_preference = $2, active_tracks = $3 WHERE id = $1",
+            user_id, body.language, body.active_tracks,
         )
 
     return {"plan": plan}

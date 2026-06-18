@@ -66,6 +66,8 @@ class TopicWithProgress(BaseModel):
     completed_lessons: int
     is_locked: bool
     is_completed: bool
+    track: str = 'junior_dev'
+    lernfeld_number: Optional[int] = None
 
 
 class LessonWithProgress(BaseModel):

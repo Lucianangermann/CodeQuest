@@ -15,6 +15,7 @@ import type {
   InterviewSession,
   InterviewSummary,
   QAPair,
+  IHKChecklistItem,
 } from '../types'
 
 const api = axios.create({
@@ -38,9 +39,9 @@ api.interceptors.response.use(
 )
 
 // Topics
-export async function fetchTopics(language = 'python'): Promise<Topic[]> {
+export async function fetchTopics(language = 'python', track = 'junior_dev'): Promise<Topic[]> {
   const { uiLanguage } = useUserStore.getState()
-  const { data } = await api.get<Topic[]>('/topics/', { params: { language, ui_lang: uiLanguage } })
+  const { data } = await api.get<Topic[]>('/topics/', { params: { language, ui_lang: uiLanguage, track } })
   return data
 }
 
@@ -142,9 +143,20 @@ export async function completeOnboarding(payload: {
   language: string
   company_target?: string
   framework_focus?: string
+  active_tracks?: string[]
 }): Promise<{ plan: TrainingPlan }> {
   const { data } = await api.post('/onboarding/complete', payload)
   return data
+}
+
+// IHK Checklist
+export async function fetchIHKChecklist(): Promise<{ items: IHKChecklistItem[] }> {
+  const { data } = await api.get('/ihk-checklist/')
+  return data
+}
+
+export async function updateIHKChecklistItem(item_key: string, completed: boolean): Promise<void> {
+  await api.patch('/ihk-checklist/item', { item_key, completed })
 }
 
 // Training Plan
@@ -396,6 +408,23 @@ export async function askCapstone(language: string, topic: string, question: str
 export async function evaluateCapstone(language: string, code: string): Promise<{ feedback: string }> {
   const { data } = await api.post(`/capstone/${language}/evaluate`, { code, language })
   return data
+}
+
+export async function fetchAltExplanation(
+  lessonId: number,
+  sectionIndex: number,
+  sectionHeading: string,
+  sectionContent: string,
+  progLanguage: string,
+): Promise<string> {
+  const { data } = await api.post<{ explanation: string }>('/ai/alt-explanation', {
+    lesson_id: lessonId,
+    section_index: sectionIndex,
+    section_heading: sectionHeading,
+    section_content: sectionContent,
+    prog_language: progLanguage,
+  })
+  return data.explanation
 }
 
 export default api

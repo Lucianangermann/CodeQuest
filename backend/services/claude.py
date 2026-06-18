@@ -1205,6 +1205,66 @@ async def generate_quiz_option_explanations(
     return []
 
 
+async def extract_theory_terms(sections: list, prog_language: str) -> list[str]:
+    """Extract technical terms from theory lesson content that beginners may not know."""
+    client = _get_claude()
+    if not client:
+        return []
+
+    text = "\n".join(s.get("content", "") for s in sections if isinstance(s, dict))[:2000]
+    try:
+        msg = await client.messages.create(
+            model=MODEL, max_tokens=200,
+            messages=[{"role": "user", "content":
+                f"Programming language context: {prog_language}\n\nLesson content:\n{text}\n\n"
+                "List ALL technical terms, keywords, and programming concepts mentioned in this "
+                "text that a beginner might not fully understand. Include things like: language "
+                "keywords (async, await, callback), design patterns (MVC, singleton), protocols "
+                "(HTTP, REST), and domain-specific terms. Do NOT include basic words.\n"
+                "Return ONLY a JSON array of strings, max 15 terms. Example: [\"async\", \"callback\", \"Promise\"]"
+            }],
+        )
+        result = json.loads(msg.content[0].text.strip().split("```json")[-1].split("```")[0].strip())
+        if isinstance(result, list):
+            return [str(t).strip() for t in result if t][:15]
+    except Exception:
+        pass
+    return []
+
+
+async def generate_glossary_entry(term: str, prog_language: str) -> dict:
+    """Generate DE + EN explanation and optional code example for a technical term."""
+    client = _get_claude()
+    if not client:
+        return {}
+
+    try:
+        msg = await client.messages.create(
+            model=MODEL, max_tokens=400,
+            messages=[{"role": "user", "content":
+                f"Term: \"{term}\"\nContext: {prog_language} programming\n\n"
+                "Generate a glossary entry. Return JSON with these exact keys:\n"
+                "- explanation_de: 2-3 sentence German explanation for a beginner. Be concrete, avoid jargon.\n"
+                "- explanation_en: 2-3 sentence English explanation for a beginner.\n"
+                "- example: a SHORT code snippet (max 5 lines) demonstrating the term, or null if not applicable.\n"
+                "- example_language: the programming language of the example (e.g. 'javascript'), or null.\n"
+                "Return ONLY valid JSON, no markdown."
+            }],
+        )
+        raw = msg.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```json")[-1].split("```")[0].strip()
+        data = json.loads(raw)
+        return {
+            "explanation_de": str(data.get("explanation_de", "")),
+            "explanation_en": str(data.get("explanation_en", "")),
+            "example": data.get("example"),
+            "example_language": data.get("example_language"),
+        }
+    except Exception:
+        return {}
+
+
 async def generate_why_matters(
     topic_title: str, theory_content: dict, language: str
 ) -> str:
@@ -1222,6 +1282,90 @@ async def generate_why_matters(
                 "Write 2 sentences explaining where this concept is used in REAL "
                 f"{language} projects. Be concrete: mention specific frameworks, APIs, "
                 "or code patterns. Start with '🌍 Real world:'"
+            }],
+        )
+        return msg.content[0].text.strip()
+    except Exception:
+        return ""
+
+
+async def generate_learning_objectives(
+    title: str, lesson_type: str, content_summary: str, prog_language: str, ui_lang: str = "en"
+) -> list[str]:
+    """Generate 3 learning objectives ('Nach dieser Lektion kannst du...') for a lesson."""
+    client = _get_claude()
+    if not client:
+        return []
+
+    lang_instruction = "in German (du-form), each starting with a verb" if ui_lang == "de" else "in English, each starting with a verb"
+    try:
+        msg = await client.messages.create(
+            model=MODEL, max_tokens=200,
+            messages=[{"role": "user", "content":
+                f"Lesson title: \"{title}\"\nType: {lesson_type}\nLanguage: {prog_language}\n"
+                f"Content summary: {content_summary[:400]}\n\n"
+                f"Write exactly 3 learning objectives {lang_instruction}. "
+                "Each should complete 'After this lesson you can...' (or German equivalent). "
+                "Be specific and measurable. Return ONLY a JSON array of 3 strings."
+            }],
+        )
+        raw = msg.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```json")[-1].split("```")[0].strip()
+        result = json.loads(raw)
+        if isinstance(result, list):
+            return [str(r) for r in result[:3]]
+    except Exception:
+        pass
+    return []
+
+
+async def generate_story_context(
+    title: str, instructions: str, prog_language: str
+) -> str:
+    """Generate a 2-sentence real-world scenario that frames a code lesson."""
+    client = _get_claude()
+    if not client:
+        return ""
+
+    try:
+        msg = await client.messages.create(
+            model=MODEL, max_tokens=120,
+            messages=[{"role": "user", "content":
+                f"Code lesson: \"{title}\"\nTask: {instructions[:300]}\nLanguage: {prog_language}\n\n"
+                "Write a 2-sentence real-world scenario that makes this task feel meaningful. "
+                "Example style: 'Du arbeitest als Backend-Entwickler bei einem Startup. "
+                "Dein Team braucht eine Funktion, die...' "
+                "Keep it concrete, relatable, professional. NO generic phrases like 'Stell dir vor'. "
+                "Write in German. Return ONLY the scenario text, no quotes."
+            }],
+        )
+        return msg.content[0].text.strip()
+    except Exception:
+        return ""
+
+
+async def generate_alt_explanation(
+    section_heading: str, section_content: str, prog_language: str
+) -> str:
+    """Generate an alternative explanation of a theory section using a different approach."""
+    client = _get_claude()
+    if not client:
+        return ""
+
+    try:
+        msg = await client.messages.create(
+            model=MODEL, max_tokens=300,
+            messages=[{"role": "user", "content":
+                f"Programming context: {prog_language}\n"
+                f"Section: \"{section_heading}\"\n"
+                f"Original explanation: {section_content[:600]}\n\n"
+                "The learner didn't understand the original explanation. "
+                "Explain the SAME concept differently: use a real-world analogy, "
+                "break it into smaller steps, or give a concrete code example. "
+                "Write in the same language as the original (detect it). "
+                "Max 4 sentences + optional short code snippet. "
+                "Do NOT repeat the original explanation word for word."
             }],
         )
         return msg.content[0].text.strip()

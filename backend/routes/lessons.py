@@ -301,7 +301,28 @@ async def get_lesson(lesson_id: int, ui_lang: str = "en", user_id: Optional[str]
                 existing_tr, lesson_id,
             )
 
-    d = {**dict(lesson), "is_completed": is_completed, "xp_earned": xp_earned, "concept_intro": concept_intro}
+        # Glossary: fetch cached explanations for this lesson's technical terms
+        glossary = {}
+        glossary_terms = existing_tr.get("glossary_terms") or []
+        if glossary_terms:
+            g_rows = await conn.fetch(
+                "SELECT term, explanation_de, explanation_en, example, example_language FROM glossary WHERE term = ANY($1)",
+                glossary_terms,
+            )
+            for g in g_rows:
+                glossary[g["term"]] = {
+                    "explanation": g["explanation_de"] if ui_lang == "de" else g["explanation_en"],
+                    "example": g["example"],
+                    "example_language": g["example_language"],
+                }
+
+    # Learning objectives (language-aware)
+    lo_key = f"learning_objectives_{ui_lang}"
+    learning_objectives = existing_tr.get(lo_key) or existing_tr.get("learning_objectives_en") or []
+
+    story_context = existing_tr.get("story_context") or None
+
+    d = {**dict(lesson), "is_completed": is_completed, "xp_earned": xp_earned, "concept_intro": concept_intro, "glossary": glossary, "learning_objectives": learning_objectives, "story_context": story_context}
     if ui_lang == "de":
         tr = existing_tr
         if tr.get("title"):
