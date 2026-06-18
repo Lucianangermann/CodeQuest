@@ -24,6 +24,7 @@ class HintRequest(BaseModel):
     lesson_id: int
     hint_level: int  # 1, 2, or 3
     user_code: str
+    current_code: Optional[str] = None  # user's current editor content
 
 
 class HintResponse(BaseModel):

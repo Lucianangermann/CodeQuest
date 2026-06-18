@@ -1371,3 +1371,101 @@ async def generate_alt_explanation(
         return msg.content[0].text.strip()
     except Exception:
         return ""
+
+
+async def get_contextual_hint(
+    instructions: str, starter_code: str, user_code: str, hint_level: int, language: str
+) -> str:
+    """Generate a hint that reacts to what the user has actually typed so far."""
+    client = _get_claude()
+    if not client:
+        return ""
+
+    specificity = {
+        1: "Give a gentle nudge — just point at WHAT to think about, not HOW. One sentence.",
+        2: "Be more specific — mention the exact concept or method they should use. Two sentences max.",
+        3: "Almost give the answer — describe the exact fix needed without writing the code. Two sentences.",
+    }.get(hint_level, "Give a helpful hint.")
+
+    try:
+        msg = await client.messages.create(
+            model=MODEL, max_tokens=150,
+            messages=[{"role": "user", "content":
+                f"Language: {language}\nTask: {instructions[:400]}\n"
+                f"Starter code:\n```\n{starter_code[:300]}\n```\n"
+                f"User's current code:\n```\n{user_code[:500]}\n```\n\n"
+                f"The user is stuck. {specificity} "
+                "Comment on what they have so far — acknowledge what's right, "
+                "then point at the specific gap. Never reveal the full solution."
+            }],
+        )
+        return msg.content[0].text.strip()
+    except Exception:
+        return ""
+
+
+async def generate_recap_quiz(
+    title: str, lesson_type: str, content: dict, prog_language: str
+) -> list:
+    """Generate 3 recap questions testing the core concepts of a lesson."""
+    client = _get_claude()
+    if not client:
+        return []
+
+    if lesson_type == "theory":
+        summary = " ".join(
+            s.get("content", "")[:200] for s in content.get("sections", [])[:3]
+        )
+    elif lesson_type == "quiz":
+        summary = content.get("question", "") + " " + content.get("explanation", "")
+    else:
+        summary = content.get("instructions", "")[:400]
+
+    if not summary.strip():
+        return []
+
+    try:
+        msg = await client.messages.create(
+            model=MODEL, max_tokens=600,
+            messages=[{"role": "user", "content":
+                f"Lesson: \"{title}\" ({prog_language})\nContent: {summary[:600]}\n\n"
+                "Create exactly 3 short multiple-choice recap questions testing "
+                "the core concepts. Each answerable in under 10 seconds. "
+                "Write in the SAME language as the content (German if German, English if English).\n"
+                "Return ONLY a JSON array of 3 objects, each with:\n"
+                "- question (string)\n- options (array of 4 strings)\n"
+                "- correct_index (0-3)\n- explanation (one sentence why correct)"
+            }],
+        )
+        raw = msg.content[0].text.strip()
+        if "```" in raw:
+            raw = raw.split("```json")[-1].split("```")[0].strip()
+        result = json.loads(raw)
+        if isinstance(result, list) and len(result) == 3:
+            return result
+    except Exception:
+        pass
+    return []
+
+
+async def generate_debug_error_context(starter_code: str, language: str) -> str:
+    """Predict the realistic error output a user would see when running buggy starter code."""
+    client = _get_claude()
+    if not client:
+        return ""
+
+    try:
+        msg = await client.messages.create(
+            model=MODEL, max_tokens=200,
+            messages=[{"role": "user", "content":
+                f"Language: {language}\nBuggy code:\n```\n{starter_code[:600]}\n```\n\n"
+                "This code has an intentional bug. Predict the EXACT error output "
+                "a user would see when running it — including error type, message, "
+                "and a realistic 2-3 line traceback/stack trace. "
+                "Format exactly like real terminal output (Python traceback or JS console error). "
+                "Do NOT explain the bug — just show the raw error output."
+            }],
+        )
+        return msg.content[0].text.strip()
+    except Exception:
+        return ""

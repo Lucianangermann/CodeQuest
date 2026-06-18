@@ -422,6 +422,93 @@ async def _generate_story_contexts_bg():
         pass
 
 
+async def _generate_recap_quizzes_bg():
+    """Background: generate 3 recap questions for every theory/code lesson."""
+    await asyncio.sleep(270)
+    from db.connection import acquire
+    from services.claude import generate_recap_quiz
+    import json as _json
+
+    sem = asyncio.Semaphore(2)
+
+    async def _process(lesson):
+        import json as _json2
+        raw_tr = lesson["translations"]
+        tr = (raw_tr if isinstance(raw_tr, dict) else _json2.loads(raw_tr)) if raw_tr else {}
+        if tr.get("recap_quiz") is not None:
+            return
+        raw = lesson["content_json"] or {}
+        prog_lang = lesson["language"] or "general"
+        async with sem:
+            try:
+                questions = await generate_recap_quiz(lesson["title"], lesson["type"], raw, prog_lang)
+                if questions:
+                    tr["recap_quiz"] = questions
+                    async with acquire() as conn:
+                        await conn.execute(
+                            "UPDATE lessons SET translations = $1 WHERE id = $2",
+                            tr, lesson["id"],
+                        )
+            except Exception:
+                pass
+
+    try:
+        async with acquire() as conn:
+            rows = await conn.fetch(
+                """SELECT id, title, type, content_json, language, translations FROM lessons
+                   WHERE type IN ('theory', 'code', 'debug', 'advanced')
+                   AND (translations IS NULL OR NOT (translations ? 'recap_quiz'))"""
+            )
+        await asyncio.gather(*[_process(r) for r in rows])
+    except Exception:
+        pass
+
+
+async def _generate_debug_contexts_bg():
+    """Background: generate realistic error output for debug lessons."""
+    await asyncio.sleep(300)
+    from db.connection import acquire
+    from services.claude import generate_debug_error_context
+    import json as _json
+
+    sem = asyncio.Semaphore(2)
+
+    async def _process(lesson):
+        import json as _json2
+        raw_tr = lesson["translations"]
+        tr = (raw_tr if isinstance(raw_tr, dict) else _json2.loads(raw_tr)) if raw_tr else {}
+        if tr.get("error_context") is not None:
+            return
+        raw = lesson["content_json"] or {}
+        starter = raw.get("starter_code", "")
+        if not starter:
+            return
+        prog_lang = lesson["language"] or "python"
+        async with sem:
+            try:
+                error_ctx = await generate_debug_error_context(starter, prog_lang)
+                if error_ctx:
+                    tr["error_context"] = error_ctx
+                    async with acquire() as conn:
+                        await conn.execute(
+                            "UPDATE lessons SET translations = $1 WHERE id = $2",
+                            tr, lesson["id"],
+                        )
+            except Exception:
+                pass
+
+    try:
+        async with acquire() as conn:
+            rows = await conn.fetch(
+                """SELECT id, content_json, language, translations FROM lessons
+                   WHERE type = 'debug'
+                   AND (translations IS NULL OR NOT (translations ? 'error_context'))"""
+            )
+        await asyncio.gather(*[_process(r) for r in rows])
+    except Exception:
+        pass
+
+
 async def _generate_glossary_bg():
     """Background: extract technical terms from theory lessons and generate glossary entries."""
     await asyncio.sleep(180)
@@ -538,6 +625,8 @@ async def lifespan(app: FastAPI):
     glossary_task = asyncio.create_task(_generate_glossary_bg())
     objectives_task = asyncio.create_task(_generate_learning_objectives_bg())
     story_task = asyncio.create_task(_generate_story_contexts_bg())
+    recap_task = asyncio.create_task(_generate_recap_quizzes_bg())
+    debug_ctx_task = asyncio.create_task(_generate_debug_contexts_bg())
     yield
     task.cancel()
     pregen_task.cancel()
@@ -549,6 +638,8 @@ async def lifespan(app: FastAPI):
     glossary_task.cancel()
     objectives_task.cancel()
     story_task.cancel()
+    recap_task.cancel()
+    debug_ctx_task.cancel()
     await close_pool()
 
 

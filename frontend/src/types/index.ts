@@ -200,6 +200,13 @@ export interface CodeContent {
   solution?: string
 }
 
+export interface RecapQuestion {
+  question: string
+  options: string[]
+  correct_index: number
+  explanation: string
+}
+
 export interface Lesson {
   id: number
   topic_id: number
@@ -216,6 +223,8 @@ export interface Lesson {
   glossary?: Record<string, { explanation: string; example?: string | null; example_language?: string | null }>
   learning_objectives?: string[]
   story_context?: string | null
+  recap_quiz?: RecapQuestion[]
+  error_context?: string | null
 }
 
 export interface Badge {

@@ -16,11 +16,31 @@ async def get_lesson_hint(body: HintRequest, user_id: str = Depends(get_current_
         raise HTTPException(status_code=400, detail="hint_level must be 1, 2, or 3")
 
     async with acquire() as conn:
-        lesson = await conn.fetchrow("SELECT content_json FROM lessons WHERE id = $1", body.lesson_id)
+        lesson = await conn.fetchrow("SELECT content_json, language FROM lessons WHERE id = $1", body.lesson_id)
         if not lesson:
             raise HTTPException(status_code=404, detail="Lesson not found")
 
-    hint = await get_hint(lesson["content_json"], body.hint_level, body.user_code)
+    content = lesson["content_json"] or {}
+
+    # If user provided their current code and it's meaningfully different from starter code,
+    # generate a contextual hint instead of the static one
+    starter_code = (content.get("starter_code") or "").strip()
+    user_code = (body.current_code or "").strip()
+
+    if user_code and user_code != starter_code and len(user_code) > 10:
+        from services.claude import get_contextual_hint
+        contextual = await get_contextual_hint(
+            instructions=content.get("instructions", ""),
+            starter_code=starter_code,
+            user_code=user_code,
+            hint_level=body.hint_level,
+            language=lesson.get("language") or "python",
+        )
+        if contextual:
+            return HintResponse(hint=contextual, hint_level=body.hint_level)
+    # fall through to static hint if contextual generation failed
+
+    hint = await get_hint(content, body.hint_level, body.user_code)
     return HintResponse(hint=hint, hint_level=body.hint_level)
 
 

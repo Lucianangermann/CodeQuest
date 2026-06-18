@@ -322,7 +322,13 @@ async def get_lesson(lesson_id: int, ui_lang: str = "en", user_id: Optional[str]
 
     story_context = existing_tr.get("story_context") or None
 
-    d = {**dict(lesson), "is_completed": is_completed, "xp_earned": xp_earned, "concept_intro": concept_intro, "glossary": glossary, "learning_objectives": learning_objectives, "story_context": story_context}
+    # Recap quiz (3 questions testing lesson concepts)
+    recap_quiz = existing_tr.get("recap_quiz") or []
+
+    # Error context for debug lessons (realistic terminal error output)
+    error_context = existing_tr.get("error_context") or None
+
+    d = {**dict(lesson), "is_completed": is_completed, "xp_earned": xp_earned, "concept_intro": concept_intro, "glossary": glossary, "learning_objectives": learning_objectives, "story_context": story_context, "recap_quiz": recap_quiz, "error_context": error_context}
     if ui_lang == "de":
         tr = existing_tr
         if tr.get("title"):

@@ -68,11 +68,12 @@ export async function submitLesson(
 }
 
 // AI
-export async function getHint(lessonId: number, hintLevel: number, userCode: string): Promise<string> {
+export async function getHint(lessonId: number, hintLevel: number, userCode: string, currentCode?: string): Promise<string> {
   const { data } = await api.post<{ hint: string }>('/ai/hint', {
     lesson_id: lessonId,
     hint_level: hintLevel,
     user_code: userCode,
+    current_code: currentCode,
   })
   return data.hint
 }

@@ -453,6 +453,11 @@ export default function LessonPage() {
   const [isExplainingError, setIsExplainingError] = useState(false)
   const [showSolution, setShowSolution] = useState(false)
 
+  const [recapOpen, setRecapOpen] = useState(false)
+  const [recapIndex, setRecapIndex] = useState(0)
+  const [recapAnswers, setRecapAnswers] = useState<Record<number, number>>({})
+  const [recapDone, setRecapDone] = useState(false)
+
   const confettiRef = useRef<HTMLCanvasElement>(null)
 
   const NOTES_KEY = `cq_note_${lessonId}`
@@ -482,6 +487,13 @@ export default function LessonPage() {
     setReview(null)
     setLastSubmittedCode('')
   }, [fetchedLesson])
+
+  useEffect(() => {
+    setRecapOpen(false)
+    setRecapIndex(0)
+    setRecapAnswers({})
+    setRecapDone(false)
+  }, [lessonId])
 
   useEffect(() => {
     if (!result?.correct) return
@@ -819,6 +831,17 @@ export default function LessonPage() {
                       </p>
                     </div>
                   )}
+                  {lesson.error_context && (
+                    <div className="mb-4 rounded-xl overflow-hidden border border-red-500/30">
+                      <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border-b border-red-500/20">
+                        <div className="w-2 h-2 rounded-full bg-red-500" />
+                        <span className="text-xs font-mono font-semibold text-red-400">Terminal Output</span>
+                      </div>
+                      <pre className="px-4 py-3 text-xs font-mono text-red-300/90 bg-black/40 overflow-x-auto whitespace-pre-wrap leading-relaxed">
+                        {lesson.error_context}
+                      </pre>
+                    </div>
+                  )}
                   <CodeView
                     content={lesson.content_json as CodeContent}
                     lessonId={lesson.id}
@@ -1072,6 +1095,93 @@ export default function LessonPage() {
                 )}
               </div>
             </div>
+
+            {result.correct && lesson.recap_quiz && lesson.recap_quiz.length > 0 && (
+              <div className="mt-4 rounded-xl border border-quest-border overflow-hidden">
+                <button
+                  onClick={() => setRecapOpen(o => !o)}
+                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🧠</span>
+                    <span className="text-sm font-semibold text-white">
+                      {uiLanguage === 'de' ? 'Quick Recap' : 'Quick Recap'}
+                      {recapDone && <span className="ml-2 text-xs text-quest-green">✓ Done</span>}
+                    </span>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-quest-muted transition-transform ${recapOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {recapOpen && !recapDone && lesson.recap_quiz[recapIndex] && (
+                  <div className="px-4 pb-4 border-t border-quest-border">
+                    <p className="text-xs text-quest-muted mt-3 mb-2">
+                      {recapIndex + 1} / {lesson.recap_quiz.length}
+                    </p>
+                    <p className="text-sm font-medium text-white mb-3">
+                      {lesson.recap_quiz[recapIndex].question}
+                    </p>
+                    <div className="space-y-2">
+                      {lesson.recap_quiz[recapIndex].options.map((opt, i) => {
+                        const answered = recapAnswers[recapIndex] !== undefined
+                        const chosen = recapAnswers[recapIndex] === i
+                        const correct = lesson.recap_quiz![recapIndex].correct_index === i
+                        return (
+                          <button
+                            key={i}
+                            disabled={answered}
+                            onClick={() => setRecapAnswers(prev => ({ ...prev, [recapIndex]: i }))}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors border ${
+                              !answered
+                                ? 'border-quest-border hover:border-quest-purple hover:bg-quest-purple/10 text-quest-text'
+                                : correct
+                                  ? 'border-quest-green bg-quest-green/10 text-quest-green'
+                                  : chosen
+                                    ? 'border-red-500 bg-red-500/10 text-red-400'
+                                    : 'border-quest-border text-quest-muted'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {recapAnswers[recapIndex] !== undefined && (
+                      <div className="mt-3">
+                        <p className="text-xs text-quest-muted italic">
+                          {lesson.recap_quiz[recapIndex].explanation}
+                        </p>
+                        <button
+                          onClick={() => {
+                            if (recapIndex + 1 < lesson.recap_quiz!.length) {
+                              setRecapIndex(i => i + 1)
+                            } else {
+                              setRecapDone(true)
+                            }
+                          }}
+                          className="mt-3 px-4 py-1.5 rounded-lg bg-quest-purple text-white text-sm font-medium hover:bg-quest-purple/80 transition-colors"
+                        >
+                          {recapIndex + 1 < lesson.recap_quiz!.length
+                            ? (uiLanguage === 'de' ? 'Weiter →' : 'Next →')
+                            : (uiLanguage === 'de' ? 'Fertig ✓' : 'Done ✓')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {recapOpen && recapDone && (
+                  <div className="px-4 pb-4 pt-3 border-t border-quest-border text-center">
+                    <p className="text-sm text-quest-green font-medium">
+                      {uiLanguage === 'de' ? '✓ Recap abgeschlossen!' : '✓ Recap complete!'}
+                    </p>
+                    <p className="text-xs text-quest-muted mt-1">
+                      {Object.values(recapAnswers).filter((a, i) => a === lesson.recap_quiz![i]?.correct_index).length}
+                      {' / '}{lesson.recap_quiz.length} {uiLanguage === 'de' ? 'richtig' : 'correct'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="flex gap-3 mt-4">
               {!result.correct && (
