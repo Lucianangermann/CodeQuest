@@ -207,6 +207,11 @@ export interface RecapQuestion {
   explanation: string
 }
 
+export interface ConceptRef {
+  concept: string
+  recap: string
+}
+
 export interface Lesson {
   id: number
   topic_id: number
@@ -225,6 +230,7 @@ export interface Lesson {
   story_context?: string | null
   recap_quiz?: RecapQuestion[]
   error_context?: string | null
+  concept_refs?: ConceptRef[]
 }
 
 export interface Badge {

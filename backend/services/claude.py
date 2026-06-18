@@ -1373,6 +1373,66 @@ async def generate_alt_explanation(
         return ""
 
 
+async def generate_solution_walkthrough(
+    instructions: str, starter_code: str, solution: str, language: str
+) -> str:
+    """Explain the solution step by step — not just the answer, but WHY each part works."""
+    client = _get_claude()
+    if not client:
+        return ""
+
+    try:
+        msg = await client.messages.create(
+            model=MODEL, max_tokens=600,
+            messages=[{"role": "user", "content":
+                f"Language: {language}\nTask: {instructions[:400]}\n"
+                f"Correct solution:\n```{language}\n{solution[:600]}\n```\n\n"
+                "The learner tried multiple times and still can't solve it. "
+                "Walk through the solution step by step. For each meaningful part:\n"
+                "1. Quote that part of the code\n"
+                "2. Explain in plain language WHY it works and what it does\n"
+                "Write in the same language as the task description (German if German). "
+                "Use numbered steps. Be encouraging. Max 5 steps."
+            }],
+        )
+        return msg.content[0].text.strip()
+    except Exception:
+        return ""
+
+
+async def generate_concept_refs(
+    title: str, content_text: str, prog_language: str
+) -> list:
+    """Extract prerequisite concepts a learner must know before this lesson."""
+    client = _get_claude()
+    if not client:
+        return []
+
+    try:
+        msg = await client.messages.create(
+            model=MODEL, max_tokens=300,
+            messages=[{"role": "user", "content":
+                f"Lesson: \"{title}\" ({prog_language})\nContent: {content_text[:600]}\n\n"
+                "List the prerequisite concepts a beginner MUST understand BEFORE this lesson. "
+                "Only include concepts NOT explained in this lesson itself — things assumed as prior knowledge.\n"
+                "Write in the SAME language as the content (German if German, English if English).\n"
+                "Return ONLY a JSON array of objects (max 4), each with:\n"
+                "- concept: short name (e.g. 'for-Schleifen', 'Variablen')\n"
+                "- recap: one sentence reminder of what it is\n"
+                "If no prerequisites are needed, return []."
+            }],
+        )
+        raw = msg.content[0].text.strip()
+        if "```" in raw:
+            raw = raw.split("```json")[-1].split("```")[0].strip()
+        result = json.loads(raw)
+        if isinstance(result, list):
+            return result[:4]
+    except Exception:
+        pass
+    return []
+
+
 async def get_contextual_hint(
     instructions: str, starter_code: str, user_code: str, hint_level: int, language: str
 ) -> str:

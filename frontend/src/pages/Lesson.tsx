@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { fetchLesson, submitLesson, explainMistake, getCodeReview, fetchAltExplanation } from '../lib/api'
+import { fetchLesson, submitLesson, explainMistake, getCodeReview, fetchAltExplanation, fetchSolutionWalkthrough } from '../lib/api'
 import { useLessonStore } from '../store/useLessonStore'
 import { useUserStore } from '../store/useUserStore'
 import { useT } from '../i18n/useT'
@@ -425,6 +425,26 @@ function CodeView({ content, lessonId, language, onSubmit, isSubmitting, concept
   )
 }
 
+// ── Output diff helper ─────────────────────────────────────────────────────────
+
+function computeOutputDiff(expected: string, actual: string) {
+  const expLines = (expected || '').trimEnd().split('\n')
+  const actLines = (actual || '').trimEnd().split('\n')
+  const maxLen = Math.max(expLines.length, actLines.length)
+  const rows: Array<{ text: string; type: 'match' | 'expected' | 'actual' }> = []
+  for (let i = 0; i < maxLen; i++) {
+    const e = expLines[i]
+    const a = actLines[i]
+    if (e === a) {
+      rows.push({ text: e ?? '', type: 'match' })
+    } else {
+      if (a !== undefined) rows.push({ text: a, type: 'actual' })
+      if (e !== undefined) rows.push({ text: e, type: 'expected' })
+    }
+  }
+  return rows
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function LessonPage() {
@@ -457,6 +477,10 @@ export default function LessonPage() {
   const [recapIndex, setRecapIndex] = useState(0)
   const [recapAnswers, setRecapAnswers] = useState<Record<number, number>>({})
   const [recapDone, setRecapDone] = useState(false)
+
+  const [wrongAttempts, setWrongAttempts] = useState(0)
+  const [walkthrough, setWalkthrough] = useState<string | null>(null)
+  const [walkthroughLoading, setWalkthroughLoading] = useState(false)
 
   const confettiRef = useRef<HTMLCanvasElement>(null)
 
@@ -493,6 +517,8 @@ export default function LessonPage() {
     setRecapIndex(0)
     setRecapAnswers({})
     setRecapDone(false)
+    setWrongAttempts(0)
+    setWalkthrough(null)
   }, [lessonId])
 
   useEffect(() => {
@@ -590,6 +616,9 @@ export default function LessonPage() {
         level: res.level,
         test_results: res.test_results,
       })
+      if (!res.correct) {
+        setWrongAttempts(n => n + 1)
+      }
       if (res.correct && res.xp_earned > 0) {
         const newXP = (user?.xp ?? 0) + res.xp_earned
         const newLevel = res.level ?? Math.max(1, Math.floor(newXP / 100))
@@ -805,6 +834,32 @@ export default function LessonPage() {
                       </li>
                     ))}
                   </ul>
+                </div>
+              )}
+              {/* Concept refs — Prerequisites */}
+              {lesson.concept_refs && lesson.concept_refs.length > 0 && (
+                <div className="mb-5 p-4 rounded-xl bg-white/5 border border-quest-border">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm">🔗</span>
+                    <span className="text-xs font-bold text-quest-muted uppercase tracking-wide">
+                      {uiLanguage === 'de' ? 'Voraussetzungen' : 'Prerequisites'}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {lesson.concept_refs.map((ref, i) => (
+                      <div
+                        key={i}
+                        className="group relative"
+                      >
+                        <span className="px-2 py-1 rounded-lg bg-quest-border text-xs text-quest-text cursor-help border border-transparent hover:border-quest-purple transition-colors">
+                          {ref.concept}
+                        </span>
+                        <div className="absolute bottom-full left-0 mb-1 w-48 p-2 rounded-lg bg-quest-card border border-quest-border text-xs text-quest-muted opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                          {ref.recap}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               {lesson.type === 'theory' && (
@@ -1066,31 +1121,65 @@ export default function LessonPage() {
                 )}
 
                 {/* Diff view for wrong code output */}
-                {lesson.type === 'code' && !result.correct && result.expected_output && (
-                  <div className="mt-4 rounded-lg overflow-hidden border border-quest-border text-xs font-mono">
-                    <div className="grid grid-cols-2">
-                      <div className="bg-quest-green/10 border-r border-quest-border p-3">
-                        <p className="text-quest-green font-semibold mb-2 text-xs uppercase tracking-wider">{t('lesson.expectedOutput')}</p>
-                        {result.expected_output.trim().split('\n').map((line, i) => (
-                          <div key={i} className="text-quest-green/80">{line || <span className="opacity-40">(empty)</span>}</div>
-                        ))}
-                      </div>
-                      <div className="bg-red-500/10 p-3">
-                        <p className="text-red-400 font-semibold mb-2 text-xs uppercase tracking-wider">{t('lesson.yourOutput')}</p>
-                        {result.output
-                          ? result.output.trim().split('\n').map((line, i) => {
-                              const expLine = result.expected_output!.trim().split('\n')[i]
-                              const differs = line !== expLine
-                              return (
-                                <div key={i} className={differs ? 'text-red-400' : 'text-quest-muted'}>
-                                  {line || <span className="opacity-40">(empty)</span>}
-                                </div>
-                              )
-                            })
-                          : <span className="text-red-400/50">(no output)</span>
-                        }
-                      </div>
+                {result && !result.correct && result.output !== undefined && result.expected_output && (
+                  <div className="mt-3 rounded-xl overflow-hidden border border-quest-border">
+                    <div className="flex items-center gap-3 px-3 py-2 bg-quest-card border-b border-quest-border text-xs font-mono font-semibold text-quest-muted">
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400 inline-block"/>
+                        {uiLanguage === 'de' ? 'Deine Ausgabe' : 'Your output'}</span>
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"/>
+                        {uiLanguage === 'de' ? 'Erwartet' : 'Expected'}</span>
                     </div>
+                    <div className="font-mono text-xs leading-relaxed">
+                      {computeOutputDiff(result.expected_output, result.output).map((row, i) => (
+                        <div
+                          key={i}
+                          className={`px-3 py-0.5 ${
+                            row.type === 'match'    ? 'text-quest-muted' :
+                            row.type === 'expected' ? 'bg-emerald-500/10 text-emerald-300' :
+                                                      'bg-red-500/10 text-red-300'
+                          }`}
+                        >
+                          <span className="select-none mr-2 opacity-50">
+                            {row.type === 'match' ? ' ' : row.type === 'expected' ? '+' : '-'}
+                          </span>
+                          {row.text || ' '}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Walkthrough button — show after 3+ wrong attempts */}
+                {wrongAttempts >= 3 && !result?.correct && (
+                  <div className="mt-4">
+                    {!walkthrough ? (
+                      <button
+                        onClick={async () => {
+                          setWalkthroughLoading(true)
+                          try {
+                            const wt = await fetchSolutionWalkthrough(lesson.id, lastSubmittedCode)
+                            setWalkthrough(wt)
+                          } catch { /* silent */ }
+                          finally { setWalkthroughLoading(false) }
+                        }}
+                        disabled={walkthroughLoading}
+                        className="flex items-center gap-2 text-sm text-quest-purple hover:text-quest-purple/80 transition-colors disabled:opacity-50"
+                      >
+                        <span>{walkthroughLoading ? '⏳' : '💡'}</span>
+                        {walkthroughLoading
+                          ? (uiLanguage === 'de' ? 'Generiere...' : 'Generating...')
+                          : (uiLanguage === 'de' ? 'Erklär die Lösung Schritt für Schritt' : 'Walk me through the solution')}
+                      </button>
+                    ) : (
+                      <div className="mt-2 p-4 rounded-xl bg-quest-card border border-quest-purple/30">
+                        <p className="text-xs font-bold text-quest-purple mb-3 uppercase tracking-wide">
+                          💡 {uiLanguage === 'de' ? 'Lösungsweg' : 'Solution Walkthrough'}
+                        </p>
+                        <div className="text-sm text-quest-text whitespace-pre-wrap leading-relaxed">
+                          {walkthrough}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

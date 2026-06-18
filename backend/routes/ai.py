@@ -155,3 +155,56 @@ async def get_alt_explanation(
         )
 
     return {"explanation": explanation, "cached": False}
+
+
+class ExplainSolutionRequest(BaseModel):
+    lesson_id: int
+    current_code: str = ""
+
+
+@router.post("/explain-solution")
+async def explain_solution(
+    body: ExplainSolutionRequest,
+    user_id: str = Depends(get_current_user),
+):
+    """Return a step-by-step solution walkthrough, cached after first generation."""
+    from services.claude import generate_solution_walkthrough
+
+    async with acquire() as conn:
+        lesson = await conn.fetchrow(
+            "SELECT content_json, language, translations FROM lessons WHERE id = $1",
+            body.lesson_id,
+        )
+
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    raw_tr = lesson["translations"]
+    tr = (raw_tr if isinstance(raw_tr, dict) else json.loads(raw_tr)) if raw_tr else {}
+
+    # Return cached walkthrough if available
+    if tr.get("solution_walkthrough"):
+        return {"walkthrough": tr["solution_walkthrough"], "cached": True}
+
+    content = lesson["content_json"] or {}
+    solution = content.get("solution", "")
+    if not solution:
+        raise HTTPException(status_code=400, detail="No solution available for this lesson")
+
+    walkthrough = await generate_solution_walkthrough(
+        instructions=content.get("instructions", ""),
+        starter_code=content.get("starter_code", ""),
+        solution=solution,
+        language=lesson["language"] or "python",
+    )
+    if not walkthrough:
+        raise HTTPException(status_code=500, detail="Could not generate walkthrough")
+
+    tr["solution_walkthrough"] = walkthrough
+    async with acquire() as conn:
+        await conn.execute(
+            "UPDATE lessons SET translations = $1 WHERE id = $2",
+            tr, body.lesson_id,
+        )
+
+    return {"walkthrough": walkthrough, "cached": False}

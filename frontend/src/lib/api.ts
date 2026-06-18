@@ -411,6 +411,14 @@ export async function evaluateCapstone(language: string, code: string): Promise<
   return data
 }
 
+export async function fetchSolutionWalkthrough(lessonId: number, currentCode: string): Promise<string> {
+  const { data } = await api.post<{ walkthrough: string }>('/ai/explain-solution', {
+    lesson_id: lessonId,
+    current_code: currentCode,
+  })
+  return data.walkthrough
+}
+
 export async function fetchAltExplanation(
   lessonId: number,
   sectionIndex: number,

@@ -328,7 +328,9 @@ async def get_lesson(lesson_id: int, ui_lang: str = "en", user_id: Optional[str]
     # Error context for debug lessons (realistic terminal error output)
     error_context = existing_tr.get("error_context") or None
 
-    d = {**dict(lesson), "is_completed": is_completed, "xp_earned": xp_earned, "concept_intro": concept_intro, "glossary": glossary, "learning_objectives": learning_objectives, "story_context": story_context, "recap_quiz": recap_quiz, "error_context": error_context}
+    concept_refs = existing_tr.get("concept_refs") or []
+
+    d = {**dict(lesson), "is_completed": is_completed, "xp_earned": xp_earned, "concept_intro": concept_intro, "glossary": glossary, "learning_objectives": learning_objectives, "story_context": story_context, "recap_quiz": recap_quiz, "error_context": error_context, "concept_refs": concept_refs}
     if ui_lang == "de":
         tr = existing_tr
         if tr.get("title"):

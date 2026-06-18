@@ -422,6 +422,52 @@ async def _generate_story_contexts_bg():
         pass
 
 
+async def _generate_concept_refs_bg():
+    """Background: extract prerequisite concepts for each lesson."""
+    await asyncio.sleep(330)
+    from db.connection import acquire
+    from services.claude import generate_concept_refs
+    import json as _json
+
+    sem = asyncio.Semaphore(2)
+
+    async def _process(lesson):
+        import json as _json2
+        raw_tr = lesson["translations"]
+        tr = (raw_tr if isinstance(raw_tr, dict) else _json2.loads(raw_tr)) if raw_tr else {}
+        if tr.get("concept_refs") is not None:
+            return
+        raw = lesson["content_json"] or {}
+        if lesson["type"] == "theory":
+            text = " ".join(s.get("content", "")[:200] for s in raw.get("sections", [])[:3])
+        else:
+            text = raw.get("instructions", "")[:500]
+        if not text.strip():
+            return
+        prog_lang = lesson["language"] or "general"
+        async with sem:
+            try:
+                refs = await generate_concept_refs(lesson["title"], text, prog_lang)
+                tr["concept_refs"] = refs  # store even if empty list
+                async with acquire() as conn:
+                    await conn.execute(
+                        "UPDATE lessons SET translations = $1 WHERE id = $2",
+                        tr, lesson["id"],
+                    )
+            except Exception:
+                pass
+
+    try:
+        async with acquire() as conn:
+            rows = await conn.fetch(
+                """SELECT id, title, type, content_json, language, translations FROM lessons
+                   WHERE translations IS NULL OR NOT (translations ? 'concept_refs')"""
+            )
+        await asyncio.gather(*[_process(r) for r in rows])
+    except Exception:
+        pass
+
+
 async def _generate_recap_quizzes_bg():
     """Background: generate 3 recap questions for every theory/code lesson."""
     await asyncio.sleep(270)
@@ -627,6 +673,7 @@ async def lifespan(app: FastAPI):
     story_task = asyncio.create_task(_generate_story_contexts_bg())
     recap_task = asyncio.create_task(_generate_recap_quizzes_bg())
     debug_ctx_task = asyncio.create_task(_generate_debug_contexts_bg())
+    concept_refs_task = asyncio.create_task(_generate_concept_refs_bg())
     yield
     task.cancel()
     pregen_task.cancel()
@@ -640,6 +687,7 @@ async def lifespan(app: FastAPI):
     story_task.cancel()
     recap_task.cancel()
     debug_ctx_task.cancel()
+    concept_refs_task.cancel()
     await close_pool()
 
 
