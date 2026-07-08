@@ -314,6 +314,7 @@ export interface SubmitResult {
     actual: string
     error?: string
   }>
+  streak?: number
 }
 
 export interface ProfileData {

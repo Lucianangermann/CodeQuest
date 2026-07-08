@@ -17,7 +17,8 @@ class SubmitAnswerResponse(BaseModel):
     expected_output: Optional[str] = None
     level: Optional[int] = None
     shield_used: bool = False
-    test_results: Optional[List[dict]] = None  # NEW: per-test-case results
+    test_results: Optional[List[dict]] = None
+    streak: int = 0
 
 
 class HintRequest(BaseModel):

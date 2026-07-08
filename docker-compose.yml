@@ -28,7 +28,7 @@ services:
       DATABASE_URL:     postgresql://codequest:codequest@postgres:5432/codequest
       JWT_SECRET:       ${JWT_SECRET:-dev-secret-change-in-production}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      CORS_ORIGINS:     http://localhost:5173,http://100.125.210.54:5173,http://192.168.178.42:5173
+      CORS_ORIGINS:     http://localhost:5173,http://100.76.133.11:5173,http://192.168.178.42:5173
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY_PEM: ${VAPID_PRIVATE_KEY_PEM:-}
       VAPID_CONTACT: ${VAPID_CONTACT:-mailto:admin@codequest.dev}

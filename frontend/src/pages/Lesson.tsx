@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, CheckCircle, XCircle, Loader2, ChevronRight, HelpCircle, Sparkles, BookOpen, ChevronDown, Target, RefreshCw } from 'lucide-react'
+import { LessonSkeleton } from '../components/LoadingSkeleton'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
@@ -451,7 +452,7 @@ export default function LessonPage() {
   const { lessonId } = useParams<{ lessonId: string }>()
   const navigate = useNavigate()
   const { currentLesson, currentTopicName, setCurrentLesson, startLesson } = useLessonStore()
-  const { user, updateXP, uiLanguage } = useUserStore()
+  const { user, updateXP, updateStreak, uiLanguage } = useUserStore()
   const t = useT()
   const queryClient = useQueryClient()
 
@@ -563,12 +564,22 @@ export default function LessonPage() {
     return () => cancelAnimationFrame(rafId)
   }, [result?.correct])
 
+  // Escape closes any open overlay / modal
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== 'Escape') return
+      if (levelUp !== null) { setLevelUp(null); return }
+      if (topicComplete) { setTopicComplete(false); return }
+      if (recapOpen) { setRecapOpen(false); return }
+      if (walkthrough) { setWalkthrough(null); return }
+      if (showSolution) { setShowSolution(false); return }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [levelUp, topicComplete, recapOpen, walkthrough, showSolution])
+
   if (isLoading || !lesson) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-quest-purple" />
-      </div>
-    )
+    return <LessonSkeleton />
   }
 
   async function handleGetReview() {
@@ -638,6 +649,7 @@ export default function LessonPage() {
         const newXP = (user?.xp ?? 0) + res.xp_earned
         const newLevel = res.level ?? Math.max(1, Math.floor(newXP / 100))
         updateXP(newXP, newLevel)
+        if (res.streak) updateStreak(res.streak)
         if (newLevel > (user?.level ?? 1)) {
           setLevelUp(newLevel)
           setTimeout(() => setLevelUp(null), 4000)

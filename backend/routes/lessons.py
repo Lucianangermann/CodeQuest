@@ -378,6 +378,7 @@ async def submit_lesson(
         expected_output_val: Optional[str] = None
         level_val: Optional[int] = None
         test_results_val: Optional[list] = None
+        new_streak_val: int = 0
 
         if lesson["type"] == "quiz":
             try:
@@ -496,6 +497,7 @@ async def submit_lesson(
                 user_id,
             )
             new_streak, _, _shield = await update_user_streak(conn, user_id)
+            new_streak_val = new_streak
             await _award_badges(
                 conn, user_id, new_xp, total_done,
                 streak=new_streak,
@@ -533,4 +535,5 @@ async def submit_lesson(
         expected_output=expected_output_val,
         level=level_val,
         test_results=test_results_val,
+        streak=new_streak_val,
     )
