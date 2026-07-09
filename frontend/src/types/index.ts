@@ -180,7 +180,6 @@ export interface TheorySection {
 export interface TheoryContent {
   sections: TheorySection[]
   summary?: string
-  why_matters?: string
 }
 
 export interface QuizContent {
@@ -227,6 +226,7 @@ export interface Lesson {
   concept_intro?: string | null
   glossary?: Record<string, { explanation: string; example?: string | null; example_language?: string | null }>
   learning_objectives?: string[]
+  why_matters?: string | null
   story_context?: string | null
   recap_quiz?: RecapQuestion[]
   error_context?: string | null

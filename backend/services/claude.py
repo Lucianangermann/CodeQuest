@@ -1266,7 +1266,7 @@ async def generate_glossary_entry(term: str, prog_language: str) -> dict:
 
 
 async def generate_why_matters(
-    topic_title: str, theory_content: dict, language: str
+    topic_title: str, theory_content: dict, language: str, ui_lang: str = "en"
 ) -> str:
     """Generate a 2-3 sentence 'where this is used in real projects' section."""
     client = _get_claude()
@@ -1274,14 +1274,16 @@ async def generate_why_matters(
         return ""
 
     summary = str(theory_content.get("summary", ""))[:300]
+    lang_instruction = "in German" if ui_lang == "de" else "in English"
+    prefix = "🌍 Real world" if ui_lang != "de" else "🌍 In der Praxis"
     try:
         msg = await client.messages.create(
             model=MODEL, max_tokens=150,
             messages=[{"role": "user", "content":
                 f"Topic: {topic_title}\nLanguage: {language}\nSummary: {summary}\n\n"
-                "Write 2 sentences explaining where this concept is used in REAL "
+                f"Write 2 sentences {lang_instruction} explaining where this concept is used in REAL "
                 f"{language} projects. Be concrete: mention specific frameworks, APIs, "
-                "or code patterns. Start with '🌍 Real world:'"
+                f"or code patterns. Start with '{prefix}:'"
             }],
         )
         return msg.content[0].text.strip()

@@ -320,6 +320,15 @@ async def get_lesson(lesson_id: int, ui_lang: str = "en", user_id: Optional[str]
     lo_key = f"learning_objectives_{ui_lang}"
     learning_objectives = existing_tr.get(lo_key) or existing_tr.get("learning_objectives_en") or []
 
+    # "Real world" why-this-matters blurb (language-aware, with legacy content_json fallback)
+    wm_key = f"why_matters_{ui_lang}"
+    why_matters = (
+        existing_tr.get(wm_key)
+        or existing_tr.get("why_matters_en")
+        or (lesson["content_json"] or {}).get("why_matters")
+        or None
+    )
+
     story_context = existing_tr.get("story_context") or None
 
     # Recap quiz (3 questions testing lesson concepts)
@@ -330,7 +339,7 @@ async def get_lesson(lesson_id: int, ui_lang: str = "en", user_id: Optional[str]
 
     concept_refs = existing_tr.get("concept_refs") or []
 
-    d = {**dict(lesson), "is_completed": is_completed, "xp_earned": xp_earned, "concept_intro": concept_intro, "glossary": glossary, "learning_objectives": learning_objectives, "story_context": story_context, "recap_quiz": recap_quiz, "error_context": error_context, "concept_refs": concept_refs}
+    d = {**dict(lesson), "is_completed": is_completed, "xp_earned": xp_earned, "concept_intro": concept_intro, "glossary": glossary, "learning_objectives": learning_objectives, "why_matters": why_matters, "story_context": story_context, "recap_quiz": recap_quiz, "error_context": error_context, "concept_refs": concept_refs}
     if ui_lang == "de":
         tr = existing_tr
         if tr.get("title"):

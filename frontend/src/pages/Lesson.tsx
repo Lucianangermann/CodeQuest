@@ -194,9 +194,9 @@ function TheoryView({ content, glossary, uiLanguage, lesson }: {
           <strong className="text-quest-purple-light">{t('lesson.summary')}:</strong> {content.summary}
         </div>
       )}
-      {content.why_matters && (
+      {lesson?.why_matters && (
         <div className="mt-2 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-sm text-emerald-300">
-          {content.why_matters}
+          {lesson.why_matters}
         </div>
       )}
       {/* Fachbegriffe / Glossary */}

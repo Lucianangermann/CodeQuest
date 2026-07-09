@@ -279,41 +279,48 @@ async def _generate_quiz_explanations_bg():
 
 
 async def _generate_why_matters_bg():
-    """Background: add 'why this matters' real-world context to theory lessons."""
+    """Background: add 'why this matters' real-world context to theory lessons (EN + DE)."""
     await asyncio.sleep(150)
     from db.connection import acquire
     from services.claude import generate_why_matters
+    import json as _json2
 
     sem = asyncio.Semaphore(2)
 
-    async def _add(lesson):
+    async def _process(lesson):
+        raw_tr = lesson["translations"]
+        tr = (raw_tr if isinstance(raw_tr, dict) else _json2.loads(raw_tr)) if raw_tr else {}
         raw = lesson["content_json"] or {}
-        if raw.get("why_matters"):
-            return
+        legacy = raw.get("why_matters")
+        if legacy and not tr.get("why_matters_en"):
+            tr["why_matters_en"] = legacy
         language = lesson["language"] or "python"
         async with sem:
             try:
-                why = await generate_why_matters(lesson["topic_title"], raw, language)
-                if not why:
-                    return
-                updated = dict(raw)
-                updated["why_matters"] = why
-                async with acquire() as conn:
-                    await conn.execute(
-                        "UPDATE lessons SET content_json = $1 WHERE id = $2",
-                        updated, lesson["id"],
-                    )
+                for ui_lang in ("en", "de"):
+                    key = f"why_matters_{ui_lang}"
+                    if key not in tr:
+                        why = await generate_why_matters(lesson["topic_title"], raw, language, ui_lang)
+                        if why:
+                            tr[key] = why
+                if tr.get("why_matters_en") or tr.get("why_matters_de"):
+                    async with acquire() as conn:
+                        await conn.execute(
+                            "UPDATE lessons SET translations = $1 WHERE id = $2",
+                            tr, lesson["id"],
+                        )
             except Exception:
                 pass
 
     try:
         async with acquire() as conn:
             rows = await conn.fetch(
-                """SELECT l.id, l.content_json, l.language, t.title AS topic_title
+                """SELECT l.id, l.content_json, l.translations, l.language, t.title AS topic_title
                    FROM lessons l JOIN topics t ON t.id = l.topic_id
-                   WHERE l.type = 'theory' AND NOT (l.content_json ? 'why_matters')"""
+                   WHERE l.type = 'theory'
+                   AND (l.translations IS NULL OR NOT (l.translations ? 'why_matters_de'))"""
             )
-        await asyncio.gather(*[_add(r) for r in rows])
+        await asyncio.gather(*[_process(r) for r in rows])
     except Exception:
         pass
 
