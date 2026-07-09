@@ -56,21 +56,22 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-0.5 min-w-0">
+          <div className="hidden md:flex items-center gap-0.5 flex-shrink-0">
             {NAV_ITEMS.map(({ path, label, icon: Icon }) => {
               const isActive = location.pathname === path
               return (
                 <Link
                   key={path}
                   to={path}
-                  className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+                  title={label}
+                  className={`relative flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
                     isActive
                       ? 'text-white border border-quest-purple/40'
                       : 'text-quest-muted hover:text-quest-text hover:bg-white/5 border border-transparent'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  {label}
+                  <span className="sr-only">{label}</span>
                   {isActive && (
                     <motion.div
                       layoutId="nav-indicator"
