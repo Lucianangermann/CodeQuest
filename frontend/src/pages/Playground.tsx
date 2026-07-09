@@ -75,15 +75,7 @@ export default function Playground() {
       </div>
 
       <div className="space-y-4">
-        <div className="card p-0 overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-2 bg-[#1e1e2e] border-b border-quest-border text-xs text-quest-muted font-mono">
-            <span className="w-3 h-3 rounded-full bg-red-500/70" />
-            <span className="w-3 h-3 rounded-full bg-yellow-500/70" />
-            <span className="w-3 h-3 rounded-full bg-green-500/70" />
-            <span className="ml-2">{language}</span>
-          </div>
-          <Editor value={code} onChange={setCode} language={language} height="400px" />
-        </div>
+        <Editor value={code} onChange={setCode} language={language} height="400px" />
 
         {(output !== null || error !== null) && (
           <motion.div

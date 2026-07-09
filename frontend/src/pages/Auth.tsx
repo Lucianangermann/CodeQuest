@@ -5,11 +5,11 @@ import { Zap, Lock, User, Loader2 } from 'lucide-react'
 import { apiLogin, apiSignup } from '../lib/auth'
 import { useUserStore } from '../store/useUserStore'
 import { useT } from '../i18n/useT'
-import { updateStreak } from '../lib/api'
+import { updateStreak as apiUpdateStreak } from '../lib/api'
 import toast from 'react-hot-toast'
 
 export default function Auth() {
-  const { user, setUser, setToken } = useUserStore()
+  const { user, setUser, setToken, updateStreak } = useUserStore()
   const t = useT()
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [password, setPassword] = useState('')
@@ -29,7 +29,10 @@ export default function Auth() {
 
       setToken(result.token)
       setUser(result.user as any)
-      try { await updateStreak() } catch { /* best-effort */ }
+      try {
+        const streakResult = await apiUpdateStreak()
+        if (streakResult?.streak) updateStreak(streakResult.streak)
+      } catch { /* best-effort */ }
 
       toast.success(mode === 'login' ? t('auth.welcomeBack') : t('auth.accountCreated'))
     } catch (err: any) {

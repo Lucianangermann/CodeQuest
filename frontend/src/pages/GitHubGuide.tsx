@@ -216,13 +216,14 @@ export default function GitHubGuide() {
                 <button
                   key={s.id}
                   onClick={() => scrollTo(s.id)}
-                  className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-quest-muted hover:text-quest-text hover:bg-quest-border transition-all"
+                  title={s.title}
+                  className="w-full text-left flex items-start gap-2 px-3 py-2 rounded-lg text-sm text-quest-muted hover:text-quest-text hover:bg-quest-border transition-all"
                 >
                   {done
-                    ? <CheckCircle className="w-3.5 h-3.5 text-quest-green flex-shrink-0" />
-                    : <span className="w-3.5 h-3.5 flex-shrink-0 text-center text-xs">{s.emoji}</span>
+                    ? <CheckCircle className="w-3.5 h-3.5 text-quest-green flex-shrink-0 mt-0.5" />
+                    : <span className="w-3.5 h-3.5 flex-shrink-0 text-center text-xs mt-0.5">{s.emoji}</span>
                   }
-                  <span className="truncate">{s.title}</span>
+                  <span>{s.title}</span>
                 </button>
               )
             })}

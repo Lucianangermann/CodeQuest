@@ -52,7 +52,7 @@ export default function AIChat() {
         onClick={toggleChat}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-quest-purple rounded-full shadow-lg shadow-quest-purple/30 flex items-center justify-center text-white hover:bg-quest-purple-light transition-colors"
+        className="fixed bottom-20 md:bottom-6 right-6 z-50 w-14 h-14 bg-quest-purple rounded-full shadow-lg shadow-quest-purple/30 flex items-center justify-center text-white hover:bg-quest-purple-light transition-colors"
         aria-label="Open AI tutor"
       >
         <AnimatePresence mode="wait">
@@ -81,8 +81,8 @@ export default function AIChat() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 24, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="fixed bottom-24 right-6 z-50 w-80 sm:w-96 flex flex-col bg-quest-card border border-quest-border rounded-2xl shadow-2xl overflow-hidden"
-            style={{ maxHeight: 'min(480px, calc(100vh - 120px))' }}
+            className="fixed bottom-40 md:bottom-24 right-6 z-50 w-80 sm:w-96 flex flex-col bg-quest-card border border-quest-border rounded-2xl shadow-2xl overflow-hidden"
+            style={{ maxHeight: 'min(480px, calc(100vh - 160px))' }}
           >
             {/* Header */}
             <div className="flex items-center gap-3 px-4 py-3 border-b border-quest-border bg-quest-purple/10">

@@ -71,7 +71,7 @@ export default function JobReadyWidget() {
         />
       )}
 
-      <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end gap-2">
+      <div className="fixed bottom-36 md:bottom-20 right-4 z-40 flex flex-col items-end gap-2">
         {open && (
           <div className="bg-quest-card border border-white/10 rounded-2xl shadow-2xl w-80 max-h-[70vh] flex flex-col">
             {/* Header */}
