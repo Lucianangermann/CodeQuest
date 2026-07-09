@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Zap, Lock, User, Loader2 } from 'lucide-react'
 import { apiLogin, apiSignup } from '../lib/auth'
@@ -10,7 +10,6 @@ import toast from 'react-hot-toast'
 
 export default function Auth() {
   const { user, setUser, setToken } = useUserStore()
-  const navigate = useNavigate()
   const t = useT()
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [password, setPassword] = useState('')
@@ -33,7 +32,6 @@ export default function Auth() {
       try { await updateStreak() } catch { /* best-effort */ }
 
       toast.success(mode === 'login' ? t('auth.welcomeBack') : t('auth.accountCreated'))
-      navigate('/dashboard')
     } catch (err: any) {
       toast.error(err?.response?.data?.detail || t('auth.error'))
     } finally {
